@@ -19,8 +19,8 @@ jobs:
           node-version: 20
 
       - name: Install deps
-        run: |
-          npm install || true
+        run: npm ci
+      
 
       - name: Run collector
         run: node scripts/collect-loyaltykey.mjs

@@ -1,0 +1,174 @@
+{
+  "savedAt": "2026-01-20T19:56:14.354Z",
+  "url": "https://onlineshopping.loyaltykey.com/api/v1/shops?filter%5Bchannel%5D=SAS&filter%5Blanguage%5D=nb&filter%5Bcountry%5D=no&per_page=100&page=8",
+  "status": 200,
+  "data": {
+    "data": [
+      {
+        "uuid": "01896312-a2bd-70b3-b51c-9610a04ab888",
+        "name": "X-life",
+        "logo": null,
+        "background_image": null,
+        "commission_type": "variable",
+        "currency": "%",
+        "categoryId": 9,
+        "has_campaign": 0,
+        "has_shop_form": false,
+        "points_campaign": 0,
+        "points_channel": 5,
+        "campaign_ends": null,
+        "campaign_ends_date": null,
+        "points": 25,
+        "customer_commission": null,
+        "image_url": "https://storage.onlineshopping.loyaltykey.com/storage/app/public/shops/images/X-life-1689584313.jpg",
+        "image_banner_url": "https://storage.onlineshopping.loyaltykey.com/storage/app/public/shops/images/X-life_large-1689584313.jpg",
+        "fixed_cashback_text": null,
+        "description": "<p>Vårt samfunnsansvar er å bidra til at flest mulig mennesker holder seg i aktivitet. Vi er en destinasjon der man skal finne inspirasjon til en aktiv livsstil med spennende produkter innen trening og aktiv fritid. I tillegg til å tilby stort utvalg produkter er vi opptatt av å inspirere til trening på bloggen&nbsp;vår.</p>",
+        "slug": "x-life"
+      },
+      {
+        "uuid": "0189630b-fef3-70b3-953f-1b0c8875ef34",
+        "name": "Xplora",
+        "logo": null,
+        "background_image": null,
+        "commission_type": "fixed",
+        "currency": "NOK",
+        "categoryId": 4,
+        "has_campaign": 0,
+        "has_shop_form": false,
+        "points_campaign": 0,
+        "points_channel": 200,
+        "campaign_ends": null,
+        "campaign_ends_date": null,
+        "points": 1000,
+        "customer_commission": null,
+        "image_url": "https://storage.onlineshopping.loyaltykey.com/storage/app/public/shops/images/Xplora-1689583878.jpg",
+        "image_banner_url": "https://storage.onlineshopping.loyaltykey.com/storage/app/public/shops/images/Xplora_large-1689583878.jpg",
+        "fixed_cashback_text": null,
+        "description": "<div>Endelig en komplett mobiltelefon, spesielt laget for barnet ditt – utformet som en smartklokke. Etter flere år med forskning og utvikling er Xplora den første smartklokken i verden som er CE godkjent som mobiltelefon og som både bruker aGPS, aktiv WiFi og GSM-triangulering for å gi presis lokasjon. For å gjøre den komplett leveres den med norsk språk, veiledning og support.&nbsp;</div><div><br></div><div>V<strong>ennligst merk:</strong>&nbsp;Du tjener kun poeng ved kjøp av klokker</div>",
+        "slug": "xplora"
+      },
+      {
+        "uuid": "0189630d-090d-71ba-a708-cc740649c2f0",
+        "name": "YouWish",
+        "logo": null,
+        "background_image": null,
+        "commission_type": "variable",
+        "currency": "%",
+        "categoryId": 5,
+        "has_campaign": 0,
+        "has_shop_form": false,
+        "points_campaign": 0,
+        "points_channel": 10,
+        "campaign_ends": null,
+        "campaign_ends_date": null,
+        "points": 50,
+        "customer_commission": null,
+        "image_url": "https://storage.onlineshopping.loyaltykey.com/storage/app/public/shops/images/YouWish-1689583946.jpg",
+        "image_banner_url": "https://storage.onlineshopping.loyaltykey.com/storage/app/public/shops/images/YouWish_large-1689583946.jpg",
+        "fixed_cashback_text": null,
+        "description": "<p>YouWish.no er Norges største leverandør av opplevelsesgaver. Velg gavekort på over 500 opplevelser eller kjøp opplevelsesgavekortet og la mottaker velge selv.</p>",
+        "slug": "youwish"
+      },
+      {
+        "uuid": "01896312-b5e6-7274-8e4a-7eb11e4ab5a9",
+        "name": "ZOO.no",
+        "logo": null,
+        "background_image": null,
+        "commission_type": "variable",
+        "currency": "%",
+        "categoryId": 13,
+        "has_campaign": 0,
+        "has_shop_form": false,
+        "points_campaign": 0,
+        "points_channel": 5,
+        "campaign_ends": null,
+        "campaign_ends_date": null,
+        "points": 25,
+        "customer_commission": null,
+        "image_url": "https://storage.onlineshopping.loyaltykey.com/storage/app/public/shops/images/ZOO_Online_store-1689584318.jpg",
+        "image_banner_url": "https://storage.onlineshopping.loyaltykey.com/storage/app/public/shops/images/ZOO_Online_store_large-1689584318.jpg",
+        "fixed_cashback_text": null,
+        "description": "<p>ZOO.no&nbsp;har Norges&nbsp;største sortiment av kjæledyrartikler med velassorterte butikker og veterinærklinikker. Vi er tilgjengelig på nett og i flere store butikker rundt om i Norge.</p>",
+        "slug": "zoo.se-1"
+      }
+    ],
+    "links": {
+      "first": "https://onlineshopping.loyaltykey.com/api/v1/shops?filter%5Bchannel%5D=SAS&filter%5Blanguage%5D=nb&filter%5Bcountry%5D=no&per_page=100&page=1",
+      "last": "https://onlineshopping.loyaltykey.com/api/v1/shops?filter%5Bchannel%5D=SAS&filter%5Blanguage%5D=nb&filter%5Bcountry%5D=no&per_page=100&page=8",
+      "prev": "https://onlineshopping.loyaltykey.com/api/v1/shops?filter%5Bchannel%5D=SAS&filter%5Blanguage%5D=nb&filter%5Bcountry%5D=no&per_page=100&page=7",
+      "next": null
+    },
+    "meta": {
+      "current_page": 8,
+      "from": 225,
+      "last_page": 8,
+      "links": [
+        {
+          "url": "https://onlineshopping.loyaltykey.com/api/v1/shops?filter%5Bchannel%5D=SAS&filter%5Blanguage%5D=nb&filter%5Bcountry%5D=no&per_page=100&page=7",
+          "label": "&laquo; Previous",
+          "page": 7,
+          "active": false
+        },
+        {
+          "url": "https://onlineshopping.loyaltykey.com/api/v1/shops?filter%5Bchannel%5D=SAS&filter%5Blanguage%5D=nb&filter%5Bcountry%5D=no&per_page=100&page=1",
+          "label": "1",
+          "page": 1,
+          "active": false
+        },
+        {
+          "url": "https://onlineshopping.loyaltykey.com/api/v1/shops?filter%5Bchannel%5D=SAS&filter%5Blanguage%5D=nb&filter%5Bcountry%5D=no&per_page=100&page=2",
+          "label": "2",
+          "page": 2,
+          "active": false
+        },
+        {
+          "url": "https://onlineshopping.loyaltykey.com/api/v1/shops?filter%5Bchannel%5D=SAS&filter%5Blanguage%5D=nb&filter%5Bcountry%5D=no&per_page=100&page=3",
+          "label": "3",
+          "page": 3,
+          "active": false
+        },
+        {
+          "url": "https://onlineshopping.loyaltykey.com/api/v1/shops?filter%5Bchannel%5D=SAS&filter%5Blanguage%5D=nb&filter%5Bcountry%5D=no&per_page=100&page=4",
+          "label": "4",
+          "page": 4,
+          "active": false
+        },
+        {
+          "url": "https://onlineshopping.loyaltykey.com/api/v1/shops?filter%5Bchannel%5D=SAS&filter%5Blanguage%5D=nb&filter%5Bcountry%5D=no&per_page=100&page=5",
+          "label": "5",
+          "page": 5,
+          "active": false
+        },
+        {
+          "url": "https://onlineshopping.loyaltykey.com/api/v1/shops?filter%5Bchannel%5D=SAS&filter%5Blanguage%5D=nb&filter%5Bcountry%5D=no&per_page=100&page=6",
+          "label": "6",
+          "page": 6,
+          "active": false
+        },
+        {
+          "url": "https://onlineshopping.loyaltykey.com/api/v1/shops?filter%5Bchannel%5D=SAS&filter%5Blanguage%5D=nb&filter%5Bcountry%5D=no&per_page=100&page=7",
+          "label": "7",
+          "page": 7,
+          "active": false
+        },
+        {
+          "url": "https://onlineshopping.loyaltykey.com/api/v1/shops?filter%5Bchannel%5D=SAS&filter%5Blanguage%5D=nb&filter%5Bcountry%5D=no&per_page=100&page=8",
+          "label": "8",
+          "page": 8,
+          "active": true
+        },
+        {
+          "url": null,
+          "label": "Next &raquo;",
+          "page": null,
+          "active": false
+        }
+      ],
+      "path": "https://onlineshopping.loyaltykey.com/api/v1/shops",
+      "per_page": 32,
+      "to": 228,
+      "total": 228
+    }
+  }
+}

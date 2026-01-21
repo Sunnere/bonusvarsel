@@ -1,4 +1,3 @@
-import "dotenv/config";
 /**
  * LoyaltyKey collector for SAS OnlineShopping
  * - Auto-paginates using links.next

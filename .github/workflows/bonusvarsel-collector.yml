@@ -1,0 +1,35 @@
+name: Bonusvarsel collector
+
+on:
+  schedule:
+    - cron: "15 * * * *"   # hver time på minutt 15 (UTC)
+  workflow_dispatch:
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Run collector
+        run: node scripts/collect-loyaltykey.mjs
+
+      - name: Notify Telegram
+        env:
+          TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
+          TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
+        run: node scripts/notify-telegram.mjs
+
+      - name: Commit updated data
+        run: |
+          git config user.name "bonusvarsel-bot"
+          git config user.email "bonusvarsel-bot@users.noreply.github.com"
+          git add data/*.json || true
+          git commit -m "Update data snapshots" || echo "No changes to commit"
+          git push || echo "No push (maybe no changes)"

@@ -1,0 +1,28 @@
+{
+  "name": "bonusvarsel",
+  "version": "1.0.0",
+  "description": "Få oversikt over poengene dine, og tilbudene du må følge med på for å tjene mulig eurobonus poeng til din neste reise.",
+  "main": "index.js",
+  "directories": {
+    "lib": "lib",
+    "test": "test"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Sunnere/bonusvarsel.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/Sunnere/bonusvarsel/issues"
+  },
+  "homepage": "https://github.com/Sunnere/bonusvarsel#readme",
+  "dependencies": {
+    "dotenv": "^17.2.3"
+  }
+}

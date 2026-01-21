@@ -1,0 +1,38 @@
+{
+  "startedAt": "2026-01-20T20:19:32.269Z",
+  "finishedAt": "2026-01-20T20:19:32.294Z",
+  "apiBase": "https://onlineshopping.loyaltykey.com",
+  "params": {
+    "filter[channel]": "SAS",
+    "filter[language]": "nb",
+    "filter[country]": "no",
+    "per_page": 100,
+    "page": 1
+  },
+  "campaigns": {
+    "summary": {
+      "added": 0,
+      "removed": 0,
+      "updated": 0,
+      "unchanged": 13,
+      "prevTotal": 13,
+      "nextTotal": 13
+    },
+    "added": [],
+    "removed": [],
+    "updated": []
+  },
+  "shops": {
+    "summary": {
+      "added": 0,
+      "removed": 0,
+      "updated": 0,
+      "unchanged": 228,
+      "prevTotal": 228,
+      "nextTotal": 228
+    },
+    "added": [],
+    "removed": [],
+    "updated": []
+  }
+}

@@ -21,6 +21,7 @@ jobs:
 
       - name: Install deps
         run: npm install
+        working-directory: ${{ github.workspace }}
 
       - name: Run collector
         run: node scripts/collect-loyaltykey.mjs

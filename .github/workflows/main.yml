@@ -20,7 +20,7 @@ jobs:
           
 
       - name: Install deps
-        run: npm ci
+        run: npm install
 
       - name: Run collector
         run: node scripts/collect-loyaltykey.mjs

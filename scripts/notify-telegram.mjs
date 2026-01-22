@@ -4,6 +4,8 @@ import path from "node:path";
 const TOKEN = process.env.TG_BOT_TOKEN;
 const CHAT_ID = process.env.TG_CHAT_ID;
 
+const messageOverride = process.argv.slice(2).join(" ").trim();
+
 if (!TOKEN) {
   console.error("Mangler TG_BOT_TOKEN");
   process.exit(2);
@@ -67,6 +69,12 @@ async function main() {
     console.log("Fant ikke data/changes.summary.json – kjør collector først.");
     process.exit(0);
   }
+
+if (messageOverride) {
+  await sendTelegram(messageOverride);
+  console.log("Sendte test/override-melding ✅");
+  process.exit(0);
+}
 
   const msg = formatMessage(summary);
   if (!msg) {

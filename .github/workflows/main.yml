@@ -2,8 +2,8 @@ name: Bonusvarsel
 
 on:
   schedule:
-    - cron: "*/30 * * * *"   # hvert 30. minutt
-  workflow_dispatch:        # manuelt trigger
+    - cron: "*/30 * * * *" # hvert 30. minutt
+  workflow_dispatch:
 
 jobs:
   run:
@@ -17,10 +17,10 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
+          cache: "npm"
 
       - name: Install deps
         run: npm ci
-      
 
       - name: Run collector
         run: node scripts/collect-loyaltykey.mjs

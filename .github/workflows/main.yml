@@ -17,7 +17,11 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          
+
+      - name: 🔎 Debug Telegram secrets (safe)
+        run: |
+          echo "HAS_TG_BOT_TOKEN=$([[ -n '${{ secrets.TG_BOT_TOKEN }}' ]] && echo yes || echo no)"
+          echo "HAS_TG_CHAT_ID=$([[ -n '${{ secrets.TG_CHAT_ID }}' ]] && echo yes || echo no)"
 
       - name: Install deps
         run: npm install

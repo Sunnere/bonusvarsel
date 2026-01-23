@@ -1,9 +1,9 @@
 name: Bonusvarsel
 
 on:
+  workflow_dispatch:
   schedule:
-    - cron: "0 */6 * * *"   # hver 6. time
-  workflow_dispatch:       # kan kjøres manuelt
+    - cron: "*/30 * * * *"  # hver 30. min (juster senere)
 
 jobs:
   run:
@@ -18,22 +18,14 @@ jobs:
         with:
           node-version: 20
 
-      - name: Debug Telegram secrets (safe)
-        run: |
-          echo "HAS_TG_BOT_TOKEN=$([[ -n '${{ secrets.TG_BOT_TOKEN }}' ]] && echo yes || echo no)"
-          echo "HAS_TG_CHAT_ID=$([[ -n '${{ secrets.TG_CHAT_ID }}' ]] && echo yes || echo no)"
-
       - name: Install deps
-        run: npm install
-        working-directory: ${{ github.workspace }}
+        run: npm ci
 
       - name: Run collector
         run: node scripts/collect-loyaltykey.mjs
-        working-directory: ${{ github.workspace }}
 
-      - name: Notify Telegram
+      - name: Notify Telegram (kun økt/kommende)
         run: node scripts/notify-from-changes.mjs
-        working-directory: ${{ github.workspace }}
         env:
           TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
           TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}

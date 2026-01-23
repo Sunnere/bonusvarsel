@@ -1,93 +1,49 @@
-import fs from "node:fs";
-import path from "node:path";
+// scripts/notify-telegram.mjs
+import https from "node:https";
 
 const TOKEN = process.env.TG_BOT_TOKEN;
 const CHAT_ID = process.env.TG_CHAT_ID;
 
-const messageOverride = process.argv.slice(2).join(" ").trim();
+export async function sendTelegram(text) {
+  if (!TOKEN) throw new Error("Mangler TG_BOT_TOKEN");
+  if (!CHAT_ID) throw new Error("Mangler TG_CHAT_ID");
+  if (!text) throw new Error("Mangler meldingstekst");
 
-if (!TOKEN) {
-  console.error("Mangler TG_BOT_TOKEN");
-  process.exit(2);
-}
-if (!CHAT_ID) {
-  console.error("Mangler TG_CHAT_ID");
-  process.exit(2);
-}
-
-const SUMMARY_PATH = path.resolve("data", "changes.summary.json");
-
-function readSummary() {
-  if (!fs.existsSync(SUMMARY_PATH)) return null;
-  return JSON.parse(fs.readFileSync(SUMMARY_PATH, "utf-8"));
-}
-
-function formatMessage(summary) {
-  const c = summary?.campaigns || {};
-  const s = summary?.shops || {};
-
-  const changed =
-    (c.added || 0) + (c.updated || 0) + (c.removed || 0) +
-    (s.added || 0) + (s.updated || 0) + (s.removed || 0);
-
-  if (!changed) return null;
-
-  const lines = [
-    "Bonusvarsel – endringer ✅",
-    "",
-    `Campaigns: +${c.added || 0} / ~${c.updated || 0} / -${c.removed || 0}`,
-    `Shops:     +${s.added || 0} / ~${s.updated || 0} / -${s.removed || 0}`,
-  ];
-
-  return lines.join("\n");
-}
-
-async function sendTelegram(text) {
-  const url = `https://api.telegram.org/bot${TOKEN}/sendMessage`;
-  const body = new URLSearchParams({
-    chat_id: String(CHAT_ID),
-    text,
-    disable_web_page_preview: "true",
+  const payload = JSON.stringify({
+    chat_id: CHAT_ID,
+    text: String(text),
+    disable_web_page_preview: true,
   });
 
-  const res = await fetch(url, {
+  const options = {
+    hostname: "api.telegram.org",
+    path: `/bot${TOKEN}/sendMessage`,
     method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body,
+    headers: {
+      "Content-Type": "application/json",
+      "Content-Length": Buffer.byteLength(payload),
+    },
+  };
+
+  const resBody = await new Promise((resolve, reject) => {
+    const req = https.request(options, (res) => {
+      let data = "";
+      res.on("data", (chunk) => (data += chunk));
+      res.on("end", () => resolve({ status: res.statusCode || 0, data }));
+    });
+    req.on("error", reject);
+    req.write(payload);
+    req.end();
   });
 
-  const json = await res.json().catch(() => ({}));
-  if (!res.ok || !json.ok) {
-    throw new Error(`Telegram API feil: HTTP ${res.status}\n${JSON.stringify(json, null, 2)}`);
-  }
-  return json;
-}
-
-async function main() {
-  const summary = readSummary();
-  if (!summary) {
-    console.log("Fant ikke data/changes.summary.json – kjør collector først.");
-    process.exit(0);
+  if (resBody.status < 200 || resBody.status >= 300) {
+    let msg = resBody.data;
+    try {
+      const parsed = JSON.parse(resBody.data);
+      msg = parsed?.description || resBody.data;
+    } catch {}
+    throw new Error(`Telegram API feil: HTTP ${resBody.status} - ${msg}`);
   }
 
-if (messageOverride) {
-  await sendTelegram(messageOverride);
-  console.log("Sendte test/override-melding ✅");
-  process.exit(0);
+  return true;
 }
-
-  const msg = formatMessage(summary);
-  if (!msg) {
-    console.log("Ingen endringer – sender ikke.");
-    process.exit(0);
-  }
-
-  await sendTelegram(msg);
-  console.log("Sendt til Telegram ✅");
-}
-
-main().catch((e) => {
-  console.error("Notify feilet ❌");
-  console.error(e?.stack || e);
-  process.exit(1);
-});

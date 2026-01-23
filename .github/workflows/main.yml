@@ -37,10 +37,4 @@ jobs:
           TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
           TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
         working-directory: ${{ github.workspace }}
-
-      - name: 🔔 Test Telegram (one-off)
-        run: node scripts/notify-telegram.mjs "Test fra GitHub Actions ✅"
-        env:
-          TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
-          TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
-        working-directory: ${{ github.workspace }}        
+        

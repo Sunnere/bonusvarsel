@@ -1,223 +1,241 @@
 import fs from "node:fs";
 import path from "node:path";
-
 import { sendTelegram } from "./notify-telegram.mjs";
 
-// Leser output fra collector
-const CHANGES_PATH = path.resolve("data", "changes.json");
+const changesPath = path.resolve("data", "changes.json");
+const summaryPath = path.resolve("data", "changes.summary.json");
 
 // --- helpers ---
-function safeNumber(x) {
-  if (x === null || x === undefined) return null;
-  if (typeof x === "number") return Number.isFinite(x) ? x : null;
-  if (typeof x === "string") {
-    const v = Number(x.replace(",", "."));
-    return Number.isFinite(v) ? v : null;
+function readJson(p) {
+  if (!fs.existsSync(p)) return null;
+  return JSON.parse(fs.readFileSync(p, "utf8"));
+}
+
+function asDate(v) {
+  if (!v) return null;
+  const d = new Date(v);
+  return Number.isFinite(d.getTime()) ? d : null;
+}
+
+function toNumberMaybe(v) {
+  if (v === null || v === undefined) return null;
+  if (typeof v === "number" && Number.isFinite(v)) return v;
+  if (typeof v === "string") {
+    // handle "12", "12.5", "12,5", "+20", "20 poeng/kr"
+    const cleaned = v
+      .trim()
+      .replace(",", ".")
+      .replace(/[^\d.+-]/g, "");
+    const n = Number(cleaned);
+    return Number.isFinite(n) ? n : null;
   }
   return null;
 }
 
-// Prøv å hente "poeng/kr" eller liknende fra ulike felter (fordi API kan variere)
-function getMultiplier(obj) {
-  // vanlige feltvarianter
-  return (
-    safeNumber(obj?.multiplier) ??
-    safeNumber(obj?.pointsPerKr) ??
-    safeNumber(obj?.points_per_kr) ??
-    safeNumber(obj?.rate) ??
-    safeNumber(obj?.value) ??
-    null
-  );
+function pickAfter(obj) {
+  // changes.json kan ha {after}, {new}, eller objektet selv
+  return obj?.after ?? obj?.new ?? obj;
 }
 
-function getTitle(obj) {
+function pickBefore(obj) {
+  return obj?.before ?? obj?.old ?? null;
+}
+
+function getTitle(x) {
   return (
-    obj?.title ??
-    obj?.name ??
-    obj?.merchantName ??
-    obj?.merchant ??
-    obj?.shopName ??
+    x?.title ||
+    x?.merchant ||
+    x?.merchantName ||
+    x?.name ||
+    x?.shop ||
+    x?.store ||
     "Ukjent"
   );
 }
 
-function getUrl(obj) {
-  return obj?.url ?? obj?.link ?? obj?.href ?? null;
+function getUrl(x) {
+  return x?.url || x?.link || x?.href || null;
 }
 
-function parseDateMaybe(x) {
-  if (!x) return null;
-  const d = new Date(x);
-  return Number.isNaN(d.getTime()) ? null : d;
+function getStart(x) {
+  return asDate(x?.startsAt || x?.startAt || x?.start || x?.validFrom);
 }
 
-function isUpcoming(obj) {
-  // Dersom vi har startsAt, så er kampanjen "kommende" hvis den starter frem i tid
-  const starts = parseDateMaybe(obj?.startsAt ?? obj?.startAt ?? obj?.start_date);
-  if (!starts) return false;
-  return starts.getTime() > Date.now();
+function getEnd(x) {
+  return asDate(x?.endsAt || x?.endAt || x?.end || x?.validTo);
 }
 
-function fmtDateShort(d) {
+function getRate(x) {
+  // Prøver å finne “rate”/multiplier/poeng per kr i vanlige felter
+  const candidates = [
+    x?.multiplier,
+    x?.pointsPerKr,
+    x?.points_per_kr,
+    x?.pointsPerCurrency,
+    x?.points,
+    x?.bonus,
+    x?.rate,
+    x?.value,
+  ];
+  for (const c of candidates) {
+    const n = toNumberMaybe(c);
+    if (n !== null) return n;
+  }
+  return null;
+}
+
+function formatRate(n) {
+  if (n === null) return "";
+  // Vi antar "poeng/kr" i output (det matcher prosjektet ditt)
+  // Hvis du heller vil ha "x" multiplier, si fra så endrer vi.
+  const isInt = Number.isInteger(n);
+  return `${isInt ? n : n.toFixed(1)} poeng/kr`;
+}
+
+function formatDateShort(d) {
   if (!d) return "";
-  // Norsk-ish kort format
-  return d.toLocaleDateString("nb-NO", { day: "2-digit", month: "2-digit" });
+  // yyyy-mm-dd -> dd.mm
+  const dd = String(d.getDate()).padStart(2, "0");
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  return `${dd}.${mm}`;
 }
 
-function formatCampaignLine({ label, title, beforeMult, afterMult, url, upcoming, startsAt }) {
-  const parts = [];
-  parts.push(label);
-
-  // Title (butikk)
-  parts.push(`*${escapeMd(title)}*`);
-
-  // multiplier
-  if (beforeMult !== null && afterMult !== null) {
-    parts.push(`_${beforeMult}→${afterMult} poeng/kr_`);
-  } else if (afterMult !== null) {
-    parts.push(`_${afterMult} poeng/kr_`);
-  }
-
-  // upcoming
-  if (upcoming) {
-    const d = startsAt ? fmtDateShort(startsAt) : "";
-    parts.push(d ? `⏳ starter ${d}` : `⏳ kommende`);
-  }
-
-  // url
-  if (url) parts.push(url);
-
-  return parts.join(" — ");
+function shorten(s, max = 42) {
+  if (!s) return "";
+  const t = String(s).trim();
+  return t.length <= max ? t : `${t.slice(0, max - 1)}…`;
 }
 
-// Telegram MarkdownV2 escape (basic)
-function escapeMd(text) {
-  return String(text).replace(/[_*[\]()~`>#+\-=|{}.!]/g, "\\$&");
+function lineForCampaign({ kind, title, beforeRate, afterRate, start, url }) {
+  const name = shorten(title, 44);
+  const when = start ? ` (fra ${formatDateShort(start)})` : "";
+  const arrow =
+    beforeRate !== null && afterRate !== null && afterRate > beforeRate
+      ? ` ${formatRate(beforeRate)} → ${formatRate(afterRate)}`
+      : afterRate !== null
+      ? ` ${formatRate(afterRate)}`
+      : "";
+
+  // Telegram: lenke på egen linje kan bli stygt, så vi gjør "Navn — rate" + url på slutten hvis finnes
+  const base = `${kind} ${name}${arrow}${when}`;
+  return url ? `${base}\n${url}` : base;
 }
 
-function readChanges() {
-  if (!fs.existsSync(CHANGES_PATH)) return null;
-  return JSON.parse(fs.readFileSync(CHANGES_PATH, "utf-8"));
+// --- main logic ---
+function buildRelevant(changes) {
+  const now = new Date();
+
+  const added = (changes?.campaigns?.added || []).map(pickAfter);
+  const updatedPairs = changes?.campaigns?.updated || [];
+
+  // Ny (added): send hvis den starter i fremtiden (kommende) eller starter nå/allerede (ny)
+  const relevantAdded = added
+    .map((c) => {
+      const start = getStart(c);
+      return {
+        kind: start && start > now ? "🔜" : "🆕",
+        title: getTitle(c),
+        beforeRate: null,
+        afterRate: getRate(c),
+        start,
+        url: getUrl(c),
+      };
+    })
+    .filter((x) => x.title);
+
+  // Oppdatert: send bare hvis “rate” har økt, eller startdato er frem i tid (kommende oppdatering)
+  const relevantUpdated = updatedPairs
+    .map((pair) => {
+      const before = pickBefore(pair);
+      const after = pickAfter(pair);
+      const bRate = getRate(before);
+      const aRate = getRate(after);
+      const start = getStart(after) || getStart(before);
+      const increased =
+        bRate !== null && aRate !== null ? aRate > bRate : false;
+
+      const upcoming = start && start > now;
+
+      if (!increased && !upcoming) return null;
+
+      return {
+        kind: increased ? "📈" : "🔜",
+        title: getTitle(after) || getTitle(before),
+        beforeRate: increased ? bRate : null,
+        afterRate: aRate,
+        start,
+        url: getUrl(after) || getUrl(before),
+      };
+    })
+    .filter(Boolean);
+
+  // Prioritering: økninger først, så nye, så kommende
+  const score = (x) => {
+    if (x.kind === "📈") return 3;
+    if (x.kind === "🆕") return 2;
+    if (x.kind === "🔜") return 1;
+    return 0;
+  };
+
+  const all = [...relevantUpdated, ...relevantAdded].sort(
+    (a, b) => score(b) - score(a)
+  );
+
+  return all;
 }
 
-function buildMessage({ increasedUpdated, upcomingAdded }) {
-  const lines = [];
+function buildMessage(items) {
+  const header = "🟡 BonusVarsel – nye/økte/kommende kampanjer";
 
-  lines.push("🎯 *Bonusvarsel*");
-  lines.push("");
+  // Maks antall “kampanje-blokker” (hver blokk kan ha 1–2 linjer pga URL)
+  const maxItems = 8;
+  const selected = items.slice(0, maxItems);
 
-  if (increasedUpdated.length) {
-    lines.push("📈 *Økte kampanjer*");
-    for (const item of increasedUpdated) {
-      lines.push(item.line);
-    }
-    lines.push("");
-  }
+  const lines = selected.flatMap((x) => {
+    const block = lineForCampaign(x);
+    return block.split("\n");
+  });
 
-  if (upcomingAdded.length) {
-    lines.push("⏳ *Kommende kampanjer*");
-    for (const item of upcomingAdded) {
-      lines.push(item.line);
-    }
-    lines.push("");
-  }
-
-  // litt footer
-  lines.push(`Oppdatert: ${new Date().toLocaleString("nb-NO")}`);
-
-  return lines.join("\n");
+  // Telegram har meldingslimit, men dette er trygt lavt
+  const body = lines.join("\n");
+  return `${header}\n\n${body}`.trim();
 }
 
-// --- main ---
 async function main() {
-  const args = process.argv.slice(2);
-  const force = args.includes("--force") || args.includes("-f");
+  const force = process.argv.includes("--force");
 
-  const changes = readChanges();
+  const changes = readJson(changesPath);
+  const summary = readJson(summaryPath);
+
   if (!changes) {
-    console.log(`Fant ikke ${CHANGES_PATH}. Kjør collector først.`);
+    console.error(`Fant ikke ${changesPath}. Kjør collector først.`);
     process.exit(1);
   }
 
-  const campaigns = changes?.campaigns ?? {};
-  const added = Array.isArray(campaigns.added) ? campaigns.added : [];
-  const updated = Array.isArray(campaigns.updated) ? campaigns.updated : [];
+  const items = buildRelevant(changes);
 
-  // 1) "Økte" = updated der multiplier går opp
-  const increasedUpdated = updated
-    .map((u) => {
-      const beforeObj = u?.before ?? u?.old ?? null;
-      const afterObj = u?.after ?? u?.new ?? null;
+  // Litt pen logg i terminalen (ikke spam)
+  const cSum = summary?.campaigns?.summary;
+  if (cSum) {
+    console.log(
+      `Campaigns: +${cSum.added ?? 0} / ~${cSum.updated ?? 0} / -${
+        cSum.removed ?? 0
+      }`
+    );
+  }
 
-      const beforeMult = getMultiplier(beforeObj);
-      const afterMult = getMultiplier(afterObj);
-
-      const title = getTitle(afterObj || beforeObj);
-      const url = getUrl(afterObj || beforeObj);
-
-      if (beforeMult === null || afterMult === null) return null;
-      if (!(afterMult > beforeMult)) return null;
-
-      return {
-        title,
-        beforeMult,
-        afterMult,
-        url,
-        line: formatCampaignLine({
-          label: "•",
-          title,
-          beforeMult,
-          afterMult,
-          url,
-          upcoming: false,
-          startsAt: null,
-        }),
-      };
-    })
-    .filter(Boolean);
-
-  // 2) "Kommende" = added der startsAt er i fremtiden
-  const upcomingAdded = added
-    .map((a) => {
-      // added kan være { after: {...} } eller bare objektet
-      const obj = a?.after ?? a?.new ?? a;
-      const title = getTitle(obj);
-      const url = getUrl(obj);
-
-      const mult = getMultiplier(obj);
-      const startsAt = parseDateMaybe(obj?.startsAt ?? obj?.startAt ?? obj?.start_date);
-
-      if (!isUpcoming(obj)) return null;
-
-      return {
-        title,
-        afterMult: mult,
-        url,
-        startsAt,
-        line: formatCampaignLine({
-          label: "•",
-          title,
-          beforeMult: null,
-          afterMult: mult,
-          url,
-          upcoming: true,
-          startsAt,
-        }),
-      };
-    })
-    .filter(Boolean);
-
-  const hasRelevant = increasedUpdated.length > 0 || upcomingAdded.length > 0;
-
-  if (!hasRelevant && !force) {
-    console.log("Ingen relevante kampanje-endringer (kun økt/kommende) ✅");
+  if (items.length === 0 && !force) {
+    console.log("Ingen relevante kampanje-endringer ✅ (sender ikke)");
     process.exit(0);
   }
 
-  const msg = hasRelevant
-    ? buildMessage({ increasedUpdated, upcomingAdded })
-    : `🧪 *Bonusvarsel test* (force)\n\nOppdatert: ${new Date().toLocaleString("nb-NO")}`;
+  if (items.length === 0 && force) {
+    await sendTelegram("🟡 BonusVarsel\n\nIngen relevante kampanje-endringer nå.");
+    console.log("Sendte (force) ✅");
+    process.exit(0);
+  }
 
+  const msg = buildMessage(items);
   await sendTelegram(msg);
   console.log("Sendt til Telegram ✅");
 }

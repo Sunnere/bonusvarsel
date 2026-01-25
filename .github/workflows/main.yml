@@ -2,8 +2,15 @@ name: Bonusvarsel
 
 on:
   workflow_dispatch:
+    inputs:
+      force:
+        description: "Send test/force varsel selv om ingen endringer"
+        required: false
+        default: "false"
   schedule:
-    - cron: "*/30 * * * *"  # hver 30. min (juster senere)
+    - cron: "*/30 * * * *"
+  push:
+    branches: [ "main" ]
 
 jobs:
   run:
@@ -16,7 +23,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: "20"
 
       - name: Install deps
         run: npm ci
@@ -25,7 +32,16 @@ jobs:
         run: node scripts/collect-loyaltykey.mjs
 
       - name: Notify Telegram (kun økt/kommende)
-        run: node scripts/notify-from-changes.mjs
         env:
           TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
           TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
+        run: |
+          echo "HAS_TG_BOT_TOKEN=$([ -n "$TG_BOT_TOKEN" ] && echo yes || echo no)"
+          echo "HAS_TG_CHAT_ID=$([ -n "$TG_CHAT_ID" ] && echo yes || echo no)"
+
+          ARGS=""
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.force }}" = "true" ]; then
+            ARGS="--force"
+          fi
+
+          node scripts/notify-from-changes.mjs $ARGS

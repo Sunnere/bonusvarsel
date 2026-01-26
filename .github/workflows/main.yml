@@ -9,11 +9,15 @@ on:
         default: "false"
   schedule:
     - cron: "*/30 * * * *"
-  push:
-    branches: ["main"]
+
 jobs:
   bonusvarsel:
     runs-on: ubuntu-latest
+
+    env:
+      TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
+      TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
+
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
@@ -22,24 +26,26 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "20"
+          cache: "npm"
 
       - name: Install deps
         run: npm ci
+
+      - name: Verify Telegram secrets
+        run: |
+          if [ -z "$TG_BOT_TOKEN" ] || [ -z "$TG_CHAT_ID" ]; then
+            echo "❌ Telegram secrets mangler (TG_BOT_TOKEN / TG_CHAT_ID) – stopper jobben"
+            exit 1
+          fi
+          echo "✅ Telegram secrets OK"
 
       - name: Run collector
         run: node scripts/collect-loyaltykey.mjs
 
       - name: Notify Telegram (kun økt/kommende)
-        env:
-          TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
-          TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
         run: |
-          echo "HAS_TG_BOT_TOKEN=$([ -n "$TG_BOT_TOKEN" ] && echo yes || echo no)"
-          echo "HAS_TG_CHAT_ID=$([ -n "$TG_CHAT_ID" ] && echo yes || echo no)"
-
           ARGS=""
           if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.force }}" = "true" ]; then
             ARGS="--force"
           fi
-
           node scripts/notify-from-changes.mjs $ARGS

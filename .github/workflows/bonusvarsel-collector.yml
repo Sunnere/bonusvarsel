@@ -1,35 +1,49 @@
-name: Bonusvarsel collector
+name: Bonusvarsel
 
 on:
-  schedule:
-    - cron: "15 * * * *"   # hver time på minutt 15 (UTC)
   workflow_dispatch:
+    inputs:
+      force:
+        description: "Send test/force varsel selv om ingen endringer"
+        required: false
+        default: "false"
+  schedule:
+    - cron: "*/30 * * * *"
+  push:
+    branches: ["main"]
 
 jobs:
-  run:
+  bonusvarsel:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout
+      - name: Checkout repo
         uses: actions/checkout@v4
 
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 24
+          node-version: "20"
+
+      - name: Install deps
+        run: npm ci
 
       - name: Run collector
         run: node scripts/collect-loyaltykey.mjs
 
-      - name: Notify Telegram
+      - name: Notify Telegram (kun økt/kommende)
         env:
           TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
           TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
-        run: node scripts/notify-telegram.mjs
-
-      - name: Commit updated data
         run: |
-          git config user.name "bonusvarsel-bot"
-          git config user.email "bonusvarsel-bot@users.noreply.github.com"
-          git add data/*.json || true
-          git commit -m "Update data snapshots" || echo "No changes to commit"
-          git push || echo "No push (maybe no changes)"
+          if [ -z "$TG_BOT_TOKEN" ] || [ -z "$TG_CHAT_ID" ]; then
+            echo "❌ Telegram secrets mangler (TG_BOT_TOKEN / TG_CHAT_ID). Stopp."
+            exit 1
+          fi
+
+          ARGS=""
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.force }}" = "true" ]; then
+            ARGS="--force"
+          fi
+
+          node scripts/notify-from-changes.mjs $ARGS

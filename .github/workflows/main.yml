@@ -1,21 +1,12 @@
-name: BonusVarsel
+name: BonusVarsel – Collect & Notify
 
 on:
-  workflow_dispatch:
-    inputs:
-      force:
-        description: "Send test/force varsel selv om ingen endringer"
-        required: false
-        default: "false"
-
   schedule:
-    - cron: "*/30 * * * *" # hvert 30. minutt
-
-  push:
-    branches: ["main"]
+    - cron: "0 */6 * * *"   # hver 6. time
+  workflow_dispatch:
 
 jobs:
-  bonusvarsel:
+  run:
     runs-on: ubuntu-latest
 
     steps:
@@ -25,41 +16,25 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: 20
 
-      - name: Install deps
+      - name: Install dependencies
         run: npm ci
 
-      # =========================
-      # Cache state (DEDUPE)
-      # =========================
-      - name: Restore state cache (sent + lastRun)
-        uses: actions/cache@v4
-        with:
-          path: |
-            data/sent.json
-            data/lastRun.json
-          key: state-${{ github.run_id }}
-          restore-keys: |
-            state-
-
-      # =========================
-      # Collector
-      # =========================
-      - name: Run collector
+      - name: Collect campaigns
         run: node scripts/collect-loyaltykey.mjs
 
-      # =========================
-      # Notify Telegram
-      # =========================
       - name: Notify Telegram
         env:
           TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
           TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
-        run: |
-          ARGS=""
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.force }}" = "true" ]; then
-            ARGS="--force"
-          fi
+        run: node scripts/notify-from-changes.mjs
 
-          node scripts/notify-from-changes.mjs $ARGS
+      - name: Commit updated data
+        run: |
+          git config user.name "bonusvarsel-bot"
+          git config user.email "bot@bonusvarsel.no"
+          git add data/*.json
+          git commit -m "Update campaign data" || echo "No changes"
+          git push
+

@@ -1,4 +1,4 @@
-name: Bonusvarsel
+name: BonusVarsel
 
 on:
   workflow_dispatch:
@@ -7,16 +7,16 @@ on:
         description: "Send test/force varsel selv om ingen endringer"
         required: false
         default: "false"
+
   schedule:
-    - cron: "*/30 * * * *"
+    - cron: "*/30 * * * *" # hvert 30. minutt
+
+  push:
+    branches: ["main"]
 
 jobs:
   bonusvarsel:
     runs-on: ubuntu-latest
-
-    env:
-      TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
-      TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
 
     steps:
       - name: Checkout repo
@@ -26,26 +26,40 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "20"
-          cache: "npm"
 
       - name: Install deps
         run: npm ci
 
-      - name: Verify Telegram secrets
-        run: |
-          if [ -z "$TG_BOT_TOKEN" ] || [ -z "$TG_CHAT_ID" ]; then
-            echo "❌ Telegram secrets mangler (TG_BOT_TOKEN / TG_CHAT_ID) – stopper jobben"
-            exit 1
-          fi
-          echo "✅ Telegram secrets OK"
+      # =========================
+      # Cache state (DEDUPE)
+      # =========================
+      - name: Restore state cache (sent + lastRun)
+        uses: actions/cache@v4
+        with:
+          path: |
+            data/sent.json
+            data/lastRun.json
+          key: state-${{ github.run_id }}
+          restore-keys: |
+            state-
 
+      # =========================
+      # Collector
+      # =========================
       - name: Run collector
         run: node scripts/collect-loyaltykey.mjs
 
-      - name: Notify Telegram (kun økt/kommende)
+      # =========================
+      # Notify Telegram
+      # =========================
+      - name: Notify Telegram
+        env:
+          TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
+          TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
         run: |
           ARGS=""
           if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.force }}" = "true" ]; then
             ARGS="--force"
           fi
+
           node scripts/notify-from-changes.mjs $ARGS

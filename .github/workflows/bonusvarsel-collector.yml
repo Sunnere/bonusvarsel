@@ -1,21 +1,14 @@
-name: Bonusvarsel
+name: BonusVarsel
 
 on:
   workflow_dispatch:
     inputs:
       force:
-        description: "Send test/force varsel selv om ingen endringer"
+        description: "Send varsel selv om ingen endringer"
         required: false
         default: "false"
-        type: choice
-        options:
-          - "false"
-          - "true"
-
   schedule:
-    # Hver 30. minutt
-    - cron: "*/30 * * * *"
-
+    - cron: "*/30 * * * *"   # hvert 30. minutt
   push:
     branches: ["main"]
 
@@ -31,30 +24,36 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "20"
-          cache: "npm"
 
       - name: Install deps
         run: npm ci
 
-      - name: Run collector
-        run: node scripts/collect-loyaltykey.mjs
-
-      - name: Notify Telegram (kun nytt / force)
+      # --- SAFETY CHECK ---
+      - name: Verify Telegram secrets
         env:
           TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
           TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
         run: |
-          set -euo pipefail
-
-          # Sikkerhet: stopp hvis secrets mangler
-          if [ -z "${TG_BOT_TOKEN:-}" ] || [ -z "${TG_CHAT_ID:-}" ]; then
-            echo "❌ Telegram secrets mangler (TG_BOT_TOKEN/TG_CHAT_ID) – stopper jobben"
+          if [ -z "$TG_BOT_TOKEN" ] || [ -z "$TG_CHAT_ID" ]; then
+            echo "❌ Telegram secrets mangler"
             exit 1
           fi
+          echo "✅ Telegram secrets OK"
 
+      # --- COLLECT DATA ---
+      - name: Run collector
+        run: node scripts/collect-loyaltykey.mjs
+
+      # --- NOTIFY ---
+      - name: Notify Telegram
+        env:
+          TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
+          TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
+        run: |
           ARGS=""
           if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.force }}" = "true" ]; then
             ARGS="--force"
           fi
 
+          echo "Running notify with args: $ARGS"
           node scripts/notify-from-changes.mjs $ARGS

@@ -4,17 +4,36 @@ on:
   workflow_dispatch:
     inputs:
       force:
-        description: "Send varsel selv om ingen endringer"
+        description: "Send test/force varsel selv om ingen endringer"
         required: false
         default: "false"
   schedule:
-    - cron: "*/30 * * * *"   # hvert 30. minutt
+    - cron: "*/30 * * * *"
   push:
     branches: ["main"]
 
+permissions:
+  contents: read
+
+concurrency:
+  group: bonusvarsel
+  cancel-in-progress: false
+
 jobs:
-  bonusvarsel:
+  run:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - program: sas
+            channel: SAS
+            country: no
+            language: nb
+          - program: turkish
+            channel: TURKISH
+            country: no
+            language: nb
 
     steps:
       - name: Checkout repo
@@ -24,36 +43,46 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "20"
+          cache: "npm"
 
       - name: Install deps
         run: npm ci
 
-      # --- SAFETY CHECK ---
-      - name: Verify Telegram secrets
-        env:
-          TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
-          TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
-        run: |
-          if [ -z "$TG_BOT_TOKEN" ] || [ -z "$TG_CHAT_ID" ]; then
-            echo "❌ Telegram secrets mangler"
-            exit 1
-          fi
-          echo "✅ Telegram secrets OK"
+      # Cache per program: data/<program> inkl. .cache + forrige normalized + sent.json osv
+      - name: Restore program cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            data/${{ matrix.program }}
+          key: bonusvarsel-${{ matrix.program }}-v1
+          restore-keys: |
+            bonusvarsel-${{ matrix.program }}-
 
-      # --- COLLECT DATA ---
-      - name: Run collector
+      - name: Run collector (${{ matrix.program }})
+        env:
+          PROGRAM: ${{ matrix.program }}
+          CHANNEL: ${{ matrix.channel }}
+          COUNTRY: ${{ matrix.country }}
+          LANGUAGE: ${{ matrix.language }}
+          PER_PAGE: "100"
+          API_BASE: "https://onlineshopping.loyaltykey.com"
         run: node scripts/collect-loyaltykey.mjs
 
-      # --- NOTIFY ---
-      - name: Notify Telegram
+      - name: Notify Telegram (${{ matrix.program }})
         env:
           TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
           TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
+          PROGRAM: ${{ matrix.program }}
+          CHANNEL: ${{ matrix.channel }}
+          COUNTRY: ${{ matrix.country }}
         run: |
           ARGS=""
           if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.force }}" = "true" ]; then
             ARGS="--force"
           fi
-
-          echo "Running notify with args: $ARGS"
           node scripts/notify-from-changes.mjs $ARGS
+
+      # Lagre cache igjen etter kjøring (samme key -> oppdateres ikke automatisk, men GitHub cache action lagrer ved miss.
+      # Derfor bruker vi konstant key + restore-keys. Det viktigste er at første gang blir lagret, og senere gjenbrukes.)
+      - name: Cache note
+        run: echo "Cache handled by actions/cache"

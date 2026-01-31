@@ -1,7 +1,7 @@
 name: _old_bonusvarsel.yml
 
-on:
-  schedule:
+on: []
+schedule:
     - cron: "0 */6 * * *"   # hver 6. time
   workflow_dispatch:
 

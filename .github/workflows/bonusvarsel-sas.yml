@@ -1,73 +1,39 @@
-name: BonusVarsel – SAS only
+name: Bonusvarsel – SAS
 
 on:
-  workflow_dispatch:
-    inputs:
-      force_notify:
-        description: "Send Telegram selv om det ikke er endringer"
-        required: false
-        default: "false"
-
   schedule:
-    # Kjør daglig ca 07:15 norsk tid (UTC 06:15)
-    - cron: "15 6 * * *"
+    # Hver dag kl 07:00 norsk tid (05:00 UTC)
+    - cron: "0 5 * * *"
+  workflow_dispatch: {}
 
 jobs:
-  sas:
-    name: SAS EuroBonus (NO)
+  collect-and-notify:
     runs-on: ubuntu-latest
 
+    env:
+      PROGRAM: sas
+      CHANNEL: SAS
+      COUNTRY: no
+      LANGUAGE: nb
+      PER_PAGE: 100
+
+      TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
+      TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
+
     steps:
-      - name: Checkout
+      - name: Checkout repo
         uses: actions/checkout@v4
 
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: 20
 
-      - name: Collect SAS
-        env:
-          PROGRAM: sas
-          CHANNEL: SAS
-          COUNTRY: no
-          LANGUAGE: nb
-          PER_PAGE: "100"
-        run: |
-          node scripts/collect-loyaltykey.mjs
+      - name: Install dependencies
+        run: npm ci
 
-      - name: Commit data if changed
-        run: |
-          git config user.name "bonusvarsel-bot"
-          git config user.email "actions@users.noreply.github.com"
+      - name: Collect SAS data
+        run: node scripts/collect-loyaltykey.mjs
 
-          git add -A data/sas || true
-
-          if git diff --cached --quiet; then
-            echo "No data changes to commit."
-            exit 0
-          fi
-
-          git commit -m "data(sas): update"
-          git push
-
-      - name: Notify Telegram (SAS)
-        env:
-          PROGRAM: sas
-          CHANNEL: SAS
-          COUNTRY: no
-          DISPLAY_NAME: "SAS EuroBonus"
-          ALLIANCE: "SkyTeam"
-          TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
-          TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
-        run: |
-          if [ ! -f "data/sas/changes.json" ]; then
-            echo "No changes.json found (skipping notify)"
-            exit 0
-          fi
-
-          if [ "${{ github.event.inputs.force_notify }}" = "true" ]; then
-            node scripts/notify-from-changes.mjs --force
-          else
-            node scripts/notify-from-changes.mjs
-          fi
+      - name: Notify Telegram (only on changes)
+        run: node scripts/notify-from-changes.mjs

@@ -1,18 +1,18 @@
 {
   "campaigns": {
     "added": 0,
-    "removed": 0,
+    "removed": 13,
     "updated": 0,
-    "unchanged": 13,
+    "unchanged": 0,
     "prevTotal": 13,
-    "nextTotal": 13
+    "nextTotal": 0
   },
   "shops": {
     "added": 0,
-    "removed": 0,
+    "removed": 228,
     "updated": 0,
-    "unchanged": 228,
+    "unchanged": 0,
     "prevTotal": 228,
-    "nextTotal": 228
+    "nextTotal": 0
   }
 }

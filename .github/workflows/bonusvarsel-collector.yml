@@ -1,39 +1,53 @@
-name: BonusVarsel
+name: BonusVarsel Collector
 
 on:
   workflow_dispatch:
     inputs:
-      force:
-        description: "Send Telegram even if no changes (true/false)"
+      force_notify:
+        description: "Send Telegram selv om det ikke er nye endringer (per program)"
         required: false
         default: "false"
+      programs:
+        description: "Kommaseparert liste (valgfritt). Eks: sas,turkish,lufthansa"
+        required: false
+        default: "sas,turkish,lufthansa"
   schedule:
-    # hver dag kl 07:05 norsk tid-ish (UTC 06:05 vinter / 05:05 sommer)
-    - cron: "5 6 * * *"
+    - cron: "15 * * * *" # hver time (juster senere)
 
 permissions:
   contents: write
 
 concurrency:
-  group: bonusvarsel
+  group: bonusvarsel-collector
   cancel-in-progress: false
 
 jobs:
   run:
+    name: run (${{ matrix.program }}, ${{ matrix.channel }}, ${{ matrix.country }})
     runs-on: ubuntu-latest
-
     strategy:
       fail-fast: false
-      max-parallel: 1
       matrix:
-        program:
-          - { program: "sas",       channel: "SAS",       country: "no" }
-          - { program: "turkish",   channel: "TURKISH",   country: "no" }
-          - { program: "lufthansa", channel: "LUFTHANSA", country: "no" }
+        include:
+          - program: sas
+            channel: SAS
+            country: no
+            language: nb
+            allow_fail: false
 
-    env:
-      TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
-      TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
+          - program: turkish
+            channel: TURKISH
+            country: no
+            language: nb
+            allow_fail: false
+
+          - program: lufthansa
+            channel: LUFTHANSA
+            country: no
+            language: nb
+            allow_fail: true
+
+    continue-on-error: ${{ matrix.allow_fail }}
 
     steps:
       - name: Checkout
@@ -42,38 +56,97 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "24"
           cache: "npm"
 
-      - name: Install deps
+      - name: Install
         run: npm ci
 
-      - name: Collect
+      # 1) COLLECT
+      - name: Collect (${{ matrix.program }})
+        id: collect
         env:
-          PROGRAM: ${{ matrix.program.program }}
-          CHANNEL: ${{ matrix.program.channel }}
-          COUNTRY: ${{ matrix.program.country }}
-        run: node scripts/collect-loyaltykey.mjs
-
-      - name: Notify (send only if changes)
-        env:
-          PROGRAM: ${{ matrix.program.program }}
-          CHANNEL: ${{ matrix.program.channel }}
-          COUNTRY: ${{ matrix.program.country }}
+          PROGRAM: ${{ matrix.program }}
+          CHANNEL: ${{ matrix.channel }}
+          COUNTRY: ${{ matrix.country }}
+          LANGUAGE: ${{ matrix.language }}
+          PER_PAGE: "100"
+          API_BASE: "https://onlineshopping.loyaltykey.com"
         run: |
-          FORCE="${{ github.event.inputs.force }}"
-          if [ "$FORCE" = "true" ]; then
-            node scripts/notify-from-changes.mjs --force
-          else
-            node scripts/notify-from-changes.mjs
+          set -e
+          node scripts/collect-loyaltykey.mjs
+
+      # 2) Finn om det faktisk finnes endringer vi bør varsle om
+      - name: Detect changes
+        id: detect
+        env:
+          PROGRAM: ${{ matrix.program }}
+        run: |
+          set -e
+          SUMMARY="data/${PROGRAM}/changes.summary.json"
+
+          if [ ! -f "$SUMMARY" ]; then
+            echo "has_changes=false" >> $GITHUB_OUTPUT
+            exit 0
           fi
 
-      - name: Commit data changes (if any)
+          # Sjekk added/updated totals (kampanjer + shops)
+          HAS=$(node -e "
+            const fs=require('fs');
+            const p=process.env.SUMMARY;
+            const s=JSON.parse(fs.readFileSync(p,'utf8'));
+            const c=s?.campaigns?.summary||{};
+            const sh=s?.shops?.summary||{};
+            const total=(c.added||0)+(c.updated||0)+(sh.added||0)+(sh.updated||0);
+            process.stdout.write(String(total>0));
+          " SUMMARY="$SUMMARY")
+
+          echo "has_changes=$HAS" >> $GITHUB_OUTPUT
+          echo "has_changes=$HAS"
+
+      # 3) NOTIFY kun hvis endringer ELLER force_notify=true
+      - name: Notify Telegram
+        if: ${{ steps.collect.outcome == 'success' && (steps.detect.outputs.has_changes == 'true' || inputs.force_notify == 'true') }}
+        env:
+          TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
+          TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
+          PROGRAM: ${{ matrix.program }}
+          CHANNEL: ${{ matrix.channel }}
+          COUNTRY: ${{ matrix.country }}
         run: |
+          set -e
+          ARGS=""
+          if [ "${{ inputs.force_notify }}" = "true" ]; then
+            ARGS="--force"
+          fi
+          node scripts/notify-from-changes.mjs $ARGS
+
+      # 4) Commit data tilbake (per program)
+      - name: Commit data changes
+        if: ${{ steps.collect.outcome == 'success' }}
+        env:
+          PROGRAM: ${{ matrix.program }}
+        run: |
+          set -e
           git config user.name "bonusvarsel-bot"
-          git config user.email "actions@users.noreply.github.com"
-          git add data || true
-          git diff --cached --quiet && exit 0
-          git commit -m "Update data snapshots" || exit 0
-          git pull --rebase
+          git config user.email "bonusvarsel-bot@users.noreply.github.com"
+
+          git add "data/${PROGRAM}/" || true
+
+          if git diff --cached --quiet; then
+            echo "No changes to commit for ${PROGRAM}"
+            exit 0
+          fi
+
+          git commit -m "data(${PROGRAM}): update snapshot"
           git push
+
+      # 5) Last opp artifacts for debugging (uansett)
+      - name: Upload artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bonusvarsel-${{ matrix.program }}-data
+          path: |
+            data/${{ matrix.program }}/
+            !data/${{ matrix.program }}/.cache/

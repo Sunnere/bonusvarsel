@@ -1,6 +1,6 @@
 {
-  "startedAt": "2026-01-20T20:19:32.269Z",
-  "finishedAt": "2026-01-20T20:19:32.294Z",
+  "startedAt": "2026-01-31T09:13:45.125Z",
+  "finishedAt": "2026-01-31T09:13:45.142Z",
   "apiBase": "https://onlineshopping.loyaltykey.com",
   "params": {
     "filter[channel]": "SAS",
@@ -17,7 +17,7 @@
   },
   "cache": {
     "enabled": true,
-    "dir": "/workspaces/bonusvarsel/data/.cache"
+    "dir": "/home/runner/work/bonusvarsel/bonusvarsel/data/.cache"
   },
   "deltas": {
     "campaigns": {

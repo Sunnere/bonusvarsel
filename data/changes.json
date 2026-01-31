@@ -1,9 +1,9 @@
 {
-  "startedAt": "2026-01-31T09:21:36.449Z",
-  "finishedAt": "2026-01-31T09:21:37.383Z",
+  "startedAt": "2026-01-31T09:34:13.038Z",
+  "finishedAt": "2026-01-31T09:34:13.060Z",
   "apiBase": "https://onlineshopping.loyaltykey.com",
   "params": {
-    "filter[channel]": "TURKISH",
+    "filter[channel]": "SAS",
     "filter[language]": "nb",
     "filter[country]": "no",
     "per_page": 100,
@@ -11,15 +11,14 @@
   },
   "campaigns": {
     "summary": {
-      "added": 0,
-      "removed": 13,
+      "added": 13,
+      "removed": 0,
       "updated": 0,
       "unchanged": 0,
-      "prevTotal": 13,
-      "nextTotal": 0
+      "prevTotal": 0,
+      "nextTotal": 13
     },
-    "added": [],
-    "removed": [
+    "added": [
       {
         "uuid": "01896310-e823-72b0-8d74-6b3da56a30e3",
         "name": "Autodoc",
@@ -203,19 +202,19 @@
         "image_banner_url": "https://storage.onlineshopping.loyaltykey.com/storage/app/public/shops/images/BtZ37hbdQHkdW67zMbtvtcm74BpOjr5SAqlw1Vbg.jpg"
       }
     ],
+    "removed": [],
     "updated": []
   },
   "shops": {
     "summary": {
-      "added": 0,
-      "removed": 228,
+      "added": 228,
+      "removed": 0,
       "updated": 0,
       "unchanged": 0,
-      "prevTotal": 228,
-      "nextTotal": 0
+      "prevTotal": 0,
+      "nextTotal": 228
     },
-    "added": [],
-    "removed": [
+    "added": [
       {
         "uuid": "01896310-f77f-72c9-9b07-830ad79ad27f",
         "name": "Acer",
@@ -4549,6 +4548,7 @@
         "has_shop_form": false
       }
     ],
+    "removed": [],
     "updated": []
   }
 }

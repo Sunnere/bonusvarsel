@@ -1,19 +1,19 @@
 {
-  "startedAt": "2026-01-31T09:21:36.449Z",
-  "finishedAt": "2026-01-31T09:21:37.384Z",
+  "startedAt": "2026-01-31T09:34:13.038Z",
+  "finishedAt": "2026-01-31T09:34:13.061Z",
   "apiBase": "https://onlineshopping.loyaltykey.com",
   "params": {
-    "filter[channel]": "TURKISH",
+    "filter[channel]": "SAS",
     "filter[language]": "nb",
     "filter[country]": "no",
     "per_page": 100,
     "page": 1
   },
   "counts": {
-    "campaigns": 0,
-    "shops": 0,
+    "campaigns": 13,
+    "shops": 228,
     "campaignPages": 1,
-    "shopPages": 1
+    "shopPages": 8
   },
   "cache": {
     "enabled": true,
@@ -21,20 +21,20 @@
   },
   "deltas": {
     "campaigns": {
-      "added": 0,
-      "removed": 13,
+      "added": 13,
+      "removed": 0,
       "updated": 0,
       "unchanged": 0,
-      "prevTotal": 13,
-      "nextTotal": 0
+      "prevTotal": 0,
+      "nextTotal": 13
     },
     "shops": {
-      "added": 0,
-      "removed": 228,
+      "added": 228,
+      "removed": 0,
       "updated": 0,
       "unchanged": 0,
-      "prevTotal": 228,
-      "nextTotal": 0
+      "prevTotal": 0,
+      "nextTotal": 228
     }
   }
 }

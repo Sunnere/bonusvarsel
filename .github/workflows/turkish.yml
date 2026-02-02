@@ -1,4 +1,4 @@
-name: bonusvarsel - turkish - collect & notify
+name: bonusvarsel - turkish - Airlines
 
 on:
   workflow_dispatch:

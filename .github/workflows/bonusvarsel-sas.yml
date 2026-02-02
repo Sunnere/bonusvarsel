@@ -1,13 +1,22 @@
-name: BonusVarsel (SAS)
+name: BonusVarsel - SAS (collect & notify)
 
 on:
   workflow_dispatch:
   schedule:
-    - cron: "*/30 * * * *"  # hver 30. min (juster senere)
+    - cron: "*/30 * * * *" # hver 30. min (kan endres)
 
 jobs:
-  sas:
+  run:
     runs-on: ubuntu-latest
+    env:
+      PROGRAM: sas
+      CHANNEL: SAS
+      COUNTRY: no
+      LANGUAGE: nb
+      PER_PAGE: "100"
+
+      TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
+      TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
 
     steps:
       - name: Checkout
@@ -18,26 +27,11 @@ jobs:
         with:
           node-version: "20"
 
-      - name: Install deps (hvis dere har package.json)
-        run: |
-          if [ -f package.json ]; then
-            npm ci
-          else
-            echo "No package.json, skipping npm ci"
-          fi
+      - name: Install deps
+        run: npm ci
 
       - name: Collect (SAS)
-        env:
-          PROGRAM: sas
-          CHANNEL: SAS
-          COUNTRY: no
         run: node scripts/collect-loyaltykey.mjs
 
       - name: Notify (SAS)
-        env:
-          PROGRAM: sas
-          CHANNEL: SAS
-          COUNTRY: no
-          TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
-          TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
         run: node scripts/notify-from-changes.mjs

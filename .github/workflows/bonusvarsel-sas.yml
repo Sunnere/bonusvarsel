@@ -1,39 +1,76 @@
-name: Bonusvarsel – SAS
+name: BonusVarsel – SAS (collect & notify)
 
 on:
-  schedule:
-    # Hver dag kl 07:00 norsk tid (05:00 UTC)
-    - cron: "0 5 * * *"
   workflow_dispatch: {}
+  schedule:
+    # Hver time (juster hvis du vil)
+    - cron: "7 * * * *"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: bonusvarsel-sas
+  cancel-in-progress: false
 
 jobs:
-  collect-and-notify:
+  sas:
     runs-on: ubuntu-latest
 
-    env:
-      PROGRAM: sas
-      CHANNEL: SAS
-      COUNTRY: no
-      LANGUAGE: nb
-      PER_PAGE: 100
-
-      TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
-      TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
-
     steps:
-      - name: Checkout repo
+      - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: "20"
 
-      - name: Install dependencies
-        run: npm ci
+      - name: Install deps (if package-lock exists)
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci
+          elif [ -f package.json ]; then
+            npm install
+          else
+            echo "No package.json – skipping install"
+          fi
 
-      - name: Collect SAS data
+      - name: Collect (SAS)
+        env:
+          PROGRAM: sas
+          CHANNEL: SAS
+          COUNTRY: no
+          LANGUAGE: nb
+          PER_PAGE: "100"
+          # hvis du bruker en annen base:
+          # API_BASE: https://onlineshopping.loyaltykey.com
         run: node scripts/collect-loyaltykey.mjs
 
-      - name: Notify Telegram (only on changes)
+      - name: Notify (SAS)
+        env:
+          PROGRAM: sas
+          CHANNEL: SAS
+          COUNTRY: no
+          DISPLAY_NAME: "SAS EuroBonus"
+          ALLIANCE: "SkyTeam"
+          TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
+          TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
         run: node scripts/notify-from-changes.mjs
+
+      - name: Commit & push updated data (sas)
+        run: |
+          git config user.name "bonusvarsel-bot"
+          git config user.email "actions@users.noreply.github.com"
+
+          git add data/sas || true
+
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+            exit 0
+          fi
+
+          git commit -m "Update SAS data + sent state"
+          git push

@@ -89,14 +89,13 @@ jobs:
       # Send Telegram kun hvis changes.json finnes (collector må ha skrevet ut)
       - name: Notify Telegram
         env:
-          PROGRAM: ${{ matrix.program }}
-          CHANNEL: ${{ matrix.channel }}
-          COUNTRY: ${{ matrix.country }}
-          DISPLAY_NAME: ${{ matrix.display_name }}
-          ALLIANCE: ${{ matrix.alliance }}
           TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
           TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
-        run: |
+          PROGRAM: sas
+          CHANNEL: SAS
+          COUNTRY: no
+        run: node scripts/notify-from-changes.mjs
+
           if [ ! -f "data/${{ matrix.program }}/changes.json" ]; then
             echo "No changes.json found for program=${{ matrix.program }} (skipping notify)"
             exit 0

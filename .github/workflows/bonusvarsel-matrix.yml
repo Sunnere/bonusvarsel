@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       force:
-        description: "Send Telegram selv om ingen endringer"
+        description: "Send Telegram selv om ingen relevante endringer"
         required: false
         default: "false"
 
@@ -43,23 +43,17 @@ jobs:
         with:
           node-version: 20
 
-      - run: npm ci
+      - name: Install
+        run: npm ci
 
       - name: Collect
-        run: node scripts/collect-loyaltykey.mjs
         env:
           PROGRAM: ${{ matrix.program }}
           CHANNEL: ${{ matrix.channel }}
           COUNTRY: ${{ matrix.country }}
+        run: node scripts/collect-loyaltykey.mjs
 
       - name: Notify
-        shell: bash
-        run: |
-          ARGS=""
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ github.event.inputs.force }}" = "true" ]; then
-            ARGS="--force"
-          fi
-          node scripts/notify-from-changes.mjs $ARGS
         env:
           PROGRAM: ${{ matrix.program }}
           CHANNEL: ${{ matrix.channel }}
@@ -68,3 +62,10 @@ jobs:
           ALLIANCE: ${{ matrix.alliance }}
           TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
           TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
+          FORCE: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.force || 'false' }}
+        run: |
+          if [ "$FORCE" = "true" ]; then
+            node scripts/notify-from-changes.mjs --force
+          else
+            node scripts/notify-from-changes.mjs
+          fi

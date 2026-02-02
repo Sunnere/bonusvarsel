@@ -51,3 +51,6 @@ data/*.normalized.json
 data/changes.json
 data/changes.summary.json
 data/lastRun.json
+
+# generated data
+data/

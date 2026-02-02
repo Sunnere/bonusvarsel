@@ -2,7 +2,7 @@ name: Bonusvarsel – collect & notify (matrix)
 
 on:
   schedule:
-    - cron: "0 * * * *"   # hver time
+    - cron: "0 * * * *" # hver time
   workflow_dispatch:
 
 jobs:
@@ -10,6 +10,7 @@ jobs:
     runs-on: ubuntu-latest
 
     strategy:
+      fail-fast: false
       matrix:
         include:
           - program: sas

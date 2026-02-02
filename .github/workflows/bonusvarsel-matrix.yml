@@ -9,6 +9,10 @@ on:
         description: "Send Telegram selv om ingen relevante endringer"
         required: false
         default: "false"
+        
+concurrency:
+  group: bonusvarsel-matrix
+  cancel-in-progress: true
 
 jobs:
   run:

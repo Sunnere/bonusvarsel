@@ -4,7 +4,11 @@ on:
   schedule:
     - cron: "0 * * * *" # hver time
   workflow_dispatch:
-
+  inputs:
+    force:
+      description: "Send Telegram selv om ingen endringer"
+      required: false
+      default: "false"
 jobs:
   run:
     runs-on: ubuntu-latest
@@ -48,7 +52,7 @@ jobs:
           COUNTRY: ${{ matrix.country }}
 
       - name: Notify
-        run: node scripts/notify-from-changes.mjs
+        run: node scripts/notify-from-changes.mjs ${{ github.event.inputs.force == 'true' && '--force' || '' }}
         env:
           PROGRAM: ${{ matrix.program }}
           CHANNEL: ${{ matrix.channel }}
@@ -57,3 +61,6 @@ jobs:
           ALLIANCE: ${{ matrix.alliance }}
           TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
           TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
+
+
+          

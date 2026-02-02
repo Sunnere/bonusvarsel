@@ -1,206 +1,218 @@
+// scripts/notify-from-changes.mjs
 import fs from "node:fs";
 import path from "node:path";
+import crypto from "node:crypto";
 import { sendTelegram } from "./notify-telegram.mjs";
 
-const changesPath = path.resolve("data", "changes.json");
-const summaryPath = path.resolve("data", "changes.summary.json");
+/* =========================
+   Config (program scope)
+========================= */
 
-// --- helpers ---
+const PROGRAM = String(process.env.PROGRAM ?? "sas").toLowerCase();
+const CHANNEL = String(process.env.CHANNEL ?? PROGRAM).toUpperCase(); // SAS/TURKISH/...
+const COUNTRY = String(process.env.COUNTRY ?? "no").toLowerCase(); // no/se/...
+
+const DISPLAY_NAME = String(process.env.DISPLAY_NAME ?? "").trim(); // f.eks "SAS EuroBonus"
+const ALLIANCE = String(process.env.ALLIANCE ?? "").trim(); // f.eks "SkyTeam"
+
+// SAS ligger i data/ (root). Andre programmer ligger i data/<program>
+const DATA_DIR = PROGRAM === "sas" ? path.resolve("data") : path.resolve("data", PROGRAM);
+const changesPath = path.resolve(DATA_DIR, "changes.json");
+const summaryPath = path.resolve(DATA_DIR, "changes.summary.json");
+const sentPath = path.resolve(DATA_DIR, "sent.json");
+
+const SENT_TTL_DAYS = Number(process.env.SENT_TTL_DAYS ?? 30);
+
+const META = {
+  program: PROGRAM.toUpperCase(),
+  country: COUNTRY,
+  channel: CHANNEL,
+};
+
+/* =========================
+   JSON helpers
+========================= */
 function readJson(p) {
   if (!fs.existsSync(p)) return null;
   return JSON.parse(fs.readFileSync(p, "utf8"));
 }
-
-function asDate(v) {
-  if (!v) return null;
-  const d = new Date(v);
-  return Number.isFinite(d.getTime()) ? d : null;
+function writeJson(p, obj) {
+  fs.mkdirSync(path.dirname(p), { recursive: true });
+  fs.writeFileSync(p, JSON.stringify(obj, null, 2) + "\n", "utf8");
 }
 
-function toNumberMaybe(v) {
-  if (v === null || v === undefined) return null;
-  if (typeof v === "number" && Number.isFinite(v)) return v;
-  if (typeof v === "string") {
-    // handle "12", "12.5", "12,5", "+20", "20 poeng/kr"
-    const cleaned = v
-      .trim()
-      .replace(",", ".")
-      .replace(/[^\d.+-]/g, "");
-    const n = Number(cleaned);
-    return Number.isFinite(n) ? n : null;
-  }
-  return null;
+/* =========================
+   Dedupe helpers
+========================= */
+function sha1(s) {
+  return crypto.createHash("sha1").update(String(s)).digest("hex");
 }
 
-function pickAfter(obj) {
-  // changes.json kan ha {after}, {new}, eller objektet selv
-  return obj?.after ?? obj?.new ?? obj;
-}
-
-function pickBefore(obj) {
-  return obj?.before ?? obj?.old ?? null;
-}
-
-function getTitle(x) {
+function stableId(it) {
   return (
-    x?.title ||
-    x?.merchant ||
-    x?.merchantName ||
-    x?.name ||
-    x?.shop ||
-    x?.store ||
-    "Ukjent"
+    it.id ??
+    it.campaignId ??
+    it.shopId ??
+    it.merchantId ??
+    it.slug ??
+    it.url ??
+    it.title ??
+    "unknown"
   );
 }
 
-function getUrl(x) {
-  return x?.url || x?.link || x?.href || null;
-}
-
-function getStart(x) {
-  return asDate(x?.startsAt || x?.startAt || x?.start || x?.validFrom);
-}
-
-function getEnd(x) {
-  return asDate(x?.endsAt || x?.endAt || x?.end || x?.validTo);
-}
-
-function getRate(x) {
-  // Prøver å finne “rate”/multiplier/poeng per kr i vanlige felter
-  const candidates = [
-    x?.multiplier,
-    x?.pointsPerKr,
-    x?.points_per_kr,
-    x?.pointsPerCurrency,
-    x?.points,
-    x?.bonus,
-    x?.rate,
-    x?.value,
-  ];
-  for (const c of candidates) {
-    const n = toNumberMaybe(c);
-    if (n !== null) return n;
-  }
-  return null;
-}
-
-function formatRate(n) {
-  if (n === null) return "";
-  // Vi antar "poeng/kr" i output (det matcher prosjektet ditt)
-  // Hvis du heller vil ha "x" multiplier, si fra så endrer vi.
-  const isInt = Number.isInteger(n);
-  return `${isInt ? n : n.toFixed(1)} poeng/kr`;
-}
-
-function formatDateShort(d) {
-  if (!d) return "";
-  // yyyy-mm-dd -> dd.mm
-  const dd = String(d.getDate()).padStart(2, "0");
-  const mm = String(d.getMonth() + 1).padStart(2, "0");
-  return `${dd}.${mm}`;
-}
-
-function shorten(s, max = 42) {
-  if (!s) return "";
-  const t = String(s).trim();
-  return t.length <= max ? t : `${t.slice(0, max - 1)}…`;
-}
-
-function lineForCampaign({ kind, title, beforeRate, afterRate, start, url }) {
-  const name = shorten(title, 44);
-  const when = start ? ` (fra ${formatDateShort(start)})` : "";
-  const arrow =
-    beforeRate !== null && afterRate !== null && afterRate > beforeRate
-      ? ` ${formatRate(beforeRate)} → ${formatRate(afterRate)}`
-      : afterRate !== null
-      ? ` ${formatRate(afterRate)}`
-      : "";
-
-  // Telegram: lenke på egen linje kan bli stygt, så vi gjør "Navn — rate" + url på slutten hvis finnes
-  const base = `${kind} ${name}${arrow}${when}`;
-  return url ? `${base}\n${url}` : base;
-}
-
-// --- main logic ---
-function buildRelevant(changes) {
-  const now = new Date();
-
-  const added = (changes?.campaigns?.added || []).map(pickAfter);
-  const updatedPairs = changes?.campaigns?.updated || [];
-
-  // Ny (added): send hvis den starter i fremtiden (kommende) eller starter nå/allerede (ny)
-  const relevantAdded = added
-    .map((c) => {
-      const start = getStart(c);
-      return {
-        kind: start && start > now ? "🔜" : "🆕",
-        title: getTitle(c),
-        beforeRate: null,
-        afterRate: getRate(c),
-        start,
-        url: getUrl(c),
-      };
-    })
-    .filter((x) => x.title);
-
-  // Oppdatert: send bare hvis “rate” har økt, eller startdato er frem i tid (kommende oppdatering)
-  const relevantUpdated = updatedPairs
-    .map((pair) => {
-      const before = pickBefore(pair);
-      const after = pickAfter(pair);
-      const bRate = getRate(before);
-      const aRate = getRate(after);
-      const start = getStart(after) || getStart(before);
-      const increased =
-        bRate !== null && aRate !== null ? aRate > bRate : false;
-
-      const upcoming = start && start > now;
-
-      if (!increased && !upcoming) return null;
-
-      return {
-        kind: increased ? "📈" : "🔜",
-        title: getTitle(after) || getTitle(before),
-        beforeRate: increased ? bRate : null,
-        afterRate: aRate,
-        start,
-        url: getUrl(after) || getUrl(before),
-      };
-    })
-    .filter(Boolean);
-
-  // Prioritering: økninger først, så nye, så kommende
-  const score = (x) => {
-    if (x.kind === "📈") return 3;
-    if (x.kind === "🆕") return 2;
-    if (x.kind === "🔜") return 1;
-    return 0;
+export function eventKey(it, meta = META) {
+  const payload = {
+    program: meta.program ?? it.program ?? "SAS",
+    country: meta.country ?? it.country ?? "no",
+    channel: meta.channel ?? it.channel ?? "SAS",
+    kind: it.kind ?? "",
+    type: it.type ?? "",
+    id: String(stableId(it)),
+    merchant: it.merchant ?? "",
+    multiplier: it.multiplier ?? null,
+    points: it.points ?? null,
+    percent: it.percent ?? null,
+    startsAt: it.startsAt ?? null,
+    endsAt: it.endsAt ?? null,
+    // NB: url kan gjøre dedupe for "følsom" hvis url endres ofte.
+    // url: it.url ?? null,
   };
-
-  const all = [...relevantUpdated, ...relevantAdded].sort(
-    (a, b) => score(b) - score(a)
-  );
-
-  return all;
+  return sha1(JSON.stringify(payload));
 }
 
-function buildMessage(items) {
-  const header = "🟡 BonusVarsel – nye/økte/kommende kampanjer";
-
-  // Maks antall “kampanje-blokker” (hver blokk kan ha 1–2 linjer pga URL)
-  const maxItems = 8;
-  const selected = items.slice(0, maxItems);
-
-  const lines = selected.flatMap((x) => {
-    const block = lineForCampaign(x);
-    return block.split("\n");
-  });
-
-  // Telegram har meldingslimit, men dette er trygt lavt
-  const body = lines.join("\n");
-  return `${header}\n\n${body}`.trim();
+function loadSent() {
+  return readJson(sentPath) ?? {};
 }
 
+function cleanupSent(sent, ttlDays = SENT_TTL_DAYS) {
+  const now = Date.now();
+  const ttlMs = ttlDays * 24 * 60 * 60 * 1000;
+
+  for (const [k, v] of Object.entries(sent)) {
+    // støtter både {sentAt} og "sentAt-string" fra gamle varianter
+    const t = new Date(v?.sentAt ?? v ?? 0).getTime();
+    if (!t || now - t > ttlMs) delete sent[k];
+  }
+  return sent;
+}
+
+function markSent(sent, keys) {
+  const sentAt = new Date().toISOString();
+  for (const k of keys) sent[k] = { sentAt };
+}
+
+/* =========================
+   Build relevant items
+========================= */
+function buildRelevant(changes) {
+  if (!changes) return [];
+  const updated = (changes.updated || []).map((x) => ({ ...x, type: "updated" }));
+  const added = (changes.added || []).map((x) => ({ ...x, type: "added" }));
+  return [...updated, ...added];
+}
+
+/* =========================
+   Message helpers (Telegram HTML)
+========================= */
+function escapeHtml(s) {
+  return String(s ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+function prettyDate(x) {
+  if (!x) return "";
+  const d = new Date(x);
+  if (Number.isNaN(d.getTime())) return "";
+  return d.toISOString().slice(0, 10); // YYYY-MM-DD
+}
+
+function formatPeriod(startsAt, endsAt) {
+  const s = prettyDate(startsAt);
+  const e = prettyDate(endsAt);
+  if (s && e) return `${s} → ${e}`;
+  if (s) return `Fra ${s}`;
+  if (e) return `Til ${e}`;
+  return "";
+}
+
+function linkLine(url, label) {
+  if (!url) return "";
+  return `• 🔗 <a href="${escapeHtml(url)}">${escapeHtml(label)}</a>`;
+}
+
+export function buildMessageHTML(items) {
+  const now = new Date().toISOString().slice(0, 16).replace("T", " ");
+
+  const headline = DISPLAY_NAME ? DISPLAY_NAME : META.program;
+  const allianceLine = ALLIANCE ? `\n🤝 ${escapeHtml(ALLIANCE)}` : "";
+
+  const header = `<b>🟡 BonusVarsel</b>\n<b>${escapeHtml(headline)}</b> (${escapeHtml(
+    META.country.toUpperCase()
+  )})${allianceLine}\n🕒 ${now}\n`;
+
+  const campaigns = items.filter((x) => x.kind === "campaign");
+  const shops = items.filter((x) => x.kind === "shop");
+
+  const lines = [];
+  lines.push(header);
+
+  if (campaigns.length) {
+    lines.push(`<b>🔥 Kampanjer (${campaigns.length})</b>`);
+    for (const it of campaigns.slice(0, 12)) {
+      const label = it.type === "added" ? "🆕 Ny" : "📈 Endret";
+      const merchant = escapeHtml(it.merchant || it.title || "Ukjent");
+      const rate = it.multiplier != null ? `${escapeHtml(it.multiplier)} poeng/kr` : "";
+      const period = formatPeriod(it.startsAt, it.endsAt);
+
+      lines.push(`${label}: <b>${merchant}</b>`);
+      if (it.title && it.title !== it.merchant) lines.push(`• ${escapeHtml(it.title)}`);
+      if (rate) lines.push(`• 🎁 ${rate}`);
+      if (period) lines.push(`• 📅 ${escapeHtml(period)}`);
+      if (it.url) lines.push(linkLine(it.url, "Åpne kampanje"));
+      lines.push("");
+    }
+    if (campaigns.length > 12) {
+      lines.push(`… +${campaigns.length - 12} flere kampanjer`);
+      lines.push("");
+    }
+  }
+
+  if (shops.length) {
+    lines.push(`<b>🛍️ Butikker (${shops.length})</b>`);
+    for (const it of shops.slice(0, 12)) {
+      const label = it.type === "added" ? "🆕 Ny" : "🔁 Endret";
+      const merchant = escapeHtml(it.merchant || it.title || "Ukjent");
+      const rate = it.multiplier != null ? `${escapeHtml(it.multiplier)} poeng/kr` : "";
+
+      lines.push(`${label}: <b>${merchant}</b>`);
+      if (rate) lines.push(`• 🎁 ${rate}`);
+      if (it.url) lines.push(linkLine(it.url, "Åpne butikk"));
+      lines.push("");
+    }
+    if (shops.length > 12) {
+      lines.push(`… +${shops.length - 12} flere butikker`);
+      lines.push("");
+    }
+  }
+
+  // fallback
+  const joined = lines.join("\n").trim();
+  if (joined === header.trim()) {
+    lines.push("Ingen relevante kampanje-endringer nå. 💤");
+  }
+
+  // Telegram max ~4096 chars
+  return lines.join("\n").trim().slice(0, 3500);
+}
+
+/* =========================
+   Main
+========================= */
 async function main() {
   const force = process.argv.includes("--force");
 
@@ -214,34 +226,50 @@ async function main() {
 
   const items = buildRelevant(changes);
 
-  // Litt pen logg i terminalen (ikke spam)
+  // pen logg (valgfritt)
   const cSum = summary?.campaigns?.summary;
   if (cSum) {
-    console.log(
-      `Campaigns: +${cSum.added ?? 0} / ~${cSum.updated ?? 0} / -${
-        cSum.removed ?? 0
-      }`
-    );
+    console.log(`Campaigns: +${cSum.added ?? 0} / ~${cSum.updated ?? 0} / -${cSum.removed ?? 0}`);
   }
 
-  if (items.length === 0 && !force) {
-    console.log("Ingen relevante kampanje-endringer ✅ (sender ikke)");
-    process.exit(0);
+  // --- DEDUPE ---
+  let sent = cleanupSent(loadSent());
+  const unsent = items.filter((it) => !sent[eventKey(it, META)]);
+
+  if (unsent.length === 0 && !force) {
+    console.log("Ingen nye relevante endringer ✅ (dedupe, sender ikke)");
+    // skriv tilbake ryddet sent (TTL)
+    writeJson(sentPath, sent);
+    return; // ✅ exit 0 / grønn
   }
 
-  if (items.length === 0 && force) {
-    await sendTelegram("🟡 BonusVarsel\n\nIngen relevante kampanje-endringer nå.");
-    console.log("Sendte (force) ✅");
-    process.exit(0);
-  }
+  if (unsent.length === 0 && force) {
+  const displayName = process.env.DISPLAY_NAME ?? META.program;
+  const alliance = process.env.ALLIANCE ? ` • ${process.env.ALLIANCE}` : "";
 
-  const msg = buildMessage(items);
+  const msg =
+    `<b>🟡 BonusVarsel</b>\n` +
+    `<b>${displayName}${alliance}</b>\n\n` +
+    `Ingen relevante kampanje-endringer nå. 💤`;
+
   await sendTelegram(msg);
-  console.log("Sendt til Telegram ✅");
+  console.log("Sendte (force) ✅");
+  return; // ✅ exit 0 / grønn
+}
+
+  // --- SEND ---
+  const msg = buildMessageHTML(unsent);
+  await sendTelegram(msg);
+
+  // --- MARK SENT ---
+  markSent(sent, unsent.map((it) => eventKey(it, META)));
+  writeJson(sentPath, sent);
+
+  console.log(`Sendt til Telegram ✅ (items=${unsent.length})`);
 }
 
 main().catch((e) => {
   console.error("Notify feilet ❌");
   console.error(e?.stack || e);
-  process.exit(1);
+  process.exit(1); // ekte feil => rød
 });

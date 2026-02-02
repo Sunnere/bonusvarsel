@@ -43,3 +43,11 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# --- Bonusvarsel runtime data ---
+data/.cache/
+data/*.raw.json
+data/*.normalized.json
+data/changes.json
+data/changes.summary.json
+data/lastRun.json

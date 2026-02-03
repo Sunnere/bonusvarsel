@@ -62,6 +62,5 @@ jobs:
           DISPLAY_NAME: ${{ matrix.display }}
           ALLIANCE: ${{ matrix.alliance }}
           DATA_DIR: ${{ matrix.data_dir }}
-          FORCE: ${{ github.event.inputs.force }}
           TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
           TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}

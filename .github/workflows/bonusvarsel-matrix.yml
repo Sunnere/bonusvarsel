@@ -1,5 +1,9 @@
 name: Bonusvarsel – collect & notify (matrix)
 
+concurrency:
+  group: bonusvarsel-matrix
+  cancel-in-progress: true
+  
 on:
   schedule:
     - cron: "0 * * * *" # hver time

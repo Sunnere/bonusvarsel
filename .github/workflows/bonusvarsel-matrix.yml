@@ -1,6 +1,8 @@
 name: Bonusvarsel – collect & notify (matrix)
 
 on:
+  schedule:
+    - cron: "0 * * * *"
   workflow_dispatch:
     inputs:
       force:
@@ -11,7 +13,6 @@ on:
 jobs:
   run:
     runs-on: ubuntu-latest
-
     strategy:
       fail-fast: false
       matrix:
@@ -21,21 +22,21 @@ jobs:
             country: no
             display: "SAS EuroBonus"
             alliance: "SkyTeam"
-            data_dir: "data"
+            data_dir: data
 
           - program: turkish
             channel: TURKISH
             country: no
             display: "Turkish Miles&Smiles"
             alliance: "Star Alliance"
-            data_dir: "data/turkish"
+            data_dir: data/turkish
 
           - program: lufthansa
             channel: LUFTHANSA
             country: no
             display: "Lufthansa Miles & More"
             alliance: "Star Alliance"
-            data_dir: "data/lufthansa"
+            data_dir: data/lufthansa
 
     steps:
       - uses: actions/checkout@v4
@@ -53,8 +54,24 @@ jobs:
           CHANNEL: ${{ matrix.channel }}
           COUNTRY: ${{ matrix.country }}
 
+      # Flytt output til riktig mappe for ikke-sas
+      - name: Organize output (per program)
+        if: ${{ matrix.data_dir != 'data' }}
+        run: |
+          mkdir -p "${{ matrix.data_dir }}"
+          for f in campaigns.feed.json campaigns.raw.json campaigns.normalized.json \
+                   shops.raw.json shops.normalized.json \
+                   changes.json changes.summary.json lastRun.json; do
+            if [ -f "data/$f" ]; then
+              mv "data/$f" "${{ matrix.data_dir }}/$f"
+            fi
+          done
+
       - name: Notify
-        run: node scripts/notify-from-changes.mjs
+        run: |
+          ARGS=""
+          if [ "${{ github.event.inputs.force }}" = "true" ]; then ARGS="--force"; fi
+          node scripts/notify-from-changes.mjs $ARGS
         env:
           PROGRAM: ${{ matrix.program }}
           CHANNEL: ${{ matrix.channel }}

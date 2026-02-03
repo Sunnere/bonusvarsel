@@ -57,6 +57,42 @@ jobs:
           COUNTRY: ${{ matrix.country }}
         run: node scripts/collect-loyaltykey.mjs
 
+      - name: Collect
+        run: node scripts/collect-loyaltykey.mjs
+        env:
+          PROGRAM: ${{ matrix.program }}
+          CHANNEL: ${{ matrix.channel }}
+          COUNTRY: ${{ matrix.country }}
+
+      - name: Organize output (per program)
+        run: |
+          set -e
+          mkdir -p data/${{ matrix.program }}
+
+          # Flytt kun output-filer (ikke cache)
+          mv -f data/campaigns.raw.json data/${{ matrix.program }}/ || true
+          mv -f data/campaigns.normalized.json data/${{ matrix.program }}/ || true
+          mv -f data/shops.raw.json data/${{ matrix.program }}/ || true
+          mv -f data/shops.normalized.json data/${{ matrix.program }}/ || true
+          mv -f data/changes.json data/${{ matrix.program }}/ || true
+          mv -f data/changes.summary.json data/${{ matrix.program }}/ || true
+          mv -f data/lastRun.json data/${{ matrix.program }}/ || true
+          mv -f data/campaigns.feed.json data/${{ matrix.program }}/ || true
+
+          echo "✅ files now in data/${{ matrix.program }}:"
+          ls -la data/${{ matrix.program }}
+
+      - name: Notify
+        run: node scripts/notify-from-changes.mjs ${{ github.event.inputs.force == 'true' && '--force' || '' }}
+        env:
+          PROGRAM: ${{ matrix.program }}
+          CHANNEL: ${{ matrix.channel }}
+          COUNTRY: ${{ matrix.country }}
+          DISPLAY_NAME: ${{ matrix.display }}
+          ALLIANCE: ${{ matrix.alliance }}
+          TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
+          TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
+
       - name: Notify
         env:
           PROGRAM: ${{ matrix.program }}

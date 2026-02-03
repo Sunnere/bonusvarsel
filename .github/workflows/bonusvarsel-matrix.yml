@@ -7,12 +7,11 @@ on:
         description: "Send Telegram selv om ingen endringer"
         required: false
         default: "false"
-  schedule:
-    - cron: "0 * * * *" # hver time
 
 jobs:
   run:
     runs-on: ubuntu-latest
+
     strategy:
       fail-fast: false
       matrix:
@@ -22,48 +21,47 @@ jobs:
             country: no
             display: "SAS EuroBonus"
             alliance: "SkyTeam"
+            data_dir: "data"
 
           - program: turkish
             channel: TURKISH
             country: no
             display: "Turkish Miles&Smiles"
             alliance: "Star Alliance"
+            data_dir: "data/turkish"
 
           - program: lufthansa
             channel: LUFTHANSA
             country: no
             display: "Lufthansa Miles & More"
             alliance: "Star Alliance"
+            data_dir: "data/lufthansa"
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup Node
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: 20
 
-      - name: Install
-        run: npm ci
+      - run: npm ci
 
-      # Viktig: vi kjører collector per program (skriver til data/ i root)
-      - name: Collect (per program)
+      - name: Collect
         run: node scripts/collect-loyaltykey.mjs
         env:
           PROGRAM: ${{ matrix.program }}
           CHANNEL: ${{ matrix.channel }}
           COUNTRY: ${{ matrix.country }}
 
-      # Viktig: vi forteller notify hvor den skal lese/skrive (DATA_DIR)
-      - name: Notify (per program)
-        run: node scripts/notify-from-changes.mjs ${{ github.event.inputs.force == 'true' && '--force' || '' }}
+      - name: Notify
+        run: node scripts/notify-from-changes.mjs
         env:
           PROGRAM: ${{ matrix.program }}
           CHANNEL: ${{ matrix.channel }}
           COUNTRY: ${{ matrix.country }}
           DISPLAY_NAME: ${{ matrix.display }}
           ALLIANCE: ${{ matrix.alliance }}
-          DATA_DIR: ${{ matrix.program == 'sas' && 'data' || format('data/{0}', matrix.program) }}
+          DATA_DIR: ${{ matrix.data_dir }}
+          FORCE: ${{ github.event.inputs.force }}
           TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
           TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}

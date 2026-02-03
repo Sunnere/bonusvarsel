@@ -1,19 +1,15 @@
 name: Bonusvarsel – collect & notify (matrix)
 
-concurrency:
-  group: bonusvarsel-matrix
-  cancel-in-progress: true
-  
 on:
   schedule:
     - cron: "0 * * * *" # hver time
   workflow_dispatch:
     inputs:
       force:
-        description: "Send Telegram selv om ingen relevante endringer"
+        description: "Send Telegram selv om ingen endringer"
         required: false
         default: "false"
-        
+
 concurrency:
   group: bonusvarsel-matrix
   cancel-in-progress: true
@@ -45,22 +41,19 @@ jobs:
             alliance: "Star Alliance"
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
         with:
           node-version: 20
+          cache: "npm"
 
       - name: Install
         run: npm ci
 
-      - name: Collect
-        env:
-          PROGRAM: ${{ matrix.program }}
-          CHANNEL: ${{ matrix.channel }}
-          COUNTRY: ${{ matrix.country }}
-        run: node scripts/collect-loyaltykey.mjs
-
+      # 1) Kjør collector (skriver til data/)
       - name: Collect
         run: node scripts/collect-loyaltykey.mjs
         env:
@@ -68,48 +61,45 @@ jobs:
           CHANNEL: ${{ matrix.channel }}
           COUNTRY: ${{ matrix.country }}
 
-      - name: Organize output (per program)
+      # 2) Flytt output til data/<program>/ slik at hvert program er isolert
+      - name: Put output in program folder
+        shell: bash
         run: |
           set -e
-          mkdir -p data/${{ matrix.program }}
+          mkdir -p "data/${{ matrix.program }}"
+          # Flytt kun det vi trenger (trygt om filer ikke finnes)
+          if [ -f "data/changes.json" ]; then mv "data/changes.json" "data/${{ matrix.program }}/changes.json"; fi
+          if [ -f "data/changes.summary.json" ]; then mv "data/changes.summary.json" "data/${{ matrix.program }}/changes.summary.json"; fi
+          if [ -f "data/lastRun.json" ]; then mv "data/lastRun.json" "data/${{ matrix.program }}/lastRun.json"; fi
+          # Disse kan du velge å beholde per program hvis du vil (valgfritt):
+          if [ -f "data/campaigns.normalized.json" ]; then mv "data/campaigns.normalized.json" "data/${{ matrix.program }}/campaigns.normalized.json"; fi
+          if [ -f "data/shops.normalized.json" ]; then mv "data/shops.normalized.json" "data/${{ matrix.program }}/shops.normalized.json"; fi
+          if [ -f "data/campaigns.raw.json" ]; then mv "data/campaigns.raw.json" "data/${{ matrix.program }}/campaigns.raw.json"; fi
+          if [ -f "data/shops.raw.json" ]; then mv "data/shops.raw.json" "data/${{ matrix.program }}/shops.raw.json"; fi
 
-          # Flytt kun output-filer (ikke cache)
-          mv -f data/campaigns.raw.json data/${{ matrix.program }}/ || true
-          mv -f data/campaigns.normalized.json data/${{ matrix.program }}/ || true
-          mv -f data/shops.raw.json data/${{ matrix.program }}/ || true
-          mv -f data/shops.normalized.json data/${{ matrix.program }}/ || true
-          mv -f data/changes.json data/${{ matrix.program }}/ || true
-          mv -f data/changes.summary.json data/${{ matrix.program }}/ || true
-          mv -f data/lastRun.json data/${{ matrix.program }}/ || true
-          mv -f data/campaigns.feed.json data/${{ matrix.program }}/ || true
-
-          echo "✅ files now in data/${{ matrix.program }}:"
-          ls -la data/${{ matrix.program }}
-
+      # 3) Notify: kjør bare hvis changes.json finnes (eller force=true)
       - name: Notify
-        run: node scripts/notify-from-changes.mjs ${{ github.event.inputs.force == 'true' && '--force' || '' }}
-        env:
-          PROGRAM: ${{ matrix.program }}
-          CHANNEL: ${{ matrix.channel }}
-          COUNTRY: ${{ matrix.country }}
-          DISPLAY_NAME: ${{ matrix.display }}
-          ALLIANCE: ${{ matrix.alliance }}
-          TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
-          TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
-
-      - name: Notify
-        env:
-          PROGRAM: ${{ matrix.program }}
-          CHANNEL: ${{ matrix.channel }}
-          COUNTRY: ${{ matrix.country }}
-          DISPLAY_NAME: ${{ matrix.display }}
-          ALLIANCE: ${{ matrix.alliance }}
-          TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
-          TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
-          FORCE: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.force || 'false' }}
+        shell: bash
         run: |
+          set -e
+          FORCE="${{ github.event.inputs.force }}"
           if [ "$FORCE" = "true" ]; then
             node scripts/notify-from-changes.mjs --force
-          else
-            node scripts/notify-from-changes.mjs
+            exit 0
           fi
+
+          if [ -f "data/${{ matrix.program }}/changes.json" ]; then
+            node scripts/notify-from-changes.mjs
+            exit 0
+          fi
+
+          echo "Ingen changes.json for ${{ matrix.program }} – hopper over notify."
+        env:
+          PROGRAM: ${{ matrix.program }}
+          CHANNEL: ${{ matrix.channel }}
+          COUNTRY: ${{ matrix.country }}
+          DISPLAY_NAME: ${{ matrix.display }}
+          ALLIANCE: ${{ matrix.alliance }}
+          DATA_DIR: data/${{ matrix.program }}
+          TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
+          TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}

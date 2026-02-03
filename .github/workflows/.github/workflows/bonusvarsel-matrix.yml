@@ -1,0 +1,92 @@
+name: Bonusvarsel – collect & notify (matrix)
+
+on:
+  schedule:
+    - cron: "0 * * * *" # hver time
+  workflow_dispatch:
+    inputs:
+      force:
+        description: "Send Telegram selv om ingen endringer"
+        required: false
+        default: "false"
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - program: sas
+            channel: SAS
+            country: no
+            display: "SAS EuroBonus"
+            alliance: "SkyTeam"
+
+          - program: turkish
+            channel: TURKISH
+            country: no
+            display: "Turkish Miles&Smiles"
+            alliance: "Star Alliance"
+
+          - program: lufthansa
+            channel: LUFTHANSA
+            country: no
+            display: "Lufthansa Miles & More"
+            alliance: "Star Alliance"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install
+        run: npm ci
+
+      - name: Collect
+        run: node scripts/collect-loyaltykey.mjs
+        env:
+          PROGRAM: ${{ matrix.program }}
+          CHANNEL: ${{ matrix.channel }}
+          COUNTRY: ${{ matrix.country }}
+
+      # ✅ NØKKELSTEGET: gjør output pr program (inkl SAS)
+      - name: Organize output (per program)
+        shell: bash
+        run: |
+          set -euo pipefail
+          DATA_DIR="data/${{ matrix.program }}"
+          mkdir -p "$DATA_DIR"
+
+          # flytt JSON-filene collect lager
+          mv -f data/*.json "$DATA_DIR/" || true
+
+          # hvis cache finnes, legg den også pr program (valgfritt)
+          if [ -d "data/.cache" ]; then
+            mkdir -p "$DATA_DIR/.cache"
+            mv -f data/.cache/* "$DATA_DIR/.cache/" || true
+          fi
+
+          echo "DATA_DIR=$DATA_DIR"
+          ls -la "$DATA_DIR" || true
+
+      - name: Notify
+        env:
+          PROGRAM: ${{ matrix.program }}
+          CHANNEL: ${{ matrix.channel }}
+          COUNTRY: ${{ matrix.country }}
+          DISPLAY_NAME: ${{ matrix.display }}
+          ALLIANCE: ${{ matrix.alliance }}
+          DATA_DIR: data/${{ matrix.program }}
+          TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
+          TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
+        run: |
+          ARGS=""
+          if [ "${{ github.event.inputs.force }}" = "true" ]; then
+            ARGS="--force"
+          fi
+          echo "Run ARGS=$ARGS"
+          node scripts/notify-from-changes.mjs $ARGS

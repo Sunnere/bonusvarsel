@@ -1,11 +1,16 @@
-name: Bonusvarsel – sanity check
+name: Bonusvarsel – matrix test
 
 on:
   workflow_dispatch:
 
 jobs:
-  test:
+  run:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        program: [sas, turkish, lufthansa]
+
     steps:
-      - name: Hello
-        run: echo "YAML OK"
+      - name: Show matrix values
+        run: |
+          echo "Program: ${{ matrix.program }}"

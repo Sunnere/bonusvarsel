@@ -36,9 +36,9 @@ const META = {
 /* =========================
    JSON helpers
 ========================= */
-function readJson(p) {
-  if (!fs.existsSync(p)) return null;
-  return JSON.parse(fs.readFileSync(p, "utf8"));
+f (!fs.existsSync(changesPath)) {
+  console.log(`ℹ️ Ingen changes.json for ${PROGRAM}. Hopper over notify.`);
+  process.exit(0); // <-- VIKTIG: ikke feil
 }
 function writeJson(p, obj) {
   fs.mkdirSync(path.dirname(p), { recursive: true });

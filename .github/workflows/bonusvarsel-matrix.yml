@@ -2,7 +2,7 @@ name: Bonusvarsel – collect & notify (matrix)
 
 on:
   schedule:
-    - cron: "0 * * * *"
+    - cron: "0 * * * *" # hver time
   workflow_dispatch:
     inputs:
       force:
@@ -22,21 +22,21 @@ jobs:
             country: no
             display: "SAS EuroBonus"
             alliance: "SkyTeam"
-            data_dir: data
+            data_dir: "data"
 
           - program: turkish
             channel: TURKISH
             country: no
             display: "Turkish Miles&Smiles"
             alliance: "Star Alliance"
-            data_dir: data/turkish
+            data_dir: "data/turkish"
 
           - program: lufthansa
             channel: LUFTHANSA
             country: no
             display: "Lufthansa Miles & More"
             alliance: "Star Alliance"
-            data_dir: data/lufthansa
+            data_dir: "data/lufthansa"
 
     steps:
       - uses: actions/checkout@v4
@@ -45,7 +45,8 @@ jobs:
         with:
           node-version: 20
 
-      - run: npm ci
+      - name: Install
+        run: npm ci
 
       - name: Collect
         run: node scripts/collect-loyaltykey.mjs
@@ -54,23 +55,44 @@ jobs:
           CHANNEL: ${{ matrix.channel }}
           COUNTRY: ${{ matrix.country }}
 
-      # Flytt output til riktig mappe for ikke-sas
       - name: Organize output (per program)
-        if: ${{ matrix.data_dir != 'data' }}
+        shell: bash
         run: |
-          mkdir -p "${{ matrix.data_dir }}"
-          for f in campaigns.feed.json campaigns.raw.json campaigns.normalized.json \
-                   shops.raw.json shops.normalized.json \
-                   changes.json changes.summary.json lastRun.json; do
-            if [ -f "data/$f" ]; then
-              mv "data/$f" "${{ matrix.data_dir }}/$f"
-            fi
-          done
+          set -euo pipefail
+          TARGET="${{ matrix.data_dir }}"
+
+          echo "TARGET=$TARGET"
+
+          # SAS kan ligge i data/ (root). Andre ligger i data/<program>
+          if [ "$TARGET" != "data" ]; then
+            mkdir -p "$TARGET"
+
+            # Flytt bare filene collector lager
+            for f in \
+              data/campaigns.raw.json \
+              data/campaigns.normalized.json \
+              data/shops.raw.json \
+              data/shops.normalized.json \
+              data/changes.json \
+              data/changes.summary.json \
+              data/lastRun.json
+            do
+              if [ -f "$f" ]; then
+                mv "$f" "$TARGET/"
+              fi
+            done
+          fi
+
+          echo "Files in $TARGET:"
+          ls -la "$TARGET" || true
 
       - name: Notify
         run: |
           ARGS=""
-          if [ "${{ github.event.inputs.force }}" = "true" ]; then ARGS="--force"; fi
+          if [ "${{ github.event.inputs.force }}" = "true" ]; then
+            ARGS="--force"
+          fi
+          echo "Run ARGS=$ARGS"
           node scripts/notify-from-changes.mjs $ARGS
         env:
           PROGRAM: ${{ matrix.program }}

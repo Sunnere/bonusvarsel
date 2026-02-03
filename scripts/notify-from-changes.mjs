@@ -15,11 +15,15 @@ const COUNTRY = String(process.env.COUNTRY ?? "no").toLowerCase(); // no/se/...
 const DISPLAY_NAME = String(process.env.DISPLAY_NAME ?? "").trim(); // f.eks "SAS EuroBonus"
 const ALLIANCE = String(process.env.ALLIANCE ?? "").trim(); // f.eks "SkyTeam"
 
-// SAS ligger i data/ (root). Andre programmer ligger i data/<program>
-const DATA_DIR = PROGRAM === "sas" ? path.resolve("data") : path.resolve("data", PROGRAM);
-const changesPath = path.resolve(DATA_DIR, "changes.json");
-const summaryPath = path.resolve(DATA_DIR, "changes.summary.json");
-const sentPath = path.resolve(DATA_DIR, "sent.json");
+// Data directory (comes from workflow matrix)
+const DATA_DIR = process.env.DATA_DIR
+  ? path.resolve(process.env.DATA_DIR)
+  : path.resolve("data");
+
+const changesPath = path.join(DATA_DIR, "changes.json");
+const summaryPath = path.join(DATA_DIR, "changes.summary.json");
+const sentPath = path.join(DATA_DIR, "sent.json");
+
 
 const SENT_TTL_DAYS = Number(process.env.SENT_TTL_DAYS ?? 30);
 

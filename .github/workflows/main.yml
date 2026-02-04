@@ -1,91 +1,16 @@
-name: Bonusvarsel – collect & notify (matrix)
+name: Bonusvarsel – matrix test
 
 on:
-  schedule:
-    - cron: "0 * * * *"
   workflow_dispatch:
-    inputs:
-      force:
-        description: "Send Telegram selv om ingen endringer"
-        required: false
-        default: "false"
 
 jobs:
   run:
     runs-on: ubuntu-latest
-
     strategy:
-      fail-fast: false
       matrix:
-        include:
-          - program: sas
-            channel: SAS
-            country: no
-            display: "SAS EuroBonus"
-            alliance: "SkyTeam"
-            data_dir: data
-
-          - program: turkish
-            channel: TURKISH
-            country: no
-            display: "Turkish Miles&Smiles"
-            alliance: "Star Alliance"
-            data_dir: data/turkish
-
-          - program: lufthansa
-            channel: LUFTHANSA
-            country: no
-            display: "Lufthansa Miles & More"
-            alliance: "Star Alliance"
-            data_dir: data/lufthansa
+        program: [sas, turkish, lufthansa]
 
     steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-
-      - run: npm ci
-
-      - name: Collect
-        run: node scripts/collect-loyaltykey.mjs
-        env:
-          PROGRAM: ${{ matrix.program }}
-          CHANNEL: ${{ matrix.channel }}
-          COUNTRY: ${{ matrix.country }}
-
-      # Viktig: Flytt output inn i riktig mappe per program
-      - name: Organize output (per program)
+      - name: Show matrix values
         run: |
-          mkdir -p "${{ matrix.data_dir }}"
-          # SAS skriver ofte direkte til data/, så vi håndterer begge tilfeller trygt
-          if [ "${{ matrix.program }}" = "sas" ]; then
-            true
-          else
-            # Flytt fra data/ -> data/<program> dersom collector skrev til root
-            if [ -f "data/changes.json" ]; then mv data/changes.json "${{ matrix.data_dir }}/changes.json"; fi
-            if [ -f "data/changes.summary.json" ]; then mv data/changes.summary.json "${{ matrix.data_dir }}/changes.summary.json"; fi
-            if [ -f "data/campaigns.raw.json" ]; then mv data/campaigns.raw.json "${{ matrix.data_dir }}/campaigns.raw.json"; fi
-            if [ -f "data/campaigns.normalized.json" ]; then mv data/campaigns.normalized.json "${{ matrix.data_dir }}/campaigns.normalized.json"; fi
-            if [ -f "data/shops.raw.json" ]; then mv data/shops.raw.json "${{ matrix.data_dir }}/shops.raw.json"; fi
-            if [ -f "data/shops.normalized.json" ]; then mv data/shops.normalized.json "${{ matrix.data_dir }}/shops.normalized.json"; fi
-            if [ -f "data/lastRun.json" ]; then mv data/lastRun.json "${{ matrix.data_dir }}/lastRun.json"; fi
-          fi
-
-      - name: Notify
-        run: |
-          if [ "${{ github.event.inputs.force }}" = "true" ]; then
-            node scripts/notify-from-changes.mjs --force
-          else
-            node scripts/notify-from-changes.mjs
-          fi
-        env:
-          DATA_DIR: ${{ matrix.data_dir }}
-          PROGRAM: ${{ matrix.program }}
-          CHANNEL: ${{ matrix.channel }}
-          COUNTRY: ${{ matrix.country }}
-          DISPLAY_NAME: ${{ matrix.display }}
-          ALLIANCE: ${{ matrix.alliance }}
-          TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
-          TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
+          echo "Program: ${{ matrix.program }}"

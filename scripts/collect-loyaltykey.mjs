@@ -22,9 +22,18 @@ import fs from "node:fs";
 import path from "node:path";
 import crypto from "node:crypto";
 
+// --- Data directory (default: "data") ---
+const DATA_DIR = String(process.env.DATA_DIR || "data").trim();
+const OUT_DIR = path.resolve(DATA_DIR);
+
+// cache per program (så de ikke blander seg)
+const CACHE_DIR = path.resolve(DATA_DIR, ".cache");
+
+// helper: skriv alltid filer under DATA_DIR
+const outPath = (...parts) => path.resolve(DATA_DIR, ...parts);
+
 const API_BASE = process.env.API_BASE || "https://onlineshopping.loyaltykey.com";
-const OUT_DIR = path.resolve("data");
-const CACHE_DIR = path.join(OUT_DIR, ".cache");
+
 
 const CHANNEL = process.env.CHANNEL || "SAS";
 const LANGUAGE = process.env.LANGUAGE || "nb";

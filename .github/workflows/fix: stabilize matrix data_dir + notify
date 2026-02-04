@@ -2,7 +2,7 @@ name: Bonusvarsel – collect & notify (matrix)
 
 on:
   schedule:
-    - cron: "0 * * * *" # hver time
+    - cron: "0 * * * *"
   workflow_dispatch:
     inputs:
       force:
@@ -13,6 +13,7 @@ on:
 jobs:
   run:
     runs-on: ubuntu-latest
+
     strategy:
       fail-fast: false
       matrix:
@@ -22,21 +23,21 @@ jobs:
             country: no
             display: "SAS EuroBonus"
             alliance: "SkyTeam"
-            data_dir: "data"
+            data_dir: data
 
           - program: turkish
             channel: TURKISH
             country: no
             display: "Turkish Miles&Smiles"
             alliance: "Star Alliance"
-            data_dir: "data/turkish"
+            data_dir: data/turkish
 
           - program: lufthansa
             channel: LUFTHANSA
             country: no
             display: "Lufthansa Miles & More"
             alliance: "Star Alliance"
-            data_dir: "data/lufthansa"
+            data_dir: data/lufthansa
 
     steps:
       - uses: actions/checkout@v4
@@ -45,8 +46,7 @@ jobs:
         with:
           node-version: 20
 
-      - name: Install
-        run: npm ci
+      - run: npm ci
 
       - name: Collect
         run: node scripts/collect-loyaltykey.mjs
@@ -55,51 +55,37 @@ jobs:
           CHANNEL: ${{ matrix.channel }}
           COUNTRY: ${{ matrix.country }}
 
+      # Viktig: Flytt output inn i riktig mappe per program
       - name: Organize output (per program)
-        shell: bash
         run: |
-          set -euo pipefail
-          TARGET="${{ matrix.data_dir }}"
-
-          echo "TARGET=$TARGET"
-
-          # SAS kan ligge i data/ (root). Andre ligger i data/<program>
-          if [ "$TARGET" != "data" ]; then
-            mkdir -p "$TARGET"
-
-            # Flytt bare filene collector lager
-            for f in \
-              data/campaigns.raw.json \
-              data/campaigns.normalized.json \
-              data/shops.raw.json \
-              data/shops.normalized.json \
-              data/changes.json \
-              data/changes.summary.json \
-              data/lastRun.json
-            do
-              if [ -f "$f" ]; then
-                mv "$f" "$TARGET/"
-              fi
-            done
+          mkdir -p "${{ matrix.data_dir }}"
+          # SAS skriver ofte direkte til data/, så vi håndterer begge tilfeller trygt
+          if [ "${{ matrix.program }}" = "sas" ]; then
+            true
+          else
+            # Flytt fra data/ -> data/<program> dersom collector skrev til root
+            if [ -f "data/changes.json" ]; then mv data/changes.json "${{ matrix.data_dir }}/changes.json"; fi
+            if [ -f "data/changes.summary.json" ]; then mv data/changes.summary.json "${{ matrix.data_dir }}/changes.summary.json"; fi
+            if [ -f "data/campaigns.raw.json" ]; then mv data/campaigns.raw.json "${{ matrix.data_dir }}/campaigns.raw.json"; fi
+            if [ -f "data/campaigns.normalized.json" ]; then mv data/campaigns.normalized.json "${{ matrix.data_dir }}/campaigns.normalized.json"; fi
+            if [ -f "data/shops.raw.json" ]; then mv data/shops.raw.json "${{ matrix.data_dir }}/shops.raw.json"; fi
+            if [ -f "data/shops.normalized.json" ]; then mv data/shops.normalized.json "${{ matrix.data_dir }}/shops.normalized.json"; fi
+            if [ -f "data/lastRun.json" ]; then mv data/lastRun.json "${{ matrix.data_dir }}/lastRun.json"; fi
           fi
-
-          echo "Files in $TARGET:"
-          ls -la "$TARGET" || true
 
       - name: Notify
         run: |
-          ARGS=""
           if [ "${{ github.event.inputs.force }}" = "true" ]; then
-            ARGS="--force"
+            node scripts/notify-from-changes.mjs --force
+          else
+            node scripts/notify-from-changes.mjs
           fi
-          echo "Run ARGS=$ARGS"
-          node scripts/notify-from-changes.mjs $ARGS
         env:
+          DATA_DIR: ${{ matrix.data_dir }}
           PROGRAM: ${{ matrix.program }}
           CHANNEL: ${{ matrix.channel }}
           COUNTRY: ${{ matrix.country }}
           DISPLAY_NAME: ${{ matrix.display }}
           ALLIANCE: ${{ matrix.alliance }}
-          DATA_DIR: ${{ matrix.data_dir }}
           TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
           TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}

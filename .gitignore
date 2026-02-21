@@ -54,3 +54,18 @@ data/lastRun.json
 
 # generated data
 data/
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Backups
+*.bak
+*.bak.*
+*.pretty.bak.*
+assets/*.bak*
+
+# macOS
+.DS_Store

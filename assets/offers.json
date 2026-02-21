@@ -1,0 +1,1382 @@
+[
+  {
+    "id": "ice",
+    "store": "ICE",
+    "points": 2000,
+    "url": ""
+  },
+  {
+    "id": "ishavskraft-strøm",
+    "store": "Ishavskraft strøm",
+    "points": 2000,
+    "url": ""
+  },
+  {
+    "id": "telia-bredband-og-tv",
+    "store": "Telia",
+    "points": 2000,
+    "url": ""
+  },
+  {
+    "id": "baerum-energi",
+    "store": "Bærum Energi",
+    "points": 1500,
+    "url": ""
+  },
+  {
+    "id": "viasat",
+    "store": "Allente",
+    "points": 1000,
+    "url": ""
+  },
+  {
+    "id": "memira",
+    "store": "Memira",
+    "points": 1000,
+    "url": ""
+  },
+  {
+    "id": "xplora",
+    "store": "Xplora",
+    "points": 1000,
+    "url": ""
+  },
+  {
+    "id": "vitaepro",
+    "store": "VitaePro",
+    "points": 750,
+    "url": ""
+  },
+  {
+    "id": "disney+-1",
+    "store": "Disney+",
+    "points": 500,
+    "url": ""
+  },
+  {
+    "id": "elskling",
+    "store": "ELSKLING",
+    "points": 500,
+    "url": ""
+  },
+  {
+    "id": "albert",
+    "store": "Hej Albert",
+    "points": 500,
+    "url": ""
+  },
+  {
+    "id": "hellofresh",
+    "store": "HelloFresh",
+    "points": 500,
+    "url": ""
+  },
+  {
+    "id": "sky-showtime",
+    "store": "Sky Showtime",
+    "points": 500,
+    "url": ""
+  },
+  {
+    "id": "strim",
+    "store": "Strim",
+    "points": 500,
+    "url": ""
+  },
+  {
+    "id": "bookbeat",
+    "store": "Bookbeat",
+    "points": 250,
+    "url": ""
+  },
+  {
+    "id": "fabel",
+    "store": "Fabel",
+    "points": 250,
+    "url": ""
+  },
+  {
+    "id": "kinoklubb",
+    "store": "Kinoklubb",
+    "points": 250,
+    "url": ""
+  },
+  {
+    "id": "nextory",
+    "store": "Nextory",
+    "points": 250,
+    "url": ""
+  },
+  {
+    "id": "storytel-no",
+    "store": "Storytel",
+    "points": 250,
+    "url": ""
+  },
+  {
+    "id": "dentway",
+    "store": "Dentway",
+    "points": 180,
+    "url": ""
+  },
+  {
+    "id": "dentaworks",
+    "store": "Dentaworks",
+    "points": 150,
+    "url": ""
+  },
+  {
+    "id": "cdon.com",
+    "store": "CDON.COM",
+    "points": 100,
+    "url": ""
+  },
+  {
+    "id": "cyberghost-vpn",
+    "store": "CyberGhost VPN",
+    "points": 100,
+    "url": ""
+  },
+  {
+    "id": "nordvpn",
+    "store": "NordVPN",
+    "points": 100,
+    "url": ""
+  },
+  {
+    "id": "norton-by-symantec",
+    "store": "Norton by Symantec",
+    "points": 100,
+    "url": ""
+  },
+  {
+    "id": "lux-case",
+    "store": "Lux-case",
+    "points": 80,
+    "url": ""
+  },
+  {
+    "id": "made4men",
+    "store": "Made4men",
+    "points": 80,
+    "url": ""
+  },
+  {
+    "id": "nordic-print",
+    "store": "Nordic Print",
+    "points": 80,
+    "url": ""
+  },
+  {
+    "id": "copenhagen-health",
+    "store": "Copenhagen Health",
+    "points": 75,
+    "url": ""
+  },
+  {
+    "id": "batteriexperten",
+    "store": "batteriexperten.com",
+    "points": 50,
+    "url": ""
+  },
+  {
+    "id": "bilxtra",
+    "store": "Bilxtra",
+    "points": 50,
+    "url": ""
+  },
+  {
+    "id": "bladkongen.no",
+    "store": "Bladkongen.no",
+    "points": 50,
+    "url": ""
+  },
+  {
+    "id": "charlies-hus",
+    "store": "Charlies hus",
+    "points": 50,
+    "url": ""
+  },
+  {
+    "id": "daniel-wellington",
+    "store": "Daniel Wellington",
+    "points": 50,
+    "url": ""
+  },
+  {
+    "id": "e-wheels-2",
+    "store": "E-Wheels",
+    "points": 50,
+    "url": ""
+  },
+  {
+    "id": "extraoptical",
+    "store": "Extra Optical",
+    "points": 50,
+    "url": ""
+  },
+  {
+    "id": "festkompaniet",
+    "store": "Festkompaniet",
+    "points": 50,
+    "url": ""
+  },
+  {
+    "id": "fila",
+    "store": "Fila",
+    "points": 50,
+    "url": ""
+  },
+  {
+    "id": "fotoknudsen",
+    "store": "FotoKnudsen",
+    "points": 50,
+    "url": ""
+  },
+  {
+    "id": "go-dream",
+    "store": "GO DREAM",
+    "points": 50,
+    "url": ""
+  },
+  {
+    "id": "ilovedogs",
+    "store": "I love dogs",
+    "points": 50,
+    "url": ""
+  },
+  {
+    "id": "incover",
+    "store": "Incover",
+    "points": 50,
+    "url": ""
+  },
+  {
+    "id": "inkclub",
+    "store": "InkClub",
+    "points": 50,
+    "url": ""
+  },
+  {
+    "id": "inkmann-2",
+    "store": "Inkmann",
+    "points": 50,
+    "url": ""
+  },
+  {
+    "id": "iphonehuset",
+    "store": "iPhonehuset",
+    "points": 50,
+    "url": ""
+  },
+  {
+    "id": "jewelbox.no",
+    "store": "Jewelbox.no",
+    "points": 50,
+    "url": ""
+  },
+  {
+    "id": "loccitane",
+    "store": "L'Occitane",
+    "points": 50,
+    "url": ""
+  },
+  {
+    "id": "lyr-design",
+    "store": "LYR Design",
+    "points": 50,
+    "url": ""
+  },
+  {
+    "id": "mangotango",
+    "store": "Mangotango",
+    "points": 50,
+    "url": ""
+  },
+  {
+    "id": "navnelapper",
+    "store": "Navnelapper",
+    "points": 50,
+    "url": ""
+  },
+  {
+    "id": "newchic",
+    "store": "Newchic",
+    "points": 50,
+    "url": ""
+  },
+  {
+    "id": "paradoux",
+    "store": "Paradoux",
+    "points": 50,
+    "url": ""
+  },
+  {
+    "id": "parfymonline",
+    "store": "Parfymonline",
+    "points": 50,
+    "url": ""
+  },
+  {
+    "id": "rito",
+    "store": "RITO",
+    "points": 50,
+    "url": ""
+  },
+  {
+    "id": "sail-racing",
+    "store": "Sail Racing",
+    "points": 50,
+    "url": ""
+  },
+  {
+    "id": "shampoohuset",
+    "store": "Shampoohuset",
+    "points": 50,
+    "url": ""
+  },
+  {
+    "id": "sistie",
+    "store": "Sistie",
+    "points": 50,
+    "url": ""
+  },
+  {
+    "id": "smartbuyglasses",
+    "store": "SmartBuyGlasses",
+    "points": 50,
+    "url": ""
+  },
+  {
+    "id": "smartphoto-se",
+    "store": "Smartphoto",
+    "points": 50,
+    "url": ""
+  },
+  {
+    "id": "soma",
+    "store": "Soma",
+    "points": 50,
+    "url": ""
+  },
+  {
+    "id": "sparnet",
+    "store": "Sparnet",
+    "points": 50,
+    "url": ""
+  },
+  {
+    "id": "the-chef",
+    "store": "TheChef",
+    "points": 50,
+    "url": ""
+  },
+  {
+    "id": "urban-trend",
+    "store": "Urban Trend",
+    "points": 50,
+    "url": ""
+  },
+  {
+    "id": "zoundindustries",
+    "store": "Urbanears",
+    "points": 50,
+    "url": ""
+  },
+  {
+    "id": "velosophy",
+    "store": "Velosophy",
+    "points": 50,
+    "url": ""
+  },
+  {
+    "id": "won-hundred",
+    "store": "Won Hundred",
+    "points": 50,
+    "url": ""
+  },
+  {
+    "id": "youwish",
+    "store": "YouWish",
+    "points": 50,
+    "url": ""
+  },
+  {
+    "id": "adidas",
+    "store": "Adidas",
+    "points": 25,
+    "url": ""
+  },
+  {
+    "id": "adlibris-no",
+    "store": "Adlibris",
+    "points": 25,
+    "url": ""
+  },
+  {
+    "id": "apotekhjem",
+    "store": "Apotekhjem",
+    "points": 25,
+    "url": ""
+  },
+  {
+    "id": "autodoc",
+    "store": "Autodoc",
+    "points": 25,
+    "url": ""
+  },
+  {
+    "id": "babyland",
+    "store": "Babyland",
+    "points": 25,
+    "url": ""
+  },
+  {
+    "id": "babyshop",
+    "store": "Babyshop",
+    "points": 25,
+    "url": ""
+  },
+  {
+    "id": "bagaren-och-kocken",
+    "store": "Bakeren og Kokken",
+    "points": 25,
+    "url": ""
+  },
+  {
+    "id": "beautycos",
+    "store": "Beautycos",
+    "points": 25,
+    "url": ""
+  },
+  {
+    "id": "bjorn-borg",
+    "store": "Björn Borg",
+    "points": 25,
+    "url": ""
+  },
+  {
+    "id": "bodystore.com",
+    "store": "Bodystore",
+    "points": 25,
+    "url": ""
+  },
+  {
+    "id": "boohoo",
+    "store": "Boohoo",
+    "points": 25,
+    "url": ""
+  },
+  {
+    "id": "bosch-home",
+    "store": "Bosch Home",
+    "points": 25,
+    "url": ""
+  },
+  {
+    "id": "bose-1",
+    "store": "BOSE",
+    "points": 25,
+    "url": ""
+  },
+  {
+    "id": "brilleland",
+    "store": "Brilleland",
+    "points": 25,
+    "url": ""
+  },
+  {
+    "id": "bubbleroom",
+    "store": "Bubbleroom",
+    "points": 25,
+    "url": ""
+  },
+  {
+    "id": "caia-cosmetics",
+    "store": "CAIA Cosmetics",
+    "points": 25,
+    "url": ""
+  },
+  {
+    "id": "care-of-carl",
+    "store": "Care of Carl",
+    "points": 25,
+    "url": ""
+  },
+  {
+    "id": "cellbes",
+    "store": "Cellbes",
+    "points": 25,
+    "url": ""
+  },
+  {
+    "id": "christiania-glasmagasin",
+    "store": "Christiania Glassmagasin",
+    "points": 25,
+    "url": ""
+  },
+  {
+    "id": "db-journey",
+    "store": "Db Journey",
+    "points": 25,
+    "url": ""
+  },
+  {
+    "id": "detailshop",
+    "store": "Detailshop",
+    "points": 25,
+    "url": ""
+  },
+  {
+    "id": "devold",
+    "store": "Devold",
+    "points": 25,
+    "url": ""
+  },
+  {
+    "id": "drømmerom",
+    "store": "Drømmerom",
+    "points": 25,
+    "url": ""
+  },
+  {
+    "id": "dyson",
+    "store": "Dyson",
+    "points": 25,
+    "url": ""
+  },
+  {
+    "id": "electrolux",
+    "store": "Electrolux",
+    "points": 25,
+    "url": ""
+  },
+  {
+    "id": "electrolux-spares-accessories",
+    "store": "Electrolux Spares & accessories",
+    "points": 25,
+    "url": ""
+  },
+  {
+    "id": "elektroimportøren.no",
+    "store": "Elektroimportøren.no",
+    "points": 25,
+    "url": ""
+  },
+  {
+    "id": "ellos-3",
+    "store": "Ellos",
+    "points": 25,
+    "url": ""
+  },
+  {
+    "id": "eurodel",
+    "store": "Eurodel",
+    "points": 25,
+    "url": ""
+  },
+  {
+    "id": "euroflorist",
+    "store": "Euroflorist",
+    "points": 25,
+    "url": ""
+  },
+  {
+    "id": "eurotoys",
+    "store": "Eurotoys",
+    "points": 25,
+    "url": ""
+  },
+  {
+    "id": "farmasiet",
+    "store": "Farmasiet",
+    "points": 25,
+    "url": ""
+  },
+  {
+    "id": "fitnessshoppen",
+    "store": "Fitnessshoppen",
+    "points": 25,
+    "url": ""
+  },
+  {
+    "id": "g-star",
+    "store": "G-Star",
+    "points": 25,
+    "url": ""
+  },
+  {
+    "id": "gents",
+    "store": "Gents",
+    "points": 25,
+    "url": ""
+  },
+  {
+    "id": "gina-tricot-ab",
+    "store": "Gina Tricot",
+    "points": 25,
+    "url": ""
+  },
+  {
+    "id": "glossybox",
+    "store": "Glossybox",
+    "points": 25,
+    "url": ""
+  },
+  {
+    "id": "gullfunn-1",
+    "store": "Gullfunn",
+    "points": 25,
+    "url": ""
+  },
+  {
+    "id": "gymgrossisten",
+    "store": "Gymgrossisten",
+    "points": 25,
+    "url": ""
+  },
+  {
+    "id": "haglofs",
+    "store": "Haglöfs",
+    "points": 25,
+    "url": ""
+  },
+  {
+    "id": "hairlust",
+    "store": "HairLust",
+    "points": 25,
+    "url": ""
+  },
+  {
+    "id": "helly-hansen",
+    "store": "Helly Hansen",
+    "points": 25,
+    "url": ""
+  },
+  {
+    "id": "holdit",
+    "store": "Holdit",
+    "points": 25,
+    "url": ""
+  },
+  {
+    "id": "homeroom",
+    "store": "Homeroom",
+    "points": 25,
+    "url": ""
+  },
+  {
+    "id": "hunkemoller",
+    "store": "Hunkemøller",
+    "points": 25,
+    "url": ""
+  },
+  {
+    "id": "ideal-of-sweden",
+    "store": "Ideal of Sweden",
+    "points": 25,
+    "url": ""
+  },
+  {
+    "id": "interflora",
+    "store": "Interflora",
+    "points": 25,
+    "url": ""
+  },
+  {
+    "id": "interhome",
+    "store": "Interhome",
+    "points": 25,
+    "url": ""
+  },
+  {
+    "id": "interoptik",
+    "store": "Interoptik",
+    "points": 25,
+    "url": ""
+  },
+  {
+    "id": "jakt-friluft",
+    "store": "Jakt & Friluft",
+    "points": 25,
+    "url": ""
+  },
+  {
+    "id": "jbl.com",
+    "store": "JBL.com",
+    "points": 25,
+    "url": ""
+  },
+  {
+    "id": "jotex",
+    "store": "Jotex",
+    "points": 25,
+    "url": ""
+  },
+  {
+    "id": "kajakk-og-fritid",
+    "store": "Kajakk og Fritid",
+    "points": 25,
+    "url": ""
+  },
+  {
+    "id": "kate-spade",
+    "store": "Kate Spade",
+    "points": 25,
+    "url": ""
+  },
+  {
+    "id": "kicks",
+    "store": "KICKS",
+    "points": 25,
+    "url": ""
+  },
+  {
+    "id": "kinogavekort",
+    "store": "Kinogavekort",
+    "points": 25,
+    "url": ""
+  },
+  {
+    "id": "kitchentime",
+    "store": "KitchenTime",
+    "points": 25,
+    "url": ""
+  },
+  {
+    "id": "kitchn-norge",
+    "store": "Kitch’n",
+    "points": 25,
+    "url": ""
+  },
+  {
+    "id": "karcher",
+    "store": "Kärcher",
+    "points": 25,
+    "url": ""
+  },
+  {
+    "id": "lampegiganten",
+    "store": "Lampegiganten",
+    "points": 25,
+    "url": ""
+  },
+  {
+    "id": "lampemesteren",
+    "store": "Lampemesteren",
+    "points": 25,
+    "url": ""
+  },
+  {
+    "id": "lappeliten",
+    "store": "Lappeliten",
+    "points": 25,
+    "url": ""
+  },
+  {
+    "id": "lego",
+    "store": "LEGO",
+    "points": 25,
+    "url": ""
+  },
+  {
+    "id": "lekmer-1",
+    "store": "Lekmer",
+    "points": 25,
+    "url": ""
+  },
+  {
+    "id": "lenson",
+    "store": "LensOn",
+    "points": 25,
+    "url": ""
+  },
+  {
+    "id": "lensway",
+    "store": "Lensway",
+    "points": 25,
+    "url": ""
+  },
+  {
+    "id": "liffner",
+    "store": "Liffner",
+    "points": 25,
+    "url": ""
+  },
+  {
+    "id": "lindex",
+    "store": "Lindex",
+    "points": 25,
+    "url": ""
+  },
+  {
+    "id": "lunehjem.no",
+    "store": "Lunehjem.no",
+    "points": 25,
+    "url": ""
+  },
+  {
+    "id": "lusini",
+    "store": "Lusini",
+    "points": 25,
+    "url": ""
+  },
+  {
+    "id": "lyko-dk",
+    "store": "LYKO",
+    "points": 25,
+    "url": ""
+  },
+  {
+    "id": "lysman",
+    "store": "Lysman",
+    "points": 25,
+    "url": ""
+  },
+  {
+    "id": "lanna-mobler",
+    "store": "Länna Møbler",
+    "points": 25,
+    "url": ""
+  },
+  {
+    "id": "maanesten",
+    "store": "Maanesten",
+    "points": 25,
+    "url": ""
+  },
+  {
+    "id": "makeup-mekka",
+    "store": "Makeup Mekka",
+    "points": 25,
+    "url": ""
+  },
+  {
+    "id": "marshall",
+    "store": "Marshall",
+    "points": 25,
+    "url": ""
+  },
+  {
+    "id": "mecindo",
+    "store": "Mecindo",
+    "points": 25,
+    "url": ""
+  },
+  {
+    "id": "miinto",
+    "store": "Miinto",
+    "points": 25,
+    "url": ""
+  },
+  {
+    "id": "myprotein",
+    "store": "MyProtein",
+    "points": 25,
+    "url": ""
+  },
+  {
+    "id": "newport",
+    "store": "Newport",
+    "points": 25,
+    "url": ""
+  },
+  {
+    "id": "nike",
+    "store": "Nike",
+    "points": 25,
+    "url": ""
+  },
+  {
+    "id": "nordic-nest",
+    "store": "Nordic Nest",
+    "points": 25,
+    "url": ""
+  },
+  {
+    "id": "norli",
+    "store": "Norli",
+    "points": 25,
+    "url": ""
+  },
+  {
+    "id": "outdoorexperten",
+    "store": "OutdoorExperten",
+    "points": 25,
+    "url": ""
+  },
+  {
+    "id": "outnorth",
+    "store": "Outnorth",
+    "points": 25,
+    "url": ""
+  },
+  {
+    "id": "partyking",
+    "store": "partyking",
+    "points": 25,
+    "url": ""
+  },
+  {
+    "id": "patpat",
+    "store": "PatPat",
+    "points": 25,
+    "url": ""
+  },
+  {
+    "id": "petster",
+    "store": "Petster",
+    "points": 25,
+    "url": ""
+  },
+  {
+    "id": "philips",
+    "store": "Philips",
+    "points": 25,
+    "url": ""
+  },
+  {
+    "id": "philips-hue",
+    "store": "Philips Hue",
+    "points": 25,
+    "url": ""
+  },
+  {
+    "id": "pilgrim",
+    "store": "Pilgrim",
+    "points": 25,
+    "url": ""
+  },
+  {
+    "id": "pink-or-blue",
+    "store": "pink or blue",
+    "points": 25,
+    "url": ""
+  },
+  {
+    "id": "polarnopyret",
+    "store": "Polarn O. Pyret",
+    "points": 25,
+    "url": ""
+  },
+  {
+    "id": "proteinfabrikken",
+    "store": "Proteinfabrikken",
+    "points": 25,
+    "url": ""
+  },
+  {
+    "id": "rains",
+    "store": "Rains",
+    "points": 25,
+    "url": ""
+  },
+  {
+    "id": "ray-ban",
+    "store": "Ray-Ban",
+    "points": 25,
+    "url": ""
+  },
+  {
+    "id": "royal-design",
+    "store": "Royal Design",
+    "points": 25,
+    "url": ""
+  },
+  {
+    "id": "room21",
+    "store": "Rum21",
+    "points": 25,
+    "url": ""
+  },
+  {
+    "id": "safira",
+    "store": "Safira",
+    "points": 25,
+    "url": ""
+  },
+  {
+    "id": "senze-of-joy",
+    "store": "Senze of Joy",
+    "points": 25,
+    "url": ""
+  },
+  {
+    "id": "shopping4net",
+    "store": "Shopping4net",
+    "points": 25,
+    "url": ""
+  },
+  {
+    "id": "siemens",
+    "store": "Siemens Home",
+    "points": 25,
+    "url": ""
+  },
+  {
+    "id": "skogstad-sport",
+    "store": "Skogstad Sport",
+    "points": 25,
+    "url": ""
+  },
+  {
+    "id": "slikkepott",
+    "store": "Slikkepott",
+    "points": 25,
+    "url": ""
+  },
+  {
+    "id": "sneakersnstuff",
+    "store": "Sneakersnstuff",
+    "points": 25,
+    "url": ""
+  },
+  {
+    "id": "sofas-more",
+    "store": "Sofas & More",
+    "points": 25,
+    "url": ""
+  },
+  {
+    "id": "soundstorexl",
+    "store": "SoundStoreXL",
+    "points": 25,
+    "url": ""
+  },
+  {
+    "id": "sportgymbutiken",
+    "store": "Sportgymbutikken",
+    "points": 25,
+    "url": ""
+  },
+  {
+    "id": "sporttema",
+    "store": "Sporttema",
+    "points": 25,
+    "url": ""
+  },
+  {
+    "id": "stay-in-place",
+    "store": "Stay In Place",
+    "points": 25,
+    "url": ""
+  },
+  {
+    "id": "stella-mccartney",
+    "store": "Stella McCartney",
+    "points": 25,
+    "url": ""
+  },
+  {
+    "id": "stormberg",
+    "store": "Stormberg",
+    "points": 25,
+    "url": ""
+  },
+  {
+    "id": "stylingagenten",
+    "store": "StylingAgenten",
+    "points": 25,
+    "url": ""
+  },
+  {
+    "id": "swims",
+    "store": "SWIMS",
+    "points": 25,
+    "url": ""
+  },
+  {
+    "id": "tilbords-1",
+    "store": "Tilbords",
+    "points": 25,
+    "url": ""
+  },
+  {
+    "id": "timarco",
+    "store": "Timarco",
+    "points": 25,
+    "url": ""
+  },
+  {
+    "id": "tirendo",
+    "store": "Tirendo",
+    "points": 25,
+    "url": ""
+  },
+  {
+    "id": "trapessko",
+    "store": "Trapessko",
+    "points": 25,
+    "url": ""
+  },
+  {
+    "id": "truestory",
+    "store": "Truestory",
+    "points": 25,
+    "url": ""
+  },
+  {
+    "id": "tt-line",
+    "store": "TT-line",
+    "points": 25,
+    "url": ""
+  },
+  {
+    "id": "under-amour",
+    "store": "Under Armour",
+    "points": 25,
+    "url": ""
+  },
+  {
+    "id": "understatement",
+    "store": "Understatement",
+    "points": 25,
+    "url": ""
+  },
+  {
+    "id": "vakre-vene",
+    "store": "Vakre Vene",
+    "points": 25,
+    "url": ""
+  },
+  {
+    "id": "vetzoo",
+    "store": "VetZoo",
+    "points": 25,
+    "url": ""
+  },
+  {
+    "id": "viking-footwear",
+    "store": "Viking Footwear",
+    "points": 25,
+    "url": ""
+  },
+  {
+    "id": "vita-no",
+    "store": "VITA",
+    "points": 25,
+    "url": ""
+  },
+  {
+    "id": "vpg.no",
+    "store": "VPG.no",
+    "points": 25,
+    "url": ""
+  },
+  {
+    "id": "vy-buss",
+    "store": "Vy Buss",
+    "points": 25,
+    "url": ""
+  },
+  {
+    "id": "watery",
+    "store": "Watery",
+    "points": 25,
+    "url": ""
+  },
+  {
+    "id": "weekday",
+    "store": "WEEKDAY",
+    "points": 25,
+    "url": ""
+  },
+  {
+    "id": "widforss",
+    "store": "Widforss",
+    "points": 25,
+    "url": ""
+  },
+  {
+    "id": "x-life",
+    "store": "X-life",
+    "points": 25,
+    "url": ""
+  },
+  {
+    "id": "zoo.se-1",
+    "store": "ZOO.no",
+    "points": 25,
+    "url": ""
+  },
+  {
+    "id": "staypro",
+    "store": "Staypro",
+    "points": 20,
+    "url": ""
+  },
+  {
+    "id": "urverket.no",
+    "store": "Urverket.no",
+    "points": 20,
+    "url": ""
+  },
+  {
+    "id": "agoda",
+    "store": "Agoda",
+    "points": 15,
+    "url": ""
+  },
+  {
+    "id": "barbershop.no",
+    "store": "Barbershop.no",
+    "points": 15,
+    "url": ""
+  },
+  {
+    "id": "farnell",
+    "store": "Farnell",
+    "points": 15,
+    "url": ""
+  },
+  {
+    "id": "football-travel",
+    "store": "Football Travel",
+    "points": 15,
+    "url": ""
+  },
+  {
+    "id": "harman-kardon",
+    "store": "Harman Kardon",
+    "points": 15,
+    "url": ""
+  },
+  {
+    "id": "samsung",
+    "store": "SAMSUNG",
+    "points": 15,
+    "url": ""
+  },
+  {
+    "id": "skistart.com",
+    "store": "Skistart.com",
+    "points": 15,
+    "url": ""
+  },
+  {
+    "id": "viator",
+    "store": "Viator",
+    "points": 15,
+    "url": ""
+  },
+  {
+    "id": "acer",
+    "store": "Acer",
+    "points": 10,
+    "url": ""
+  },
+  {
+    "id": "aeg",
+    "store": "AEG",
+    "points": 10,
+    "url": ""
+  },
+  {
+    "id": "computersalg",
+    "store": "Computersalg",
+    "points": 10,
+    "url": ""
+  },
+  {
+    "id": "cruisedirect",
+    "store": "CruiseDirect",
+    "points": 10,
+    "url": ""
+  },
+  {
+    "id": "dekkonline.no",
+    "store": "dekkonline.com",
+    "points": 10,
+    "url": ""
+  },
+  {
+    "id": "dustin-1",
+    "store": "Dustin Bedrift",
+    "points": 10,
+    "url": ""
+  },
+  {
+    "id": "elon-",
+    "store": "ELON",
+    "points": 10,
+    "url": ""
+  },
+  {
+    "id": "fredrik-louisa",
+    "store": "Fredrik & Louisa",
+    "points": 10,
+    "url": ""
+  },
+  {
+    "id": "herschel-supply-company",
+    "store": "Herschel Supply Co",
+    "points": 10,
+    "url": ""
+  },
+  {
+    "id": "kjell-co-no",
+    "store": "Kjell & Company",
+    "points": 10,
+    "url": ""
+  },
+  {
+    "id": "komplett-1",
+    "store": "Komplett",
+    "points": 10,
+    "url": ""
+  },
+  {
+    "id": "lenovo-2",
+    "store": "Lenovo",
+    "points": 10,
+    "url": ""
+  },
+  {
+    "id": "logitech",
+    "store": "Logitech",
+    "points": 10,
+    "url": ""
+  },
+  {
+    "id": "proshop",
+    "store": "Proshop",
+    "points": 10,
+    "url": ""
+  },
+  {
+    "id": "racketspecialisten",
+    "store": "Racketspecialisten",
+    "points": 10,
+    "url": ""
+  },
+  {
+    "id": "razer",
+    "store": "Razer",
+    "points": 10,
+    "url": ""
+  },
+  {
+    "id": "skruvat",
+    "store": "Skruvat",
+    "points": 10,
+    "url": ""
+  },
+  {
+    "id": "sonos",
+    "store": "Sonos",
+    "points": 10,
+    "url": ""
+  },
+  {
+    "id": "stockx",
+    "store": "StockX",
+    "points": 10,
+    "url": ""
+  },
+  {
+    "id": "vida-xl-se",
+    "store": "VidaXL",
+    "points": 10,
+    "url": ""
+  }
+]

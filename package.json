@@ -24,5 +24,8 @@
   "homepage": "https://github.com/Sunnere/bonusvarsel#readme",
   "dependencies": {
     "dotenv": "^17.2.3"
+  },
+  "devDependencies": {
+    "playwright": "^1.58.2"
   }
 }

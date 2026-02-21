@@ -35,7 +35,7 @@ const outPath = (...parts) => path.resolve(DATA_DIR, ...parts);
 const API_BASE = process.env.API_BASE || "https://onlineshopping.loyaltykey.com";
 
 
-const CHANNEL = process.env.CHANNEL || "SAS";
+const CHANNEL = (process.env.CHANNEL ?? "").trim(); // ingen default
 const LANGUAGE = process.env.LANGUAGE || "nb";
 const COUNTRY = process.env.COUNTRY || "no";
 const PER_PAGE = Number(process.env.PER_PAGE || 100);
@@ -431,15 +431,14 @@ fs.writeFileSync(
     "utf-8"
   );
 
-  console.log("\nDone ✅");
   console.log(`Wrote:
-- data/campaigns.raw.json
-- data/campaigns.normalized.json
-- data/shops.raw.json
-- data/shops.normalized.json
-- data/changes.json
-- data/changes.summary.json
-- data/lastRun.json`);
+- ${OUT_DIR}/campaigns.raw.json
+- ${OUT_DIR}/campaigns.normalized.json
+- ${OUT_DIR}/shops.raw.json
+- ${OUT_DIR}/shops.normalized.json
+- ${OUT_DIR}/changes.json
+- ${OUT_DIR}/changes.summary.json
+- ${OUT_DIR}/lastRun.json`);
 }
 
 main().catch((err) => {

@@ -69,3 +69,12 @@ assets/*.bak*
 
 # macOS
 .DS_Store
+
+# Node
+node_modules/
+
+# Backup files
+**/*.bak
+**/*.bak.*
+*.log
+.DS_Store

@@ -78,3 +78,7 @@ node_modules/
 **/*.bak.*
 *.log
 .DS_Store
+
+node_modules/
+api/node_modules/
+

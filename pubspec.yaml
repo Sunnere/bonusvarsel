@@ -25,6 +25,7 @@ flutter:
   uses-material-design: true
   assets:
     - assets/eb.shopping.min.json
+    - assets/eb.shopping.pretty.json
     - assets/mam.offers.json
     - assets/mam.offers.min.json
     - assets/offers.json

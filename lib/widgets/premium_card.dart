@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme/app_theme.dart';
 
 class PremiumCard extends StatelessWidget {
   final Color primary;
@@ -54,7 +55,7 @@ class PremiumCard extends StatelessWidget {
                 child: const Text(
                   'PREMIUM',
                   style: TextStyle(
-                    color: Colors.white,
+                    color: AppTheme.surface,
                     fontWeight: FontWeight.w900,
                     letterSpacing: 1.1,
                     fontSize: 12,
@@ -70,7 +71,7 @@ class PremiumCard extends StatelessWidget {
           const Text(
             'Oppgrader og få mer verdi ut av poengene dine',
             style: TextStyle(
-              color: Colors.white,
+              color: AppTheme.surface,
               fontWeight: FontWeight.w900,
               fontSize: 18,
               height: 1.15,

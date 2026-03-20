@@ -65,6 +65,6 @@ class CalcResult {
   const CalcResult({
     required this.earned,
     required this.program,
-    required this.label,
+    this.label = '',
   });
 }

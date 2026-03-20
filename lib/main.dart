@@ -1,11 +1,13 @@
+import 'package:bonusvarsel/pages/bonusvarsel_home_api_page.dart';
 import 'package:flutter/material.dart';
-import 'pages/eb_shopping_page.dart';
-import 'app/error_handling.dart';
+import 'theme/app_theme.dart';
+import 'package:bonusvarsel/services/api_service.dart';
+
 
 void main() {
-  setupErrorHandling();
-
+  ApiService.registerDemoDeviceOnce();
   runApp(const BonusvarselApp());
+  NotificationPolling.start();
 }
 
 class BonusvarselApp extends StatelessWidget {
@@ -14,15 +16,13 @@ class BonusvarselApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      debugShowCheckedModeBanner: false,
+      theme: AppTheme.dark(),
+      darkTheme: AppTheme.dark(),
+      themeMode: ThemeMode.dark,
+      
       title: 'Bonusvarsel',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.green,
-        ),
-        useMaterial3: true,
-      ),
-      home: const EbShoppingPage(),
+      debugShowCheckedModeBanner: false,
+      home: const BonusvarselHomeApiPage(),
     );
   }
 }

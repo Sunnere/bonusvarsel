@@ -137,7 +137,7 @@ class _TravelPageState extends State<TravelPage> {
               const SizedBox(height: 20),
               Text(
                 'Estimert opptjening',
-                style: Theme.of(context).textTheme.titleMedium,
+                style: Theme.of(context).textTheme.labelMedium,
               ),
               const SizedBox(height: 8),
               Text(

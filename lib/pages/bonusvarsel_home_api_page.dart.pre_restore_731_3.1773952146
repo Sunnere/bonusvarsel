@@ -1,0 +1,1638 @@
+import 'package:flutter/material.dart';
+import '../theme/app_theme.dart';
+
+import '../models/feed_item.dart';
+import '../services/api_service.dart';
+import '../pages/bonusvarsel_paywall_page.dart';
+import '../widgets/bonusvarsel_prefs_bar.dart';
+import 'package:bonusvarsel/pages/bonusvarsel_dev_hub_page.dart';
+
+class BonusvarselHomeApiPage extends StatefulWidget {
+  const BonusvarselHomeApiPage({super.key});
+
+  @override
+  State<BonusvarselHomeApiPage> createState() => _BonusvarselHomeApiPageState();
+}
+
+class _BonusvarselHomeApiPageState extends State<BonusvarselHomeApiPage> {
+  late Future<Map<String, dynamic>> _meFuture;
+  late Future<Map<String, dynamic>> _prefsFuture;
+  late Future<List<FeedItem>> _feedFuture;
+  bool _uiOnlyCampaigns = false;
+  String _feedSort = 'default';
+  String _lastFeedRefreshAt = '-';
+  bool _feedLegendExpanded = true;
+  bool _feedControlsExpanded = true;
+  bool _prefsExpanded = true;
+  bool _upgradeExpanded = true;
+  final TextEditingController _purchaseAmountCtrl = TextEditingController(text: '5000');
+  String? _selectedStoreId;
+  String? _comparisonStoreId;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  void _load() {
+    _meFuture = ApiService.getMe();
+    _prefsFuture = ApiService.getPrefs();
+    _feedFuture = ApiService.getFeed();
+    _lastFeedRefreshAt = DateTime.now().toIso8601String();
+  }
+
+  Future<void> _refresh() async {
+    setState(_load);
+    await Future.wait<dynamic>([
+      _meFuture,
+      _prefsFuture,
+      _feedFuture,
+    ]);
+  }
+
+  Widget _sectionTitle(String text) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10, top: 18),
+      child: Text(
+        text,
+        style: const TextStyle(
+          fontSize: 24,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
+    );
+  }
+
+  Widget _loadingBox() {
+    return Container(
+      duration: const Duration(milliseconds: 180),
+      curve: Curves.easeOut,
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(22),
+        color: Colors.black.withValues(alpha: 0.18),
+      ),
+      child: const Center(child: CircularProgressIndicator()),
+    );
+  }
+
+  Widget _errorBox(Object error) {
+    return Container(
+      duration: const Duration(milliseconds: 180),
+      curve: Curves.easeOut,
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: const Color(0xFF34161A),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppTheme.danger),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Padding(
+            padding: EdgeInsets.only(top: 1),
+            child: Icon(Icons.error_outline, color: AppTheme.danger),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              'Noe gikk galt: $Object error',
+              style: const TextStyle(
+                color: Color(0xFFFECACA),
+                fontWeight: FontWeight.w800,
+                height: 1.35,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Color _tierColor(String tier) {
+    switch (tier) {
+      case 'elite':
+        return const Color(0xFFD4AF37);
+      case 'premium':
+        return const Color(0xFF2F80ED);
+      case 'free':
+      default:
+        return Colors.white;
+    }
+  }
+
+  IconData _tierIcon(String tier) {
+    switch (tier) {
+      case 'elite':
+        return Icons.emoji_events;
+      case 'premium':
+        return Icons.workspace_premium;
+      case 'free':
+      default:
+        return Icons.lock_outline;
+    }
+  }
+
+  String _tierLabel(String tier) {
+    switch (tier) {
+      case 'elite':
+        return 'Elite aktiv';
+      case 'premium':
+        return 'Premium aktiv';
+      case 'free':
+      default:
+        return 'Gratis-bruker';
+    }
+  }
+
+  String _tierHint(String tier) {
+    switch (tier) {
+      case 'elite':
+        return 'Du ser alle standard-, premium- og elite-tilbud.';
+      case 'premium':
+        return 'Du ser standard, boost og premium. Elite er fortsatt låst.';
+      case 'free':
+      default:
+        return 'Du ser standard. Boost, Premium og Elite er delvis låst.';
+    }
+  }
+
+  Widget _hero(Map<String, dynamic> me, Map<String, dynamic> prefs) {
+    final email = (me['email'] ?? 'demo@bonusvarsel.app').toString();
+    final tier = (me['tier'] ?? 'free').toString();
+    final sources = (prefs['sources'] ?? const []).toString();
+    final tierColor = _tierColor(tier);
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(28),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color(0xFF2F80ED),
+            Color(0xFF0B4AA2),
+          ],
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.16),
+            blurRadius: 18,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Bonusvarsel API Home',
+            style: TextStyle(
+              fontSize: 19,
+              fontWeight: FontWeight.w800,
+              color: Color(0xFFD4AF37),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            email,
+            style: const TextStyle(
+              fontSize: 26,
+              fontWeight: FontWeight.w900,
+              color: AppTheme.surface,
+            ),
+          ),
+          const SizedBox(height: 14),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: tierColor.withValues(alpha: 0.14),
+              borderRadius: BorderRadius.circular(999),
+              border: Border.all(
+                color: tierColor.withValues(alpha: 0.35),
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(_tierIcon(tier), size: 16, color: tierColor),
+                const SizedBox(width: 8),
+                Text(
+                  _tierLabel(tier),
+                  style: TextStyle(
+                    fontWeight: FontWeight.w800,
+                    color: tierColor,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            _tierHint(tier),
+            style: TextStyle(
+              fontSize: 13,
+              color: Colors.white.withValues(alpha: 0.92),
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Kilder: $sources',
+            style: TextStyle(
+              fontSize: 13,
+              color: Colors.white.withValues(alpha: 0.86),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _whyUpgradeCard(String tier) {
+    if (tier == 'elite') {
+      return const SizedBox.shrink();
+    }
+
+    final title = tier == 'premium'
+        ? 'Ta siste steg til Elite'
+        : 'Hvorfor oppgradere?';
+
+    final subtitle = tier == 'premium'
+        ? 'Elite gir deg tilgang til alle elite-tilbud, tidlig tilgang og full synlighet.'
+        : 'Premium og Elite gir deg mer synlighet på boosts, skjulte rates og bedre deal-funn.';
+
+    final bullets = tier == 'premium'
+        ? const [
+            'Se alle elite-tilbud',
+            'Mest mulig synlighet på skjulte rates',
+            'Tidlig tilgang til nye kampanjer',
+          ]
+        : const [
+            'Lås opp boost-rates',
+            'Se premium-tilbud tydeligere',
+            'Finn bedre poengmuligheter raskere',
+          ];
+
+    return Container(
+      duration: const Duration(milliseconds: 180),
+      curve: Curves.easeOut,
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(22),
+        color: AppTheme.surface,
+        border: Border.all(color: AppTheme.border),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          InkWell(
+            borderRadius: BorderRadius.circular(12),
+            onTap: () {
+              setState(() => _upgradeExpanded = !_upgradeExpanded);
+            },
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+                Icon(
+                  _upgradeExpanded
+                      ? Icons.keyboard_arrow_up
+                      : Icons.keyboard_arrow_down,
+                ),
+              ],
+            ),
+          ),
+          if (_upgradeExpanded) ...[
+            const SizedBox(height: 8),
+            Text(
+              subtitle,
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.black.withValues(alpha: 0.72),
+              ),
+            ),
+            const SizedBox(height: 14),
+            ...bullets.map(
+              (b) => Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Icon(Icons.check_circle, size: 18, color: Color(0xFF2F80ED)),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        b,
+                        style: const TextStyle(fontSize: 14),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: OutlinedButton(
+                onPressed: () async {
+                  final upgraded = await Navigator.of(context).push<bool>(
+                    MaterialPageRoute(
+                      builder: (_) => const BonusvarselPaywallPage(),
+                    ),
+                  );
+                  if (upgraded == true && mounted) {
+                    await _refresh();
+                  }
+                },
+                child: Text(tier == 'premium' ? 'Se Elite' : 'Se Premium / Elite'),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+
+
+
+  Widget _statusStatCard({
+    required String label,
+    required String value,
+    required IconData icon,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(22),
+        color: AppTheme.surface,
+        border: Border.all(color: AppTheme.border),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.22),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Icon(icon, size: 20),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: TextStyle(
+                    color: AppTheme.textMuted,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 12,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  value,
+                  style: const TextStyle(
+                    fontSize: 19,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _dashboardStats({
+    required Map<String, dynamic> me,
+    required Map<String, dynamic> prefs,
+    required List<FeedItem> feed,
+  }) {
+    final tier = (me['tier'] ?? 'free').toString();
+    final visibleCount = _applyFeedView(feed).length;
+    final campaignCount = feed.where((item) => item.campaign).length;
+
+    return Row(
+      children: [
+        Expanded(
+          child: _statusStatCard(
+            label: 'Tier',
+            value: tier.toUpperCase(),
+            icon: _tierIcon(tier),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: _statusStatCard(
+            label: 'Visible',
+            value: '$visibleCount',
+            icon: Icons.visibility_outlined,
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: _statusStatCard(
+            label: 'Campaigns',
+            value: '$campaignCount',
+            icon: Icons.local_fire_department_outlined,
+          ),
+        ),
+      ],
+    );
+  }
+
+
+
+  double _estimatedPoints({
+    required double purchaseAmount,
+    required FeedItem item,
+  }) {
+    return (purchaseAmount * item.rate) / 100.0;
+  }
+
+  Widget _pointsSimulatorCard(List<FeedItem> feed) {
+    final availableFeed = _applyFeedView(feed);
+    final stores = availableFeed.isNotEmpty ? availableFeed : feed;
+
+    if (stores.isEmpty) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(22),
+          color: AppTheme.surface,
+          border: Border.all(color: AppTheme.border),
+        ),
+        child: const Text(
+          'Ingen deals tilgjengelig for simulator akkurat nå.',
+          style: TextStyle(fontWeight: FontWeight.w700),
+        ),
+      );
+    }
+
+    final selectedId = stores.any((item) => item.id == _selectedStoreId)
+        ? _selectedStoreId
+        : stores.first.id;
+
+    final fallbackComparisonId = stores.length > 1 ? stores[1].id : stores.first.id;
+    final comparisonId = stores.any((item) => item.id == _comparisonStoreId)
+        ? _comparisonStoreId
+        : fallbackComparisonId;
+
+    final selectedItem = stores.firstWhere((item) => item.id == selectedId);
+    final comparisonItem = stores.firstWhere((item) => item.id == comparisonId);
+
+    final purchaseAmount =
+        double.tryParse(_purchaseAmountCtrl.text.replaceAll(',', '.')) ?? 0.0;
+
+    final estimatedA = _estimatedPoints(
+      purchaseAmount: purchaseAmount,
+      item: selectedItem,
+    );
+    final estimatedB = _estimatedPoints(
+      purchaseAmount: purchaseAmount,
+      item: comparisonItem,
+    );
+
+    final bestItem = estimatedA >= estimatedB ? selectedItem : comparisonItem;
+    final bestEstimate = estimatedA >= estimatedB ? estimatedA : estimatedB;
+    final diff = (estimatedA - estimatedB).abs();
+
+    return Container(
+      duration: const Duration(milliseconds: 180),
+      curve: Curves.easeOut,
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(22),
+        color: AppTheme.surface,
+        border: Border.all(color: AppTheme.border),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.22),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Poeng-simulator',
+            style: TextStyle(
+              fontSize: 19,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Sammenlign to deals og se hvilket valg som gir best estimert opptjening.',
+            style: const TextStyle(
+              color: AppTheme.textMuted,
+              fontWeight: FontWeight.w700,
+              height: 1.35,
+            ),
+          ),
+          const SizedBox(height: 14),
+          DropdownButtonFormField<String>(
+            initialValue: selectedId,
+            decoration: const InputDecoration(
+              labelText: 'Deal A',
+            ),
+            items: stores
+                .map(
+                  (item) => DropdownMenuItem(
+                    value: item.id,
+                    child: Text('${item.store} • ${item.rateText}'),
+                  ),
+                )
+                .toList(),
+            onChanged: (value) {
+              if (value == null) return;
+              setState(() => _selectedStoreId = value);
+            },
+          ),
+          const SizedBox(height: 14),
+          DropdownButtonFormField<String>(
+            initialValue: comparisonId,
+            decoration: const InputDecoration(
+              labelText: 'Deal B',
+            ),
+            items: stores
+                .map(
+                  (item) => DropdownMenuItem(
+                    value: item.id,
+                    child: Text('${item.store} • ${item.rateText}'),
+                  ),
+                )
+                .toList(),
+            onChanged: (value) {
+              if (value == null) return;
+              setState(() => _comparisonStoreId = value);
+            },
+          ),
+          const SizedBox(height: 14),
+          TextField(
+            controller: _purchaseAmountCtrl,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            decoration: const InputDecoration(
+              labelText: 'Kjøpesum',
+              prefixText: 'kr ',
+            ),
+            onChanged: (_) => setState(() {}),
+          ),
+          const SizedBox(height: 14),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _badge(
+                label: 'A: ${selectedItem.store}',
+                color: Colors.indigo,
+              ),
+              _badge(
+                label: estimatedA.toStringAsFixed(0),
+                color: Colors.indigo,
+              ),
+              _badge(
+                label: 'B: ${comparisonItem.store}',
+                color: Colors.teal,
+              ),
+              _badge(
+                label: estimatedB.toStringAsFixed(0),
+                color: Colors.teal,
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Text(
+            'Beste valg: ${bestItem.store} • ca. ${bestEstimate.toStringAsFixed(0)} poeng/opptjening.',
+            style: const TextStyle(
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Forskjell mellom A og B: ca. ${diff.toStringAsFixed(0)} poeng.',
+            style: const TextStyle(
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+
+  Widget _actionsCard() {
+    return Container(
+      duration: const Duration(milliseconds: 180),
+      curve: Curves.easeOut,
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(22),
+        color: AppTheme.surface,
+        border: Border.all(color: AppTheme.border),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.22),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Handlinger',
+            style: TextStyle(
+              fontSize: 19,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Oppdater data eller registrer demo-device.',
+            style: const TextStyle(
+              color: AppTheme.textMuted,
+              fontWeight: FontWeight.w700,
+              height: 1.35,
+            ),
+          ),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              Expanded(
+                child: FilledButton.icon(
+                  onPressed: _refresh,
+                  icon: const Icon(Icons.refresh),
+                  label: const Text('Oppdater data'),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: _registerDemoDevice,
+                  icon: const Icon(Icons.devices_outlined),
+                  label: const Text('Registrer enhet'),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+
+  Widget _livePrefsCard() {
+    return Container(
+      duration: const Duration(milliseconds: 180),
+      curve: Curves.easeOut,
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(22),
+        color: AppTheme.surface,
+        border: Border.all(color: AppTheme.border),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.22),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Live prefs',
+            style: TextStyle(
+              fontSize: 19,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Endringer oppdaterer feeden direkte.',
+            style: const TextStyle(
+              color: AppTheme.textMuted,
+              fontWeight: FontWeight.w700,
+              height: 1.35,
+            ),
+          ),
+          const SizedBox(height: 14),
+          BonusvarselPrefsBar(
+            onChanged: () {
+              _refresh();
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+
+  Widget _prefsCard(Map<String, dynamic> prefs) {
+    return Container(
+      duration: const Duration(milliseconds: 180),
+      curve: Curves.easeOut,
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(22),
+        color: AppTheme.surface,
+        border: Border.all(color: AppTheme.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          InkWell(
+            borderRadius: BorderRadius.circular(12),
+            onTap: () {
+              setState(() => _prefsExpanded = !_prefsExpanded);
+            },
+            child: Row(
+              children: [
+                const Expanded(
+                  child: Text(
+                    'Preferences',
+                    style: TextStyle(
+                      fontSize: 19,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+                Icon(
+                  _prefsExpanded
+                      ? Icons.keyboard_arrow_up
+                      : Icons.keyboard_arrow_down,
+                ),
+              ],
+            ),
+          ),
+          if (_prefsExpanded) ...[
+            const SizedBox(height: 14),
+            Text(
+              'sources: ${prefs['sources'] ?? []}',
+              style: const TextStyle(color: AppTheme.textSoft, fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'categories: ${prefs['categories'] ?? []}',
+              style: const TextStyle(color: AppTheme.textSoft, fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'minRate: ${prefs['minRate'] ?? 0}',
+              style: const TextStyle(color: AppTheme.textSoft, fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'onlyCampaigns: ${prefs['onlyCampaigns'] ?? false}',
+              style: const TextStyle(color: AppTheme.textSoft, fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'favFirst: ${prefs['favFirst'] ?? false}',
+              style: const TextStyle(color: AppTheme.textSoft, fontWeight: FontWeight.w700),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+
+
+  int _dealScore(FeedItem item) {
+    var score = item.rate.round();
+
+    if (item.campaign) {
+      score += 5;
+    }
+
+    switch (item.level) {
+      case 'boost':
+        score += 1;
+        break;
+      case 'premium':
+        score += 2;
+        break;
+      case 'elite':
+        score += 3;
+        break;
+      default:
+        break;
+    }
+
+    return score;
+  }
+
+  String _dealScoreLabel(FeedItem item) {
+    return 'Score ${_dealScore(item)}';
+  }
+
+
+
+
+  String _bestNextAction(FeedItem item, {int? topRank}) {
+    final momentum = _dealMomentum(item, topRank: topRank);
+
+    if (item.lockedForFree) {
+      return 'Oppgrader før kjøp';
+    }
+
+    if (item.campaign && momentum > 24) {
+      return 'Kjøp nå – sterk kampanje';
+    }
+
+    if (topRank == 1) {
+      return 'Beste deal akkurat nå';
+    }
+
+    if (momentum > 18) {
+      return 'Sterk deal';
+    }
+
+    return 'Se an';
+  }
+
+
+  int _dealMomentum(FeedItem item, {int? topRank}) {
+    var momentum = _dealScore(item);
+
+    if (item.campaign) {
+      momentum += 4;
+    }
+
+    if (topRank != null) {
+      if (topRank == 1) {
+        momentum += 6;
+      } else if (topRank == 2) {
+        momentum += 4;
+      } else if (topRank == 3) {
+        momentum += 2;
+      }
+    }
+
+    switch (item.level) {
+      case 'elite':
+        momentum += 3;
+        break;
+      case 'premium':
+        momentum += 2;
+        break;
+      case 'boost':
+        momentum += 1;
+        break;
+      default:
+        break;
+    }
+
+    return momentum;
+  }
+
+
+  ({String label, Color color, Color? textColor}) _timingDecision(
+    FeedItem item, {
+    int? topRank,
+  }) {
+    final momentum = _dealMomentum(item, topRank: topRank);
+
+    if (item.lockedForFree) {
+      return (
+        label: 'VENT / OPPGRADER',
+        color: Colors.blueGrey,
+        textColor: Colors.white,
+      );
+    }
+
+    if (item.campaign && (momentum >= 24 || topRank == 1)) {
+      return (
+        label: 'KJØP NÅ',
+        color: Colors.green,
+        textColor: Colors.white,
+      );
+    }
+
+    if (momentum >= 20) {
+      return (
+        label: 'GODT KJØPSVINDU',
+        color: Colors.lightGreen,
+        textColor: Colors.black,
+      );
+    }
+
+    return (
+      label: 'VENT',
+      color: Colors.orange,
+      textColor: Colors.black,
+    );
+  }
+
+
+  ({String label, Color color, Color? textColor}) _momentumStyle(
+    FeedItem item, {
+    int? topRank,
+  }) {
+    final momentum = _dealMomentum(item, topRank: topRank);
+
+    if (momentum >= 28) {
+      return (
+        label: 'TRENDING NOW',
+        color: const Color(0xFFD4AF37),
+        textColor: const Color(0xFF7A5A00),
+      );
+    }
+
+    if (momentum >= 22) {
+      return (
+        label: 'HOT',
+        color: Colors.red,
+        textColor: null,
+      );
+    }
+
+    if (momentum >= 16) {
+      return (
+        label: 'STRONG',
+        color: Colors.deepPurple,
+        textColor: null,
+      );
+    }
+
+    return (
+      label: 'WATCH',
+      color: Colors.blueGrey,
+      textColor: Colors.white,
+    );
+  }
+
+
+  Map<String, int> _topDealRanks(List<FeedItem> items) {
+    final visibleItems = _applyFeedView(items);
+
+    final ranked = List<FeedItem>.from(visibleItems)
+      ..sort((a, b) {
+        final scoreCompare = _dealScore(b).compareTo(_dealScore(a));
+        if (scoreCompare != 0) return scoreCompare;
+        return b.rate.compareTo(a.rate);
+      });
+
+    final result = <String, int>{};
+    for (var i = 0; i < ranked.length && i < 3; i++) {
+      result[ranked[i].id] = i + 1;
+    }
+    return result;
+  }
+
+
+  Widget _feedList(List<FeedItem> items, String tier) {
+    final visibleItems = _applyFeedView(items);
+
+    if (visibleItems.isEmpty) {
+      return Column(
+        children: [
+          _feedSummary(
+            visibleCount: 0,
+            totalCount: items.length,
+          ),
+          const SizedBox(height: 14),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(18),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(22),
+              color: AppTheme.surface,
+              border: Border.all(color: AppTheme.border),
+            ),
+            child: const Row(
+              children: [
+                Icon(Icons.inbox_outlined, color: AppTheme.textMuted),
+                SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'Ingen tilbud akkurat nå.',
+                    style: TextStyle(
+                      color: AppTheme.textSoft,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      );
+    }
+
+    bool canSee(FeedItem item) {
+      if (!item.lockedForFree) return true;
+      if (tier == 'elite') return true;
+      if (tier == 'premium' && item.level != 'elite') return true;
+      return false;
+    }
+
+    final topRanks = _topDealRanks(items);
+
+    return Column(
+      children: [
+        _feedSummary(
+          visibleCount: visibleItems.length,
+          totalCount: items.length,
+        ),
+        const SizedBox(height: 14),
+        ...visibleItems.map<Widget>((item) {
+          final unlocked = canSee(item);
+          final topRank = topRanks[item.id];
+          final momentum = _momentumStyle(item, topRank: topRank);
+          final timingDecision = _timingDecision(item, topRank: topRank);
+          final levelColor = item.level == 'elite'
+              ? const Color(0xFFD4AF37)
+              : item.level == 'premium'
+                  ? const Color(0xFF2F80ED)
+                  : item.level == 'boost'
+                      ? Colors.orange
+                      : Colors.grey;
+
+          return Container(
+            margin: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.all(18),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(22),
+              color: AppTheme.surface,
+              border: Border.all(color: AppTheme.border),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.18),
+                  blurRadius: 10,
+                  offset: const Offset(0, 3),
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        item.store,
+                        style: const TextStyle(
+                          fontSize: 19,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ),
+                    if (topRank != null)
+                      Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: _badge(
+                          label: '#$topRank TOP DEAL',
+                          color: topRank == 1
+                              ? const Color(0xFFD4AF37)
+                              : topRank == 2
+                                  ? Colors.blueGrey
+                                  : Colors.brown,
+                          textColor: topRank == 1
+                              ? const Color(0xFF7A5A00)
+                              : Colors.white,
+                        ),
+                      ),
+                    _badge(
+                      label: momentum.label,
+                      color: momentum.color,
+                      textColor: momentum.textColor,
+                    ),
+                    if (item.campaign)
+                      Padding(
+                        padding: const EdgeInsets.only(left: 8),
+                        child: _badge(
+                          label: 'CAMPAIGN',
+                          color: Colors.red,
+                        ),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  unlocked
+                      ? item.rateText
+                      : '🔒 ${item.level.toUpperCase()} • Oppgrader for full rate',
+                  style: const TextStyle(
+                    fontSize: 26,
+                    fontWeight: FontWeight.w900,
+                    color: AppTheme.text,
+                    height: 1.1,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                const SizedBox(height: 12),
+                _badge(
+                  label: timingDecision.label,
+                  color: timingDecision.color,
+                  textColor: timingDecision.textColor,
+                ),
+                const SizedBox(height: 12),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    _badge(
+                      label: item.level.toUpperCase(),
+                      color: levelColor,
+                    ),
+                    _badge(
+                      label: _dealScoreLabel(item),
+                      color: Colors.deepPurple,
+                    ),
+                    _badge(
+                      label: 'Momentum ${_dealMomentum(item, topRank: topRank)}',
+                      color: Colors.orange,
+                    ),
+                    _badge(
+                      label: item.source.toUpperCase(),
+                      color: Colors.indigo,
+                    ),
+                    _badge(
+                      label: item.category,
+                      color: Colors.teal,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                const SizedBox(height: 12),
+                Text(
+                  'Action: ${_bestNextAction(item, topRank: topRank)}',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w800,
+                    fontSize: 13.5,
+                    color: AppTheme.textSoft,
+                    height: 1.25,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'Expires: ${item.expires}',
+                  style: TextStyle(
+                    color: AppTheme.textMuted,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
+          );
+        }),
+      ],
+    );
+  }
+
+
+
+  Future<void> _refreshFeedOnly() async {
+    setState(() {
+      _feedFuture = ApiService.getFeed();
+      _lastFeedRefreshAt = DateTime.now().toIso8601String();
+    });
+    await _feedFuture;
+  }
+
+  String _feedSortLabel() {
+    switch (_feedSort) {
+      case 'score_desc':
+        return 'Beste deal-score først';
+      case 'rate_desc':
+        return 'Høyeste rate først';
+      case 'store_asc':
+        return 'Butikknavn A–Å';
+      default:
+        return 'Standard';
+    }
+  }
+
+  List<FeedItem> _applyFeedView(List<FeedItem> items) {
+    var result = List<FeedItem>.from(items);
+
+    if (_uiOnlyCampaigns) {
+      result = result.where((item) => item.campaign).toList();
+    }
+
+    switch (_feedSort) {
+      case 'score_desc':
+        result.sort((a, b) {
+          final scoreCompare = _dealScore(b).compareTo(_dealScore(a));
+          if (scoreCompare != 0) return scoreCompare;
+          return b.rate.compareTo(a.rate);
+        });
+        break;
+      case 'rate_desc':
+        result.sort((a, b) => b.rate.compareTo(a.rate));
+        break;
+      case 'store_asc':
+        result.sort((a, b) => a.store.toLowerCase().compareTo(b.store.toLowerCase()));
+        break;
+      default:
+        break;
+    }
+
+    return result;
+  }
+
+  Widget _badge({
+    required String label,
+    required Color color,
+    Color? textColor,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(999),
+        color: color.withValues(alpha: 0.10),
+        border: Border.all(color: color.withValues(alpha: 0.30)),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: textColor ?? color,
+          fontWeight: FontWeight.w800,
+          fontSize: 11.5,
+          height: 1.0,
+        ),
+      ),
+    );
+  }
+
+  Widget _feedSummary({
+    required int visibleCount,
+    required int totalCount,
+  }) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(22),
+        color: AppTheme.surface,
+        border: Border.all(color: AppTheme.border),
+      ),
+      child: Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        children: [
+          _badge(
+            label: 'Viser $visibleCount av $totalCount',
+            color: Colors.indigo,
+          ),
+          _badge(
+            label: _feedSortLabel(),
+            color: Colors.teal,
+          ),
+          if (_uiOnlyCampaigns)
+            _badge(
+              label: 'Kun kampanjer',
+              color: Colors.red,
+            ),
+        ],
+      ),
+    );
+  }
+
+
+  Widget _feedLegend() {
+    return Container(
+      duration: const Duration(milliseconds: 180),
+      curve: Curves.easeOut,
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(22),
+        color: AppTheme.surface,
+        border: Border.all(color: AppTheme.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          InkWell(
+            borderRadius: BorderRadius.circular(12),
+            onTap: () {
+              setState(() => _feedLegendExpanded = !_feedLegendExpanded);
+            },
+            child: Row(
+              children: [
+                const Expanded(
+                  child: Text(
+                    'Feed legend',
+                    style: TextStyle(
+                      fontSize: 19,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+                Icon(
+                  _feedLegendExpanded
+                      ? Icons.keyboard_arrow_up
+                      : Icons.keyboard_arrow_down,
+                ),
+              ],
+            ),
+          ),
+          if (_feedLegendExpanded) ...[
+            const SizedBox(height: 12),
+            const Text(
+              'Deal Score = rate + campaign bonus + nivåbonus.',
+              style: TextStyle(
+                fontWeight: FontWeight.w700,
+                height: 1.4,
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Momentum bygger videre på score og løfter kampanjer samt Top 3-deals.',
+              style: TextStyle(
+                fontWeight: FontWeight.w700,
+                height: 1.4,
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'KJØP NÅ / VENT er en enkel timing-vurdering basert på momentum, kampanje og rangering.',
+              style: TextStyle(
+                fontWeight: FontWeight.w700,
+                height: 1.4,
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              '#1 / #2 / #3 TOP DEAL vises for de beste synlige dealene akkurat nå.',
+              style: TextStyle(
+                fontWeight: FontWeight.w700,
+                height: 1.4,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Ranking følger valgt feed-visning, filter og sortering.',
+              style: TextStyle(
+                fontWeight: FontWeight.w700,
+                height: 1.4,
+                color: AppTheme.textMuted,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+
+  Widget _feedControls() {
+    return Container(
+      duration: const Duration(milliseconds: 180),
+      curve: Curves.easeOut,
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(22),
+        color: AppTheme.surface,
+        border: Border.all(color: AppTheme.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          InkWell(
+            borderRadius: BorderRadius.circular(12),
+            onTap: () {
+              setState(() => _feedControlsExpanded = !_feedControlsExpanded);
+            },
+            child: Row(
+              children: [
+                const Expanded(
+                  child: Text(
+                    'Feed view',
+                    style: TextStyle(
+                      fontSize: 19,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+                Icon(
+                  _feedControlsExpanded
+                      ? Icons.keyboard_arrow_up
+                      : Icons.keyboard_arrow_down,
+                ),
+              ],
+            ),
+          ),
+          if (_feedControlsExpanded) ...[
+            const SizedBox(height: 12),
+            Text(
+              'Sist oppdatert: $_lastFeedRefreshAt',
+              style: TextStyle(
+                color: AppTheme.textMuted,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 12),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Kun kampanjer'),
+              value: _uiOnlyCampaigns,
+              onChanged: (value) {
+                setState(() => _uiOnlyCampaigns = value);
+              },
+            ),
+            const SizedBox(height: 6),
+            DropdownButtonFormField<String>(
+              initialValue: _feedSort,
+              decoration: const InputDecoration(
+                labelText: 'Sortering',
+              ),
+              items: const [
+                DropdownMenuItem(
+                  value: 'default',
+                  child: Text('Standard'),
+                ),
+                DropdownMenuItem(
+                  value: 'score_desc',
+                  child: Text('Beste deal-score først'),
+                ),
+                DropdownMenuItem(
+                  value: 'rate_desc',
+                  child: Text('Høyeste rate først'),
+                ),
+                DropdownMenuItem(
+                  value: 'store_asc',
+                  child: Text('Butikknavn A–Å'),
+                ),
+              ],
+              onChanged: (value) {
+                if (value == null) return;
+                setState(() => _feedSort = value);
+              },
+            ),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                FilledButton.tonal(
+                  onPressed: _refreshFeedOnly,
+                  child: const Text('Oppdater feed'),
+                ),
+                OutlinedButton(
+                  onPressed: () {
+                    setState(() {
+                      _uiOnlyCampaigns = false;
+                      _feedSort = 'default';
+                    });
+                  },
+                  child: const Text('Nullstill visning'),
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+
+  Future<void> _registerDemoDevice() async {
+    final result = await ApiService.registerDevice(
+      token: 'flutter-demo-token',
+      platform: 'web',
+    );
+
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Enhet registrert: ${result['count']} totalt')),
+    );
+  }
+
+  @override
+  void dispose() {
+    _purchaseAmountCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Bonusvarsel'),
+        bottom: PreferredSize(
+          preferredSize: Size.fromHeight(1),
+          child: Container(
+            height: 1,
+            color: AppTheme.border,
+          ),
+        ),
+        actions: [
+          IconButton(
+            tooltip: 'Dev Hub',
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => const BonusvarselDevHubPage(),
+                ),
+              );
+            },
+            icon: const Icon(Icons.bug_report_outlined),
+          ),
+          IconButton(
+            onPressed: _refresh,
+            icon: const Icon(Icons.refresh),
+            tooltip: 'Oppdater',
+          ),
+        ],
+      ),
+      body: RefreshIndicator(
+        onRefresh: _refresh,
+        child: FutureBuilder<List<dynamic>>(
+          future: Future.wait<dynamic>([
+            _meFuture,
+            _prefsFuture,
+            _feedFuture,
+          ]),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState != ConnectionState.done) {
+              return ListView(
+                padding: const EdgeInsets.all(18),
+                children: [_loadingBox()],
+              );
+            }
+
+            if (snapshot.hasError) {
+              return ListView(
+                padding: const EdgeInsets.all(18),
+                children: [_errorBox(snapshot.error!)],
+              );
+            }
+
+            final me = snapshot.data![0] as Map<String, dynamic>;
+            final prefs = snapshot.data![1] as Map<String, dynamic>;
+            final feed = snapshot.data![2] as List<FeedItem>;
+            final tier = (me['tier'] ?? 'free').toString();
+
+            return ListView(
+              padding: const EdgeInsets.all(18),
+              children: [
+                _hero(me, prefs),
+                const SizedBox(height: 18),
+                _dashboardStats(
+                  me: me,
+                  prefs: prefs,
+                  feed: feed,
+                ),
+                const SizedBox(height: 18),
+                _pointsSimulatorCard(feed),
+                const SizedBox(height: 18),
+                _actionsCard(),
+                _livePrefsCard(),
+                _sectionTitle('Preferences'),
+                _prefsCard(prefs),
+                _sectionTitle('Hvorfor oppgradere?'),
+                _whyUpgradeCard(tier),
+                _sectionTitle('Feed'),
+                _feedLegend(),
+                const SizedBox(height: 18),
+                _feedControls(),
+                const SizedBox(height: 18),
+                _feedList(feed, tier),
+                const SizedBox(height: 24),
+                ],
+              );
+          },
+        ),
+      ),
+    );
+  }
+}

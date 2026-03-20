@@ -5,6 +5,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// - Nå: local prefs + admin overrides (for dev/test)
 /// - Senere: bytt inn kjøp/kvittering (in_app_purchase) og behold samme API.
 class PremiumService {
+  static final PremiumService instance = PremiumService();
+
   const PremiumService();
 
   static const _kPremium = 'premium.is_premium';

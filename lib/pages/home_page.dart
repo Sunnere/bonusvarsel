@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-
 import 'eb_shopping_page.dart';
 import 'travel_page.dart';
 import 'cards_page.dart';

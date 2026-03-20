@@ -25,7 +25,7 @@ class SettingsPage extends StatelessWidget {
                 children: [
                   Text('Support',
                       style:
-                          t.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+                          t.labelMedium?.copyWith(fontWeight: FontWeight.w700)),
                   const SizedBox(height: 8),
                   const Text('E-post: sunnerehelse@icloud.com'),
                   const SizedBox(height: 6),
@@ -43,7 +43,7 @@ class SettingsPage extends StatelessWidget {
                 children: [
                   Text('Personvern',
                       style:
-                          t.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+                          t.labelMedium?.copyWith(fontWeight: FontWeight.w700)),
                   const SizedBox(height: 8),
                   const Text(
                       'Legg inn Privacy Policy URL før App Store/Google Play.'),
@@ -60,7 +60,7 @@ class SettingsPage extends StatelessWidget {
                 children: [
                   Text('Vilkår',
                       style:
-                          t.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+                          t.labelMedium?.copyWith(fontWeight: FontWeight.w700)),
                   const SizedBox(height: 8),
                   const Text('Legg inn Terms URL før lansering.'),
                 ],

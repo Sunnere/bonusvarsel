@@ -1,0 +1,1 @@
+ryddet unødvendig null-sjekk i paywall_trigger_service.dart\noverskrev best_recommendation_card.dart med premium/elite-smartere versjon\nryddet unødige string interpolation-braces ved full rewrite\n

@@ -6,6 +6,8 @@ import 'package:bonusvarsel/widgets/bonusvarsel_prefs_bar.dart';
 import 'package:bonusvarsel/pages/bonusvarsel_paywall_page.dart';
 import 'package:bonusvarsel/services/api_service.dart';
 import 'package:flutter/material.dart';
+import '../features/offers/eb_shopping_offers_datasource.dart';
+import '../features/offers/eb_shopping_offer_vm.dart';
 import '../theme/app_theme.dart';
 import '../services/ad_metrics_service.dart';
 
@@ -27,7 +29,11 @@ import 'ad_debug_page.dart';
 
 // ignore_for_file: use_build_context_synchronously, prefer_interpolation_to_compose_strings, unused_element
 import 'package:bonusvarsel/pages/premium_page.dart';
+import '../paywall/paywall_launcher_button.dart';
+import '../paywall/paywall_preview_page.dart';
+import 'package:bonusvarsel/widgets/best_recommendation_card.dart';
 
+import '../services/offers_feed_repository.dart';
 class EbShoppingPage extends StatefulWidget {
   const EbShoppingPage({super.key});
 
@@ -38,6 +44,18 @@ class EbShoppingPage extends StatefulWidget {
 const double boostThreshold = 8.0;
 
 class _EbShoppingPageState extends State<EbShoppingPage> {
+  late final EbShoppingOffersDataSource _offersDataSource;
+
+    // ignore: unused_element_parameter
+    void onOpenPremiumPaywall() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => const PaywallPreviewPage(),
+      ),
+    );
+  
+  }
+
   String _apiUserTier = 'free';
 
   int _apiFeedRefreshToken = 0;
@@ -82,7 +100,7 @@ class _EbShoppingPageState extends State<EbShoppingPage> {
 children: [
                     Container(
                       margin: const EdgeInsets.fromLTRB(12, 12, 12, 8),
-                      padding: const EdgeInsets.all(16),
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(20),
                         color: AppTheme.surface,
@@ -147,7 +165,7 @@ children: [
                 'Beste kort akkurat nå',
                 style: Theme.of(context).textTheme.titleMedium,
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 4),
               EliteHeaderWidget(
                   title: 'Beste kort akkurat nå',
                   trailing: const EliteBadgeChip(
@@ -201,7 +219,10 @@ children: [
   @override
   void initState() {
     super.initState();
-    _futureShops = _repo.fetchShops(forceRefresh: false);
+    _offersDataSource = EbShoppingOffersDataSource(
+      offersFeedRepository: OffersFeedRepository(),
+    );
+_futureShops = _repo.fetchShops(forceRefresh: false);
 
     _loadPremiumPrefs();
     _searchCtrl.addListener(_onSearchChanged);
@@ -283,7 +304,6 @@ children: [
     return 'SAS';
   }
 
-
   String _categoryOf(Object it) {
     if (it is Map) {
       return (it['category'] ?? it['kategori'] ?? 'Ukjent').toString();
@@ -354,7 +374,6 @@ children: [
       list = list.where((it) => _sourceOf(it) == _source).toList();
     }
 
-
     if (_onlyCampaigns) {
       list = list.where((it) => _isCampaignOf(it)).toList();
     }
@@ -372,7 +391,6 @@ children: [
     _filterCache = list;
     return list;
   }
-
 
   Future<void> _refreshApiUserTier() async {
     try {
@@ -407,7 +425,7 @@ children: [
       margin: const EdgeInsets.fromLTRB(12, 0, 12, 10),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(12),
         color: AppTheme.surface,
         border: Border.all(color: AppTheme.border),
         boxShadow: [
@@ -446,7 +464,7 @@ children: [
                     color: Colors.black.withValues(alpha: 0.68),
                   ),
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 4),
                 OutlinedButton(
                   onPressed: () async {
                     final upgraded = await Navigator.of(context).push<bool>(
@@ -477,6 +495,8 @@ children: [
   }
 
   Widget _buildSourceFilter(BuildContext context) {
+// ignore: unused_local_variable
+// ignore: unused_local_variable
 final cs = Theme.of(context).colorScheme;
 Widget chip(String label, String value) {
       final selected = _source == value;
@@ -529,13 +549,17 @@ Widget chip(String label, String value) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+                const SizedBox(height: 16),
+                // Flyttet annonse: vises nær nivåvalg i stedet for midt i butikklisten
+                const SizedBox(height: 16),
+
         Text(
           'Kilde',
           style: Theme.of(context).textTheme.labelLarge?.copyWith(
                 fontWeight: FontWeight.w800,
               ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 4),
         Wrap(
           spacing: 8,
           runSpacing: 8,
@@ -548,7 +572,6 @@ Widget chip(String label, String value) {
       ],
     );
   }
-
 
   
       Widget _upgradeBanner(BuildContext context, int hiddenCount) {
@@ -567,60 +590,11 @@ Widget chip(String label, String value) {
   final String ctaLabel =
       (scope == null) ? '🔓 Få alle poengene' : '🔓 Lås opp $scope-poeng';
 
-  return Container(
-    padding: const EdgeInsets.all(12),
-    margin: const EdgeInsets.only(top: 8, bottom: 8),
-    decoration: BoxDecoration(
-      color: cs.primary.withValues(alpha: 0.16),
-      borderRadius: BorderRadius.circular(12),
-      border: Border.all(
-        color: cs.primary.withValues(alpha: 0.25),
-      ),
-    ),
-    child: Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Icon(
-          Icons.lock,
-          size: 14,
-          color: Color(0xFFD4AF37),
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Boost',
-                style: TextStyle(
-                  color: Color(0xFFD4AF37),
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                lockedLine,
-                style: const TextStyle(
-                  color: Colors.white70,
-                  fontSize: 12,
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(width: 10),
-        // BV_BOOST_UPGRADE_BTN
-        _UpgradeCtaButton(
-          onPressed: () => _openPremiumPage(context),
-          label: ctaLabel,
-        ),
-      ],
-    ),
-  );
+  return const SizedBox.shrink();
 }
 
   Future<void> _openDebugAdmin() async {
-    if (!kDebugMode) return;
+    // kDebugMode-sjekk fjernet midlertidig for testing
 
     final isPrem = await _premiumSvc.getIsPremium();
     if (!mounted) return;
@@ -657,7 +631,7 @@ Widget chip(String label, String value) {
                   (context as Element).markNeedsBuild();
                 },
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 4),
               Row(
                 children: [
                   Text('Free limit:'),
@@ -680,6 +654,10 @@ Widget chip(String label, String value) {
             ],
           ),
           actions: [
+              PaywallLauncherButton(
+                tooltip: 'Test Premium paywall',
+              ),
+              
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
               child: Text('Avbryt'),
@@ -721,7 +699,7 @@ Widget chip(String label, String value) {
             'Beste kort akkurat nå',
             style: Theme.of(context).textTheme.titleMedium,
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 4),
           FutureBuilder<List<AdSlot>>(
             future: AdService.instance.pickAds(placement: 'elite_top'),
             builder: (context, snap) {
@@ -734,15 +712,103 @@ Widget chip(String label, String value) {
               final top3 = list.take(3).toList();
               return Column(
                 children: [
+// ignore: unused_local_variable
                   for (final slot in top3) ...[
-                    AdSlotCard(slot: slot, placement: 'elite_top'),
-                    const SizedBox(height: 8),
+
+                    const SizedBox(height: 4),
                   ],
                 ],
               );
             },
           ),
         ],
+      ),
+    );
+  }
+
+
+
+  String _logoAssetForShopTitle(String title) {
+    final key = title.toLowerCase().trim();
+
+    if (key.contains('sas')) return 'assets/brands/sas_eurobonus.png';
+    if (key.contains('trumf')) return 'assets/brands/trumf.png';
+    if (key.contains('visa')) return 'assets/brands/visa.png';
+    if (key.contains('mastercard')) return 'assets/brands/mastercard.png';
+    if (key.contains('amex')) return 'assets/brands/amex.png';
+    if (key.contains('lunar')) return 'assets/brands/lunar.png';
+
+    if (key.contains('allente')) return 'assets/brands/allente.png';
+    if (key.contains('telia')) return 'assets/brands/telia.png';
+    if (key == 'ice' || key.contains(' ice ')) return 'assets/brands/ice.png';
+    if (key.contains('ishavskraft')) return 'assets/brands/ishavskraft.png';
+    if (key.contains('bærum energi') || key.contains('baerum energi')) return 'assets/brands/baerum_energi.png';
+
+    if (key.contains('zalando')) return 'assets/brands/zalando.png';
+    if (key.contains('nike')) return 'assets/brands/nike.png';
+    if (key.contains('adidas')) return 'assets/brands/adidas.png';
+    if (key.contains('komplett')) return 'assets/brands/komplett.png';
+    if (key.contains('power')) return 'assets/brands/power.png';
+    if (key.contains('elkjøp') || key.contains('elkjop')) return 'assets/brands/elkjop.png';
+    if (key.contains('apotek 1') || key.contains('apotek1')) return 'assets/brands/apotek1.png';
+    if (key.contains('vita')) return 'assets/brands/vita.png';
+    if (key.contains('blivakker')) return 'assets/brands/blivakker.png';
+    if (key.contains('boozt')) return 'assets/brands/boozt.png';
+    if (key.contains('ellos')) return 'assets/brands/ellos.png';
+    if (key.contains('cdon')) return 'assets/brands/cdon.png';
+
+    return '';
+  }
+
+  Widget _shopLeadingLogo(String title) {
+    final asset = _logoAssetForShopTitle(title);
+
+    if (asset.isEmpty) {
+      return Container(
+        width: 24,
+        height: 24,
+        decoration: BoxDecoration(
+          color: const Color(0xFFE7F1F7),
+          borderRadius: BorderRadius.circular(6),
+        ),
+        alignment: Alignment.center,
+        child: Text(
+          title.trim().isNotEmpty ? title.trim().characters.first.toUpperCase() : '?',
+          style: const TextStyle(
+            color: Color(0xFF1E4B59),
+            fontWeight: FontWeight.w900,
+            fontSize: 12,
+          ),
+        ),
+      );
+    }
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(6),
+      child: Image.asset(
+        asset,
+        width: 24,
+        height: 24,
+        fit: BoxFit.contain,
+        errorBuilder: (_, __, ___) {
+          return Container(
+            width: 24,
+            height: 24,
+            decoration: BoxDecoration(
+              color: const Color(0xFFE7F1F7),
+              borderRadius: BorderRadius.circular(6),
+            ),
+            alignment: Alignment.center,
+            child: Text(
+              title.trim().isNotEmpty ? title.trim().characters.first.toUpperCase() : '?',
+              style: const TextStyle(
+                color: Color(0xFF1E4B59),
+                fontWeight: FontWeight.w900,
+                fontSize: 12,
+              ),
+            ),
+          );
+        },
       ),
     );
   }
@@ -781,11 +847,6 @@ Widget chip(String label, String value) {
       ),
       body: Column(
         children: [
-          const _PremiumHeader(),
-        // BV_SOURCE_FILTER
-        const SizedBox(height: 12),
-        _buildSourceFilter(context),
-
           Expanded(
             child: FutureBuilder<List<ShopOffer>>(
         future: _futureShops,
@@ -796,7 +857,7 @@ Widget chip(String label, String value) {
           if (snap.hasError) {
             return Center(
               child: Padding(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                 child: Text('Feil: ${snap.error}'),
               ),
             );
@@ -817,6 +878,28 @@ Widget chip(String label, String value) {
           return ListView(
             padding: const EdgeInsets.all(12),
             children: [
+
+              const _PremiumHeader(),
+              SmartBestRecommendationCard(
+                futureOffers: _futureShops,
+                amountNok: 5000,
+                onTapPaywall: () => _openPremiumPage(context),
+              ),
+              // BV_SOURCE_FILTER
+              const SizedBox(height: 4),
+              const SizedBox(height: 8),
+              _buildSourceFilter(context),
+              if (_source == 'Alle')
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+                  child: Text(
+                    'Toppbutikker akkurat nå',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w900,
+                        ),
+                  ),
+                ),
+
               // BV_ELITE_V2_INJECT
               if (_safeTier() == SubscriptionTier.elite)
                 _eliteV2TopCardsSection(context),
@@ -868,7 +951,7 @@ Widget chip(String label, String value) {
                   ),
                 ],
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 4),
 
               // --- Filters: chips ---
               Wrap(
@@ -877,7 +960,7 @@ Widget chip(String label, String value) {
                 crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
                   FilterChip(
-                    label: Text('Kun kampanjer'),
+                    label: Text('Kampanjer'),
                     selected: _onlyCampaigns,
                     onSelected: (v) => setState(() {
                       _onlyCampaigns = v;
@@ -885,7 +968,7 @@ Widget chip(String label, String value) {
                     }),
                   ),
                   FilterChip(
-                    label: Text('Favoritter først'),
+                    label: Text('Favoritter'),
                     selected: _favFirst,
                     onSelected: (v) => setState(() {
                       _favFirst = v;
@@ -893,7 +976,7 @@ Widget chip(String label, String value) {
                     }),
                   ),
                   FilterChip(
-                    label: Text('Sorter: høy rate'),
+                    label: Text('Høy rate'),
                     selected: _sortByRate,
                     onSelected: (v) => setState(() {
                       _sortByRate = v;
@@ -905,12 +988,12 @@ Widget chip(String label, String value) {
 
               if (isGated)
                 _upgradeBanner(context, (_isPremium ? 0 : (filtered.length - _freeLimit).clamp(0, 1 << 30).toInt())),
-              const SizedBox(height: 6),
+              const SizedBox(height: 4),
               Text(
                 'Viser ${visible.length} av ${filtered.length}',
                 style: Theme.of(context).textTheme.bodySmall,
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 4),
               ...visible.map((s) {
                 final name = _nameOf(s).trim();
                 final rate = _rateOf(s);
@@ -929,18 +1012,15 @@ subtitle: Builder(
     final isLocked = isBoost && !_isPremium;
 
     if (isLocked) {
-      return Row(
-        children: [
-          const Icon(Icons.lock, size: 16, color: Colors.orange),
-          const SizedBox(width: 6),
-          Text(
-            "Boost – Oppgrader for å se poengrate",
-            style: TextStyle(
-              color: Colors.orange,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
+      return const Text(
+        '🔒 🔒 Boost i Premium',
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: TextStyle(
+          color: Colors.orange,
+          fontWeight: FontWeight.w700,
+          fontSize: 12,
+        ),
       );
     }
 
@@ -962,7 +1042,7 @@ subtitle: Builder(
                                   .secondary
                                   .withValues(alpha: 0.15),
                             ),
-                            child: Text(isCamp ? 'Kampanje' : 'Standard'),
+                            child: Text(isCamp ? 'Kampanje' : 'Basis'),
                           ),
                         const SizedBox(width: 8),
                         IconButton(
@@ -1006,7 +1086,7 @@ subtitle: Builder(
                 'Beste kort akkurat nå',
                 style: Theme.of(context).textTheme.titleMedium,
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 4),
               ...ads.map((a) => Padding(
                     padding: const EdgeInsets.only(bottom: 8),
                     child: AdSlotCard(
@@ -1022,10 +1102,6 @@ subtitle: Builder(
     );
   }
 }
-
-
-
-
 
 class _UpgradeCtaButtonState extends State<_UpgradeCtaButton>
     with SingleTickerProviderStateMixin {
@@ -1091,7 +1167,7 @@ class _UpgradeCtaButtonState extends State<_UpgradeCtaButton>
               Transform.scale(scale: _pulse.value, child: child),
           child: DecoratedBox(
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(12),
               boxShadow: [glow],
             ),
             child: FilledButton(
@@ -1102,7 +1178,7 @@ class _UpgradeCtaButtonState extends State<_UpgradeCtaButton>
                 padding:
                     const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
+                  borderRadius: BorderRadius.circular(12),
                 ),
                 textStyle: const TextStyle(fontWeight: FontWeight.w900),
               ),
@@ -1114,7 +1190,6 @@ class _UpgradeCtaButtonState extends State<_UpgradeCtaButton>
     );
   }
 }
-
 
 class _UpgradeCtaButton extends StatefulWidget {
   final VoidCallback? onPressed;
@@ -1128,9 +1203,12 @@ class _UpgradeCtaButton extends StatefulWidget {
   State<_UpgradeCtaButton> createState() => _UpgradeCtaButtonState();
 }
 
-
 class _PremiumHeader extends StatelessWidget {
-  const _PremiumHeader();
+  final VoidCallback? onOpenPremiumPaywall;
+
+  const _PremiumHeader({
+    this.onOpenPremiumPaywall,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -1139,14 +1217,14 @@ class _PremiumHeader extends StatelessWidget {
     const headerB = Color(0xFF0B4AA2); // dypere blå for dybde
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
+      padding: const EdgeInsets.fromLTRB(8, 6, 8, 4),
       child: Center(
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 760),
+          constraints: const BoxConstraints(maxWidth: 760, minHeight: 0),
           child: Container(
-            padding: const EdgeInsets.fromLTRB(18, 16, 18, 14),
+            padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(18),
+              borderRadius: BorderRadius.circular(12),
               gradient: const LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
@@ -1165,59 +1243,58 @@ class _PremiumHeader extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'EuroBonus Shopping',
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  'Tjen flere poeng på shopping',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.w900,
                         color: const Color(0xFFD4AF37),
-                        letterSpacing: 0.2,
+                        letterSpacing: 0.1,
                       ),
                 ),
-                const SizedBox(height: 6),
+                const SizedBox(height: 4),
                 Text(
-                  'Finn butikker, kampanjer og poengboost',
+                  'Velg nivå og se hva som gir mest verdi for deg',
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                         color: Colors.white.withValues(alpha: 0.90),
                         fontWeight: FontWeight.w700,
                       ),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 4),
 
                 // Riktig rekkefølge: Trygt, Premium, Elite
-                const Wrap(
-                  spacing: 12,
+                Wrap(
+                  spacing: 10,
                   runSpacing: 10,
                   children: [
-                    _HeaderPill(icon: Icons.verified_user, text: 'Trygt'),
-                    _HeaderPill(icon: Icons.workspace_premium, text: 'Premium'),
-                    _HeaderPill(icon: Icons.emoji_events, text: 'Elite'),
+                    OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(
+                        visualDensity: VisualDensity.compact,
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                      ),
+                      onPressed: onOpenPremiumPaywall,
+                      icon: const Icon(Icons.visibility_outlined, size: 18),
+                      label: const Text('Gratis'),
+                    ),
+                    OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(
+                        visualDensity: VisualDensity.compact,
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                      ),
+                      onPressed: () => _openPremiumPage(context),
+                      icon: const Icon(Icons.workspace_premium_outlined, size: 18),
+                      label: const Text('Premium'),
+                    ),
+                    OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(
+                        visualDensity: VisualDensity.compact,
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                      ),
+                      onPressed: () => _openPremiumPage(context),
+                      icon: const Icon(Icons.emoji_events_outlined, size: 18),
+                      label: const Text('Elite'),
+                    ),
                   ],
                 ),
 
-                const SizedBox(height: 10),
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: InkWell(
-                    onTap: () => _showFreeVsPremium(context),
-                    borderRadius: BorderRadius.circular(10),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.info_outline, size: 18, color: Colors.white.withValues(alpha: 0.88)),
-                          const SizedBox(width: 8),
-                          Text(
-                            'Gratis vs Premium',
-                            style: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.92),
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
               ],
             ),
           ),
@@ -1226,7 +1303,6 @@ class _PremiumHeader extends StatelessWidget {
     );
   }
 }
-
 
 class _HeaderPill extends StatelessWidget {
   final IconData icon;
@@ -1299,7 +1375,6 @@ class _HeaderPill extends StatelessWidget {
     );
   }
 }
-
 
 class _HeaderStatsRow extends StatefulWidget {
   final String placement;
@@ -1491,7 +1566,6 @@ class _HeaderStats {
   });
 }
 
-
 class _ComparisonRow extends StatelessWidget {
   final String label;
   final String free;
@@ -1533,14 +1607,11 @@ class _ComparisonRow extends StatelessWidget {
   }
 }
 
-
-
 void _openPremiumPage(BuildContext context) {
   Navigator.of(context).push(
     MaterialPageRoute(builder: (_) => const PremiumPage()),
   );
 }
-
 
 void _showFreeVsPremium(BuildContext context) {
   final cs = Theme.of(context).colorScheme;
@@ -1558,7 +1629,7 @@ void _showFreeVsPremium(BuildContext context) {
         contentPadding: const EdgeInsets.fromLTRB(18, 0, 18, 14),
         actionsPadding: const EdgeInsets.fromLTRB(18, 0, 18, 14),
         title: Text(
-          'Gratis vs Premium',
+          'Sammenlign nivåer',
           style: Theme.of(ctx).textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.w900,
               ),
@@ -1569,7 +1640,7 @@ void _showFreeVsPremium(BuildContext context) {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const SizedBox(height: 6),
+              const SizedBox(height: 4),
 
               // Tabell: faste kolonner => stabil layout
               Table(
@@ -1615,7 +1686,7 @@ void _showFreeVsPremium(BuildContext context) {
                 ],
               ),
 
-              const SizedBox(height: 12),
+              const SizedBox(height: 4),
 
               Text(
                 'Start alltid handelen fra appen og fullfør kjøpet i samme økt. '
@@ -1623,12 +1694,12 @@ void _showFreeVsPremium(BuildContext context) {
                 'som ikke er tillatt, kan poengene utebli.',
                 style: Theme.of(ctx).textTheme.bodySmall?.copyWith(
                       color: cs.onSurface.withValues(alpha: 0.78),
-                      fontWeight: FontWeight.w600,
+                      fontWeight: FontWeight.w700,
                       height: 1.25,
                     ),
               ),
 
-              const SizedBox(height: 12),
+              const SizedBox(height: 4),
 
               Text(
                 'Du mister ekstra poeng hver gang du handler uten Premium.',
@@ -1732,11 +1803,6 @@ TableRow _cmpBoolRow(BuildContext ctx, ColorScheme cs, String label, bool freeOk
       ),
     ],
   );
+
 }
-
-
-
-
-
-
 

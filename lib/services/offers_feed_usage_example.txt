@@ -1,0 +1,9 @@
+Eksempel:
+
+final repo = OffersFeedRepository();
+final items = await repo.fetchActiveItems(
+  program: 'sas',
+  level: 'premium',
+);
+
+Appen bør etter hvert lese offers fra denne feeden i stedet for bare eldre/mockede kilder.

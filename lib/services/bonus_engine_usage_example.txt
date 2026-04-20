@@ -1,0 +1,26 @@
+Eksempel: shopping-anbefaling
+
+import 'package:bonusvarsel/services/bonus_recommendation_engine.dart';
+
+final recommendations = BonusRecommendationEngine.recommendForShopping(
+  offers: offersAsMapList,
+  amountNok: 5000,
+  selectedCardId: selectedCardId,
+  tier: isElite ? 'elite' : isPremium ? 'premium' : 'free',
+  favoriteIds: favoriteStoreIds,
+  currentSelection: currentlySelectedOfferMap,
+);
+
+final best = recommendations.isNotEmpty ? recommendations.first : null;
+
+
+Eksempel: reise-estimat
+
+final travel = BonusRecommendationEngine.recommendForTravel(
+  amountNok: 5000,
+  selectedCardId: selectedCardId,
+  tier: isElite ? 'elite' : isPremium ? 'premium' : 'free',
+  favorite: false,
+);
+
+print(travel.totalPoints);

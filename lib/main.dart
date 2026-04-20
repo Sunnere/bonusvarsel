@@ -1,12 +1,19 @@
-import 'package:bonusvarsel/pages/bonusvarsel_home_api_page.dart';
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:bonusvarsel/config/app_env.dart';
+import 'package:bonusvarsel/pages/home_page.dart';
+import 'package:bonusvarsel/pages/premium_page.dart';
+import 'package:bonusvarsel/widgets/onboarding_gate.dart';
 import 'theme/app_theme.dart';
 import 'package:bonusvarsel/services/api_service.dart';
+import 'package:bonusvarsel/services/paywall_trigger_service.dart';
 
-
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();
   ApiService.registerDemoDeviceOnce();
   runApp(const BonusvarselApp());
+  PaywallTriggerService.registerAppOpen();
   NotificationPolling.start();
 }
 
@@ -16,13 +23,26 @@ class BonusvarselApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      routes: {
+        '/premium': (_) => const PremiumPage(),
+      },
       theme: AppTheme.dark(),
       darkTheme: AppTheme.dark(),
       themeMode: ThemeMode.dark,
-      
-      title: 'Bonusvarsel',
+      title: AppEnv.isProd ? 'Bonusvarsel' : 'Bonusvarsel (${AppEnv.appFlavor})',
       debugShowCheckedModeBanner: false,
-      home: const BonusvarselHomeApiPage(),
+      home: OnboardingGate(
+        trumfUrl: 'https://www.trumf.no/',
+        sasUrl: 'https://www.sas.no/eurobonus/',
+        onPremiumSelected: () {
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(
+              builder: (_) => const PremiumPage(),
+            ),
+          );
+        },
+        child: const HomePage(),
+      ),
     );
   }
 }

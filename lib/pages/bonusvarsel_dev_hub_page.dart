@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import '../services/api_service.dart';
 import 'bonusvarsel_device_monitor_page.dart';
@@ -27,8 +26,6 @@ class _StaticInfoChip extends StatelessWidget {
   });
 
   @override
-  @override
-  @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
@@ -49,28 +46,26 @@ class _StaticInfoChip extends StatelessWidget {
 }
 
 class _BonusvarselDevHubPageState extends State<BonusvarselDevHubPage> {
+  static const bool _devHubEnabled = bool.fromEnvironment('ENABLE_DEV_HUB', defaultValue: false);
+
+  Map<String, dynamic>? _systemHealth;
   // AI_ANCHOR: DEV_HUB_STATE_START
   bool _sendingTestPush = false;
   bool _queueBusy = false;
   bool _simulatingAlert = false;
-  bool _pushTestExpanded = true;
-  bool _systemHealthExpanded = true;
+  final bool _pushTestExpanded = true;
   Map<String, dynamic>? _lastSendTestResult;
   Map<String, dynamic>? _queueState;
   Map<String, dynamic>? _alertSimulationResult;
   final List<Map<String, dynamic>> _alertSimulationHistory = [];
-  final Set<int> _expandedHistoryRows = {};
   int? _pinnedSimulationIndex;
-  bool _simulationHistoryExpanded = true;
   int _simRate = 18;
   String _simLevel = 'premium';
   bool _simCampaign = true;
 
   String _lastSendTestStatus = 'idle';
   bool _loadingHealth = false;
-  Map<String, dynamic>? _systemHealth;
 
-  final _pushTestKey = GlobalKey();
   final _dispatchKey = GlobalKey();
   final _devicesKey = GlobalKey();
 
@@ -163,46 +158,6 @@ class _BonusvarselDevHubPageState extends State<BonusvarselDevHubPage> {
   }
 
 
-  String _simulationSummaryText(Map<String, dynamic> entry) {
-    final offer = entry['offer'] as Map<String, dynamic>?;
-    final evaluation = entry['evaluation'] as Map<String, dynamic>?;
-
-    return [
-      'Bonusvarsel simulation',
-      'Rate: ${offer?['rateText'] ?? '-'}',
-      'Level: ${offer?['level'] ?? '-'}',
-      'Campaign: ${offer?['campaign'] ?? '-'}',
-      'Score: ${evaluation?['score'] ?? '-'}',
-      'Momentum: ${evaluation?['momentum'] ?? '-'}',
-      'Timing: ${evaluation?['timing'] ?? '-'}',
-      'Notify: ${evaluation?['shouldNotify'] ?? '-'}',
-      'Reason: ${(evaluation?['reason'] ?? '-').toString()}',
-      'Simulated at: ${entry['simulatedAt'] ?? '-'}',
-    ].join('\n');
-  }
-
-  Future<void> _copySimulationSummary(Map<String, dynamic> entry) async {
-    await Clipboard.setData(
-      ClipboardData(text: _simulationSummaryText(entry)),
-    );
-
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Simulation summary kopiert')),
-    );
-  }
-
-  void _scrollTo(GlobalKey key) {
-    final ctx = key.currentContext;
-    if (ctx != null) {
-      Scrollable.ensureVisible(
-        ctx,
-        duration: const Duration(milliseconds: 350),
-        curve: Curves.easeOut,
-      );
-    }
-  }
-
   Widget _entry(
     BuildContext context, {
     required IconData icon,
@@ -236,57 +191,6 @@ class _BonusvarselDevHubPageState extends State<BonusvarselDevHubPage> {
     );
   }
 
-  Widget _statusCard({
-    required String label,
-    required String value,
-    required IconData icon,
-    VoidCallback? onTap,
-  }) {
-  
-return InkWell(
-
-      borderRadius: BorderRadius.circular(18),
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(18),
-          color: Colors.white,
-          border: Border.all(color: Colors.black12),
-        ),
-        child: Row(
-          children: [
-        const DevPipelinePanel(),
-            Icon(icon, size: 20),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    label,
-                    style: TextStyle(
-                      color: Colors.black.withValues(alpha: 0.82),
-                      fontWeight: FontWeight.w700,
-                      fontSize: 12,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    value,
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 
 
 
@@ -326,351 +230,15 @@ return InkWell(
 
 
 
-  Future<void> _runSimulationEntryAgain(Map<String, dynamic> entry) async {
-    final rateRaw = entry['rate'];
-    final levelRaw = entry['level'];
-    final campaignRaw = entry['campaign'];
-
-    final rate = rateRaw is int
-        ? rateRaw
-        : rateRaw is num
-            ? rateRaw.toInt()
-            : _simRate;
-
-    final level = levelRaw is String ? levelRaw : _simLevel;
-    final campaign = campaignRaw is bool ? campaignRaw : _simCampaign;
-
-    setState(() {
-      _simRate = rate;
-      _simLevel = level;
-      _simCampaign = campaign;
-    });
-
-    await _triggerAlertSimulation();
-  }
-
-  void _loadSimulationFromHistory(Map<String, dynamic> entry) {
-    final rate = entry['rate'];
-    final level = entry['level'];
-    final campaign = entry['campaign'];
-
-    setState(() {
-      _alertSimulationResult = Map<String, dynamic>.from(entry);
-
-      if (rate is int) {
-        _simRate = rate;
-      } else if (rate is num) {
-        _simRate = rate.toInt();
-      }
-
-      if (level is String &&
-          (level == 'standard' ||
-              level == 'boost' ||
-              level == 'premium' ||
-              level == 'elite')) {
-        _simLevel = level;
-      }
-
-      if (campaign is bool) {
-        _simCampaign = campaign;
-      }
-    });
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Simulering lastet fra historikk')),
-    );
-  }
 
 
 
-  void _togglePinnedSimulation(int index) {
-    setState(() {
-      if (_pinnedSimulationIndex == index) {
-        _pinnedSimulationIndex = null;
-      } else {
-        _pinnedSimulationIndex = index;
-      }
-    });
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          _pinnedSimulationIndex == index
-              ? 'Simulering pinnet'
-              : 'Pin fjernet',
-        ),
-      ),
-    );
-  }
 
-  int _bestSimulationIndex() {
-    if (_alertSimulationHistory.isEmpty) {
-      return -1;
-    }
-
-    var bestIndex = 0;
-    var bestScore = -999999.0;
-    var bestMomentum = -999999.0;
-
-    for (var i = 0; i < _alertSimulationHistory.length; i++) {
-      final entry = _alertSimulationHistory[i];
-      final evaluation = entry['evaluation'] as Map<String, dynamic>?;
-      final score = (evaluation?['score'] as num?)?.toDouble() ?? -999999.0;
-      final momentum =
-          (evaluation?['momentum'] as num?)?.toDouble() ?? -999999.0;
-
-      if (score > bestScore ||
-          (score == bestScore && momentum > bestMomentum)) {
-        bestIndex = i;
-        bestScore = score;
-        bestMomentum = momentum;
-      }
-    }
-
-    return bestIndex;
-  }
 
 
   // AI_ANCHOR: DEV_HUB_ALERT_HISTORY_START
-  Widget _alertSimulationHistoryCard() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(18),
-        color: const Color(0xFF111827),
-        border: Border.all(color: const Color(0xFFE5E7EB)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          InkWell(
-            borderRadius: BorderRadius.circular(12),
-            onTap: () {
-              setState(() {
-                _simulationHistoryExpanded = !_simulationHistoryExpanded;
-              });
-            },
-            child: Row(
-              children: [
-                const Expanded(
-                  child: Text(
-                    'Simulation history',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                ),
-                Icon(
-                  _simulationHistoryExpanded
-                      ? Icons.keyboard_arrow_up
-                      : Icons.keyboard_arrow_down,
-                ),
-              ],
-            ),
-          ),
-          if (_simulationHistoryExpanded) ...[
-            const SizedBox(height: 10),
-            if (_alertSimulationHistory.isEmpty)
-              const Text(
-                'Ingen simuleringer ennå.',
-                style: TextStyle(fontWeight: FontWeight.w700),
-              )
-            else
-              ..._alertSimulationHistory.asMap().entries.map((pair) {
-                final index = pair.key;
-                final entry = pair.value;
-                final offer = entry['offer'] as Map<String, dynamic>?;
-                final evaluation = entry['evaluation'] as Map<String, dynamic>?;
-                final summary = _alertSummary(evaluation);
-                final expanded = _expandedHistoryRows.contains(index);
-                final isBest = index == _bestSimulationIndex();
-                final isPinned = _pinnedSimulationIndex == index;
-
-                return Container(
-                  width: double.infinity,
-                  margin: const EdgeInsets.only(bottom: 10),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(14),
-                    color: Colors.black.withValues(alpha: 0.03),
-                    border: Border.all(color: Colors.black12),
-                  ),
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(14),
-                    onTap: () {
-                      setState(() {
-                        if (expanded) {
-                          _expandedHistoryRows.remove(index);
-                        } else {
-                          _expandedHistoryRows.add(index);
-                        }
-                      });
-                    },
-                    child: Padding(
-                      padding: const EdgeInsets.all(12),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Expanded(
-                                child: Wrap(
-                                  spacing: 8,
-                                  runSpacing: 8,
-                                  children: [
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 10,
-                                        vertical: 8,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        borderRadius: BorderRadius.circular(999),
-                                        color: summary.color.withValues(alpha: 0.10),
-                                        border: Border.all(
-                                          color: summary.color.withValues(alpha: 0.35),
-                                        ),
-                                      ),
-                                      child: Text(
-                                        summary.label,
-                                        style: TextStyle(
-                                          color: summary.color,
-                                          fontWeight: FontWeight.w900,
-                                          fontSize: 12,
-                                        ),
-                                      ),
-                                    ),
-                                    if (isBest)
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 10,
-                                          vertical: 8,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          borderRadius: BorderRadius.circular(999),
-                                          color: const Color(0xFFD4AF37).withValues(alpha: 0.12),
-                                          border: Border.all(
-                                            color: const Color(0xFFD4AF37).withValues(alpha: 0.45),
-                                          ),
-                                        ),
-                                        child: const Text(
-                                          'BEST SO FAR',
-                                          style: TextStyle(
-                                            color: Color(0xFF8A6A00),
-                                            fontWeight: FontWeight.w900,
-                                            fontSize: 12,
-                                          ),
-                                        ),
-                                      ),
-                                    if (isPinned)
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 10,
-                                          vertical: 8,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          borderRadius: BorderRadius.circular(999),
-                                          color: Colors.deepPurple.withValues(alpha: 0.12),
-                                          border: Border.all(
-                                            color: Colors.deepPurple.withValues(alpha: 0.35),
-                                          ),
-                                        ),
-                                        child: const Text(
-                                          'PINNED',
-                                          style: TextStyle(
-                                            color: Colors.deepPurple,
-                                            fontWeight: FontWeight.w900,
-                                            fontSize: 12,
-                                          ),
-                                        ),
-                                      ),
-                                    _metricChip('Rate', '${offer?['rateText'] ?? '-'}'),
-                                    _metricChip('Level', '${offer?['level'] ?? '-'}'),
-                                    _metricChip('Campaign', '${offer?['campaign'] ?? '-'}'),
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Icon(
-                                expanded
-                                    ? Icons.keyboard_arrow_up
-                                    : Icons.keyboard_arrow_down,
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 10),
-                          _scoreMeter(
-                            label: 'Score',
-                            value: (evaluation?['score'] as num?) ?? 0,
-                            maxValue: 35,
-                          ),
-                          const SizedBox(height: 8),
-                          _scoreMeter(
-                            label: 'Momentum',
-                            value: (evaluation?['momentum'] as num?) ?? 0,
-                            maxValue: 40,
-                          ),
-                          if (expanded) ...[
-                            const SizedBox(height: 8),
-                            Text(
-                              'Reason: ${(evaluation?['reason'] ?? '-').toString()}',
-                              style: TextStyle(
-                                color: Colors.black.withValues(alpha: 0.90),
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                            if (evaluation != null) _alertRuleDebugCard(evaluation),
-                            const SizedBox(height: 6),
-                            Text(
-                              'Simulated at: ${entry['simulatedAt'] ?? '-'}',
-                              style: TextStyle(
-                                color: Colors.black.withValues(alpha: 0.82),
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                            const SizedBox(height: 10),
-                            Wrap(
-                              spacing: 8,
-                              runSpacing: 8,
-                              children: [
-                                OutlinedButton.icon(
-                                  onPressed: () => _loadSimulationFromHistory(entry),
-                                  icon: const Icon(Icons.upload_outlined, size: 16),
-                                  label: const Text('Load'),
-                                ),
-                                OutlinedButton.icon(
-                                  onPressed: () => _runSimulationEntryAgain(entry),
-                                  icon: const Icon(Icons.replay, size: 16),
-                                  label: const Text('Run again'),
-                                ),
-                                OutlinedButton.icon(
-                                  onPressed: () => _copySimulationSummary(entry),
-                                  icon: const Icon(Icons.copy_outlined, size: 16),
-                                  label: const Text('Copy'),
-                                ),
-                                OutlinedButton.icon(
-                                  onPressed: () => _togglePinnedSimulation(index),
-                                  icon: Icon(
-                                    isPinned ? Icons.push_pin : Icons.push_pin_outlined,
-                                    size: 16,
-                                  ),
-                                  label: Text(isPinned ? 'Unpin' : 'Pin'),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ],
-                      ),
-                    ),
-                  ),
-                );
-              }),
-          ],
-        ],
-      ),
-    );
-  }
-
+  
 
   Widget _alertRuleDebugCard(Map<String, dynamic> evaluation) {
     final debug = evaluation['debug'] as Map<String, dynamic>?;
@@ -688,8 +256,8 @@ return InkWell(
         color: Colors.black.withValues(alpha: 0.03),
         border: Border.all(color: Colors.black12),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: ListView(
+        padding: const EdgeInsets.only(bottom: 48),
         children: [
           const Text(
             'Alert rule debug',
@@ -845,8 +413,8 @@ return InkWell(
         color: Colors.black.withValues(alpha: 0.03),
         border: Border.all(color: Colors.black12),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: ListView(
+        padding: const EdgeInsets.only(bottom: 48),
         children: [
           const Text(
             'Compare against pinned',
@@ -1100,7 +668,7 @@ return InkWell(
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w900,
-              color: Colors.black,
+              color: Colors.white,
             ),
           ),
           const SizedBox(height: 10),
@@ -1161,7 +729,10 @@ FilledButton.icon(
           if (result == null)
             const Text(
               'Ingen simulering kjørt ennå.',
-              style: TextStyle(fontWeight: FontWeight.w700),
+              style: TextStyle(
+                fontWeight: FontWeight.w700,
+                color: Color(0xFFD1D5DB),
+              ),
             )
           else ...[
             _simulationCompareCard(),
@@ -1212,7 +783,13 @@ FilledButton.icon(
               const SizedBox(height: 10),
               _scoreMeter(
                 label: 'Momentum',
-                value: (evaluation['momentum'] as num?) ?? 0,
+                value: (() {
+                  final raw = evaluation['momentum']?.toString().toLowerCase() ?? '';
+                  if (raw == 'high') return 3;
+                  if (raw == 'medium') return 2;
+                  if (raw == 'low') return 1;
+                  return 0;
+                })(),
                 maxValue: 40,
               ),
               const SizedBox(height: 12),
@@ -1229,8 +806,8 @@ FilledButton.icon(
               const SizedBox(height: 10),
               Text(
                 'Reason: ${(evaluation['reason'] ?? '-').toString()}',
-                style: TextStyle(
-                  color: Colors.black.withValues(alpha: 0.90),
+                style: const TextStyle(
+                  color: Color(0xFFE5E7EB),
                   fontWeight: FontWeight.w700,
                 ),
               ),
@@ -1238,8 +815,8 @@ FilledButton.icon(
                 const SizedBox(height: 6),
                 Text(
                   'Cooldown remaining: ${evaluation['cooldownRemainingSec']} sec',
-                  style: TextStyle(
-                    color: Colors.black.withValues(alpha: 0.82),
+                  style: const TextStyle(
+                    color: Color(0xFFD1D5DB),
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -1251,6 +828,7 @@ FilledButton.icon(
                   'Decision timeline',
                   style: TextStyle(
                     fontWeight: FontWeight.w900,
+                    color: Colors.white,
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -1302,8 +880,8 @@ FilledButton.icon(
             const SizedBox(height: 8),
             Text(
               'Simulated at: ${result['simulatedAt'] ?? '-'}',
-              style: TextStyle(
-                color: Colors.black.withValues(alpha: 0.82),
+              style: const TextStyle(
+                color: Color(0xFF9CA3AF),
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -1421,7 +999,7 @@ FilledButton.icon(
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w900,
-              color: Colors.black,
+              color: Colors.white,
             ),
           ),
           const SizedBox(height: 10),
@@ -1466,14 +1044,17 @@ FilledButton.icon(
             'Queue items',
             style: TextStyle(
               fontWeight: FontWeight.w900,
-              color: Colors.black,
+              color: Colors.white,
             ),
           ),
           const SizedBox(height: 10),
           if (items.isEmpty)
             const Text(
               'Ingen queue-items ennå.',
-              style: TextStyle(fontWeight: FontWeight.w700),
+              style: TextStyle(
+                fontWeight: FontWeight.w700,
+                color: Color(0xFFD1D5DB),
+              ),
             )
           else
             ...items.take(10).map<Widget>((item) {
@@ -1498,6 +1079,7 @@ FilledButton.icon(
                       '${queueItem['id'] ?? '-'}',
                       style: const TextStyle(
                         fontWeight: FontWeight.w900,
+                        color: Colors.white,
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -1520,6 +1102,7 @@ FilledButton.icon(
                         'Evaluation',
                         style: TextStyle(
                           fontWeight: FontWeight.w900,
+                          color: Colors.white,
                         ),
                       ),
                       const SizedBox(height: 6),
@@ -1540,13 +1123,14 @@ FilledButton.icon(
                         '${dispatch['title'] ?? '-'}',
                         style: const TextStyle(
                           fontWeight: FontWeight.w900,
+                          color: Colors.white,
                         ),
                       ),
                       const SizedBox(height: 4),
                       Text(
                         '${dispatch['body'] ?? '-'}',
-                        style: TextStyle(
-                          color: Colors.black.withValues(alpha: 0.90),
+                        style: const TextStyle(
+                          color: Color(0xFFE5E7EB),
                           fontWeight: FontWeight.w700,
                         ),
                       ),
@@ -1587,7 +1171,7 @@ FilledButton.icon(
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w900,
-              color: Colors.black,
+              color: Colors.white,
             ),
           ),
           const SizedBox(height: 12),
@@ -1631,120 +1215,8 @@ FilledButton.icon(
   }
 
   // AI_ANCHOR: DEV_HUB_SYSTEM_HEALTH_START
-  Widget _systemHealthPanel() {
-    final health = _systemHealth;
-    final apiOk = health?['apiOk'] == true;
-    final apiText = _loadingHealth
-        ? 'Laster...'
-        : apiOk
-            ? 'ok'
-            : 'feil';
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(18),
-        color: const Color(0xFF111827),
-        border: Border.all(color: const Color(0xFFE5E7EB)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          InkWell(
-            borderRadius: BorderRadius.circular(12),
-            onTap: () {
-              setState(() => _systemHealthExpanded = !_systemHealthExpanded);
-            },
-            child: Row(
-              children: [
-                const Expanded(
-                  child: Text(
-                    'System health',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                ),
-                IconButton(
-                  onPressed: _loadingHealth ? null : _loadSystemHealth,
-                  icon: const Icon(Icons.refresh),
-                  tooltip: 'Oppdater health',
-                ),
-                Icon(
-                  _systemHealthExpanded
-                      ? Icons.keyboard_arrow_up
-                      : Icons.keyboard_arrow_down,
-                ),
-              ],
-            ),
-          ),
-          if (_systemHealthExpanded) ...[
-            const SizedBox(height: 10),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                _metricChip('API', apiText),
-                _metricChip('Active offers', '${health?['feedCount'] ?? 0}'),
-                _metricChip('Notifications', '${health?['notificationCount'] ?? 0}'),
-                _metricChip('Sist sjekket', '${health?['checkedAt'] ?? '-'}'),
-              ],
-            ),
-            if (health?['error'] != null) ...[
-              const SizedBox(height: 10),
-              Text(
-                'Feil: ${health!['error']}',
-                style: const TextStyle(
-                  color: Colors.red,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ],
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _devHubStats() {
-    final data = _lastSendTestResult;
-    final deviceCount = data?['deviceCount']?.toString() ?? '0';
-    final dispatchCount = data?['dispatchCount']?.toString() ?? '0';
-
-    return Row(
-      children: [
-        Expanded(
-          child: _statusCard(
-            label: 'Devices',
-            value: deviceCount,
-            icon: Icons.devices_outlined,
-            onTap: () => _scrollTo(_devicesKey),
-          ),
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: _statusCard(
-            label: 'Send-test',
-            value: _lastSendTestStatus,
-            icon: Icons.send_outlined,
-            onTap: () => _scrollTo(_pushTestKey),
-          ),
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: _statusCard(
-            label: 'Dispatches',
-            value: dispatchCount,
-            icon: Icons.local_offer_outlined,
-            onTap: () => _scrollTo(_dispatchKey),
-          ),
-        ),
-      ],
-    );
-  }
-
+  
+  
 
 
 
@@ -1777,6 +1249,7 @@ FilledButton.icon(
                 label,
                 style: const TextStyle(
                   fontWeight: FontWeight.w800,
+                  color: Colors.white,
                 ),
               ),
             ),
@@ -1812,7 +1285,14 @@ FilledButton.icon(
     final shouldNotify = evaluation['shouldNotify'] == true;
     final cooldown = int.tryParse('${evaluation['cooldownRemainingSec'] ?? 0}') ?? 0;
     final timing = '${evaluation['timing'] ?? ''}';
-    final momentum = int.tryParse('${evaluation['momentum'] ?? 0}') ?? 0;
+    final momentumRaw = '${evaluation['momentum'] ?? ''}'.toLowerCase();
+    final momentum = momentumRaw == 'high'
+        ? 30
+        : momentumRaw == 'medium'
+            ? 20
+            : momentumRaw == 'low'
+                ? 10
+                : (int.tryParse('${evaluation['momentum'] ?? 0}') ?? 0);
 
     if (cooldown > 0) {
       return (label: 'BLOCKED BY COOLDOWN', color: Colors.red);
@@ -1889,63 +1369,7 @@ FilledButton.icon(
     );
   }
 
-  Widget _pushTestCard() {
-    return Container(
-      key: _pushTestKey,
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(18),
-        color: const Color(0xFF111827),
-        border: Border.all(color: const Color(0xFFE5E7EB)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          InkWell(
-            borderRadius: BorderRadius.circular(12),
-            onTap: () {
-              setState(() => _pushTestExpanded = !_pushTestExpanded);
-            },
-            child: Row(
-              children: [
-                const Expanded(
-                  child: Text(
-                    'Push test',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                ),
-                Icon(
-                  _pushTestExpanded
-                      ? Icons.keyboard_arrow_up
-                      : Icons.keyboard_arrow_down,
-                ),
-              ],
-            ),
-          ),
-          if (_pushTestExpanded) ...[
-            const SizedBox(height: 8),
-            const Text(
-              'Simuler test-send til registrerte devices.',
-              style: TextStyle(
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            const SizedBox(height: 12),
-            FilledButton.icon(
-              onPressed: _sendingTestPush ? null : _sendTestPush,
-              icon: const Icon(Icons.send),
-              label: Text(_sendingTestPush ? 'Sender…' : 'Kjør send-test'),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
+  
   Widget _lastSendTestCard() {
     Color statusColor;
     switch (_lastSendTestStatus) {
@@ -2035,6 +1459,7 @@ FilledButton.icon(
                   'Siste dispatches',
                   style: TextStyle(
                     fontWeight: FontWeight.w900,
+                    color: Colors.white,
                   ),
                 ),
                 const SizedBox(height: 10),
@@ -2060,13 +1485,14 @@ FilledButton.icon(
                           '${dispatch['title'] ?? '-'}',
                           style: const TextStyle(
                             fontWeight: FontWeight.w900,
+                            color: Colors.white,
                           ),
                         ),
                         const SizedBox(height: 4),
                         Text(
                           '${dispatch['body'] ?? '-'}',
-                          style: TextStyle(
-                            color: Colors.black.withValues(alpha: 0.90),
+                          style: const TextStyle(
+                            color: Color(0xFFE5E7EB),
                             fontWeight: FontWeight.w700,
                           ),
                         ),
@@ -2095,6 +1521,7 @@ FilledButton.icon(
                             'Evaluation',
                             style: TextStyle(
                               fontWeight: FontWeight.w900,
+                              color: Colors.white,
                             ),
                           ),
                           const SizedBox(height: 8),
@@ -2123,8 +1550,8 @@ FilledButton.icon(
                           const SizedBox(height: 8),
                           Text(
                             'Reason: ${(evaluation['reason'] ?? '-').toString()}',
-                            style: TextStyle(
-                              color: Colors.black.withValues(alpha: 0.90),
+                            style: const TextStyle(
+                              color: Color(0xFFE5E7EB),
                               fontWeight: FontWeight.w700,
                             ),
                           ),
@@ -2132,8 +1559,8 @@ FilledButton.icon(
                             const SizedBox(height: 6),
                             Text(
                               'Cooldown remaining: ${evaluation['cooldownRemainingSec']} sec',
-                              style: TextStyle(
-                                color: Colors.black.withValues(alpha: 0.82),
+                              style: const TextStyle(
+                                color: Color(0xFFD1D5DB),
                                 fontWeight: FontWeight.w700,
                               ),
                             ),
@@ -2167,7 +1594,7 @@ FilledButton.icon(
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w900,
-              color: Colors.black,
+              color: Colors.white,
             ),
           ),
           const SizedBox(height: 10),
@@ -2202,6 +1629,7 @@ FilledButton.icon(
         ),
       ),
       child: const Text(
+
         'DEV HUB v660 • AI anchors active',
         style: TextStyle(
           fontSize: 11,
@@ -2215,117 +1643,32 @@ FilledButton.icon(
 
 
 
-  Color _diagnosticColor(String label, String value) {
-    final normalized = value.toLowerCase().trim();
-
-    if (label == 'API') {
-      if (normalized == 'ok') return Colors.green;
-      if (normalized == 'unknown') return Colors.orange;
-      return Colors.red;
-    }
-
-    if (label == 'Pinned baseline') {
-      return normalized == 'yes' ? Colors.green : Colors.orange;
-    }
-
-    if (label == 'History size') {
-      final n = int.tryParse(value) ?? 0;
-      return n > 0 ? Colors.green : Colors.orange;
-    }
-
-    if (label == 'Queue total' ||
-        label == 'Queue queued' ||
-        label == 'Queue processed' ||
-        label == 'Feed items' ||
-        label == 'Notifications') {
-      final n = int.tryParse(value) ?? 0;
-      if (n > 0) return Colors.green;
-      return Colors.orange;
-    }
-
-    return Colors.blueGrey;
-  }
-
-  Widget _diagnosticChip(String label, String value) {
-    final tone = _diagnosticColor(label, value);
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(999),
-        color: tone.withValues(alpha: 0.10),
-        border: Border.all(
-          color: tone.withValues(alpha: 0.55),
-        ),
-      ),
-      child: Text(
-        '$label: $value',
-        style: TextStyle(
-          fontWeight: FontWeight.w800,
-          fontSize: 12,
-          color: tone,
-        ),
-      ),
-    );
-  }
-
-
-  Widget _devHubDiagnosticsCard() {
-    final health = _systemHealth;
-    final queue = _queueState?['queue'] as Map<String, dynamic>?;
-
-    final apiText = health?['apiOk'] == true ? 'ok' : 'unknown';
-    final feedCount = '${health?['feedCount'] ?? 0}';
-    final notificationCount = '${health?['notificationCount'] ?? 0}';
-    final queueTotal = '${queue?['total'] ?? 0}';
-    final queueQueued = '${queue?['queued'] ?? 0}';
-    final queueProcessed = '${queue?['processed'] ?? 0}';
-    final pinned = _pinnedSimulationIndex == null ? 'no' : 'yes';
-    final historySize = '${_alertSimulationHistory.length}';
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(18),
-        color: const Color(0xFF111827),
-        border: Border.all(color: const Color(0xFFE5E7EB)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Dev Hub diagnostics',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w900,
-              color: Colors.black,
-            ),
-          ),
-          const SizedBox(height: 10),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              _diagnosticChip('API', apiText),
-              _diagnosticChip('Feed items', feedCount),
-              _diagnosticChip('Notifications', notificationCount),
-              _diagnosticChip('Queue total', queueTotal),
-              _diagnosticChip('Queue queued', queueQueued),
-              _diagnosticChip('Queue processed', queueProcessed),
-              _diagnosticChip('Pinned baseline', pinned),
-              _diagnosticChip('History size', historySize),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
+  
 
 // AI_ANCHOR: DEV_HUB_BUILD_START
   @override
   Widget build(BuildContext context) {
+    if (!_devHubEnabled) {
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text('Dev Hub'),
+        ),
+        body: const Center(
+          child: Padding(
+            padding: EdgeInsets.all(24),
+            child: Text(
+              'Dev Hub er deaktivert i denne byggen.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Dev Hub'),
@@ -2347,6 +1690,7 @@ FilledButton.icon(
               ),
             ),
             child: const Text(
+
               'Minimal Dev Hub',
               style: TextStyle(
                 fontSize: 24,
@@ -2364,6 +1708,7 @@ FilledButton.icon(
               border: Border.all(color: Colors.black12),
             ),
             child: const Text(
+
               'Vi legger dev-verktøy på ett sted for trygg testing av feed, notifications og push.',
               style: TextStyle(
                 fontWeight: FontWeight.w700,
@@ -2381,23 +1726,108 @@ FilledButton.icon(
 // AI_ANCHOR: DEV_HUB_BUILD_QUICK_ACTIONS
           _quickActionsCard(),
           const SizedBox(height: 16),
-                    _devHubDiagnosticsCard(),
+                    Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              color: const Color(0xFF111827),
+              border: Border.all(color: Colors.white24),
+            ),
+            child: const Text(
+
+              'Diagnostics midlertidig skjult lokalt.',
+              style: TextStyle(
+                color: Color(0xFFD1D5DB),
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
           const SizedBox(height: 16),
 // AI_ANCHOR: DEV_HUB_BUILD_QUEUE
           _queueActionsCard(),
           const SizedBox(height: 16),
+
+          const DevPipelinePanel(),
+
+          const SizedBox(height: 16),
           // AI_ANCHOR: DEV_HUB_BUILD_ALERT_SIM
           _alertSimulationCard(),
+          const SizedBox(height: 16),
+          const SizedBox(height: 16),
+          _decisionInsightCard(),
           const SizedBox(height: 16),
           // AI_ANCHOR: DEV_HUB_BUILD_ALERT_HISTORY
           _alertSimulationHistoryCard(),
           const SizedBox(height: 16),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              color: Colors.white,
+              border: Border.all(color: Colors.black12),
+            ),
+            child: const Text(
+'Alert history midlertidig skjult lokalt.'),
+          ),
+          const SizedBox(height: 16),
           // AI_ANCHOR: DEV_HUB_BUILD_SYSTEM_HEALTH
           _systemHealthPanel(),
           const SizedBox(height: 16),
-          _devHubStats(),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              color: const Color(0xFF111827),
+              border: Border.all(color: Colors.white24),
+            ),
+            child: const Text(
+
+              'System health midlertidig skjult lokalt.',
+              style: TextStyle(
+                color: Color(0xFFD1D5DB),
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
           const SizedBox(height: 16),
-          _pushTestCard(),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              color: const Color(0xFF111827),
+              border: Border.all(color: Colors.white24),
+            ),
+            child: const Text(
+
+              'Stats midlertidig skjult lokalt.',
+              style: TextStyle(
+                color: Color(0xFFD1D5DB),
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              color: const Color(0xFF111827),
+              border: Border.all(color: Colors.white24),
+            ),
+            child: const Text(
+
+              'Push test midlertidig skjult lokalt.',
+              style: TextStyle(
+                color: Color(0xFFD1D5DB),
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
           if (_pushTestExpanded) ...[
             const SizedBox(height: 16),
             _lastSendTestCard(),
@@ -2437,4 +1867,311 @@ FilledButton.icon(
       ),
     );
   }
+
+
+
+  Widget _systemHealthPanel() {
+    final health = _systemHealth?['health'] as Map<String, dynamic>?;
+    final feed = _systemHealth?['feed'];
+    final notifications = _systemHealth?['notifications'];
+    final rawPipeline = health?['pipeline'];
+    final Map<String, dynamic>? pipeline =
+        rawPipeline is Map ? Map<String, dynamic>.from(rawPipeline) : null;
+
+    final apiUp = health?['ok'] == true || health?['api'] == 'up';
+    final version = health?['version']?.toString() ?? '-';
+    final devRoutesEnabled = health?['devRoutesEnabled']?.toString() ?? '-';
+    final source = pipeline?['source']?.toString() ?? '-';
+    final lastSimulationId = pipeline?['lastSimulationId']?.toString() ?? '-';
+
+    int notificationCount = 0;
+    if (notifications is List) {
+      notificationCount = notifications.length;
+    } else if (notifications is Map && notifications['count'] is num) {
+      notificationCount = (notifications['count'] as num).toInt();
+    }
+
+    int feedCount = 0;
+    if (feed is List) {
+      feedCount = feed.length;
+    } else if (feed is Map && feed['count'] is num) {
+      feedCount = (feed['count'] as num).toInt();
+    }
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(18),
+        color: const Color(0xFF111827),
+        border: Border.all(color: Colors.white24),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'System health',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 18,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 12),
+          if (_loadingHealth) ...[
+            const Text(
+              'Laster system health...',
+              style: TextStyle(
+                color: Color(0xFFD1D5DB),
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ] else ...[
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                _metricChip('API', apiUp ? 'up' : 'down'),
+                _metricChip('Version', version),
+                _metricChip('Dev routes', devRoutesEnabled),
+                _metricChip('Pipeline source', source),
+                _metricChip('Feed count', '$feedCount'),
+                _metricChip('Notifications', '$notificationCount'),
+                _metricChip('Last sim', lastSimulationId),
+                _metricChip(
+                  'Loaded at',
+                  _systemHealth?['loadedAt']?.toString() ?? '-',
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+
+  Widget _decisionInsightCard() {
+    final result = _alertSimulationResult;
+    final offer = result?['offer'] is Map
+        ? Map<String, dynamic>.from(result?['offer'] as Map)
+        : <String, dynamic>{};
+    final evaluation = result?['evaluation'] is Map
+        ? Map<String, dynamic>.from(result?['evaluation'] as Map)
+        : <String, dynamic>{};
+
+    final score = evaluation['score']?.toString() ?? '-';
+    final threshold = evaluation['threshold']?.toString() ?? '-';
+    final momentum = evaluation['momentum']?.toString() ?? '-';
+    final timing = evaluation['timing']?.toString() ?? '-';
+    final shouldNotify = evaluation['shouldNotify'];
+    final reason = evaluation['reason']?.toString() ?? '-';
+    final rateText = offer['rateText']?.toString() ??
+        (offer['rate'] != null ? '${offer['rate']}x' : '-');
+    final level = offer['level']?.toString() ?? '-';
+    final campaign = offer['campaign']?.toString() ?? '-';
+
+    final decisionText = shouldNotify == true
+        ? 'SEND'
+        : shouldNotify == false
+            ? 'SKIP'
+            : '-';
+
+    final decisionColor = shouldNotify == true
+        ? const Color(0xFF047857)
+        : shouldNotify == false
+            ? const Color(0xFFB91C1C)
+            : const Color(0xFF6B7280);
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(18),
+        color: const Color(0xFF111827),
+        border: Border.all(color: Colors.white24),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Decision insight',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 18,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 12),
+          if (result == null)
+            const Text(
+              'Ingen alert simulation kjørt ennå.',
+              style: TextStyle(
+                color: Color(0xFFD1D5DB),
+                fontWeight: FontWeight.w700,
+              ),
+            )
+          else ...[
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                _metricChip('Rate', rateText),
+                _metricChip('Level', level),
+                _metricChip('Campaign', campaign),
+                _metricChip(
+                  'Score',
+                  threshold != '-' ? '$score / $threshold' : score,
+                ),
+                _metricChip('Momentum', momentum),
+                _metricChip('Timing', timing),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(999),
+                    color: decisionColor.withValues(alpha: 0.12),
+                    border: Border.all(
+                      color: decisionColor.withValues(alpha: 0.38),
+                    ),
+                  ),
+                  child: Text(
+                    'Decision: $decisionText',
+                    style: TextStyle(
+                      color: decisionColor,
+                      fontWeight: FontWeight.w900,
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(14),
+                color: const Color(0xFF1F2937),
+                border: Border.all(color: Colors.white24),
+              ),
+              child: Text(
+                'Reason: $reason',
+                style: const TextStyle(
+                  color: Color(0xFFE5E7EB),
+                  fontWeight: FontWeight.w700,
+                  height: 1.4,
+                ),
+              ),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              'Simulated at: ${result['simulatedAt'] ?? '-'}',
+              style: const TextStyle(
+                color: Color(0xFF9CA3AF),
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _alertSimulationHistoryCard() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(18),
+        color: const Color(0xFF111827),
+        border: Border.all(color: Colors.white24),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Alert simulation history',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w900,
+              color: Colors.white,
+            ),
+          ),
+          const SizedBox(height: 12),
+          if (_alertSimulationHistory.isEmpty)
+            const Text(
+              'Ingen simuleringer ennå.',
+              style: TextStyle(
+                fontWeight: FontWeight.w700,
+                color: Color(0xFFD1D5DB),
+              ),
+            )
+          else
+            Column(
+              children: List.generate(_alertSimulationHistory.length, (index) {
+                final entry = _alertSimulationHistory[index];
+                final offer = entry['offer'] as Map<String, dynamic>?;
+                final evaluation = entry['evaluation'] as Map<String, dynamic>?;
+
+                return Container(
+                  width: double.infinity,
+                  margin: EdgeInsets.only(
+                    bottom: index == _alertSimulationHistory.length - 1 ? 0 : 10,
+                  ),
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(14),
+                    color: const Color(0xFF1F2937),
+                    border: Border.all(color: Colors.white24),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Simulering #${index + 1}',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          _metricChip('Rate', '${offer?['rateText'] ?? offer?['rate'] ?? '-'}'),
+                          _metricChip('Level', '${offer?['level'] ?? '-'}'),
+                          _metricChip('Campaign', '${offer?['campaign'] ?? '-'}'),
+                          _metricChip('Score', '${evaluation?['score'] ?? '-'}'),
+                          _metricChip('Momentum', '${evaluation?['momentum'] ?? '-'}'),
+                          _metricChip('Timing', '${evaluation?['timing'] ?? '-'}'),
+                          _metricChip('Notify', '${evaluation?['shouldNotify'] ?? '-'}'),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Reason: ${(evaluation?['reason'] ?? '-').toString()}',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w700,
+                          height: 1.4,
+                          color: Color(0xFFE5E7EB),
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        'Simulated at: ${entry['simulatedAt'] ?? '-'}',
+                        style: const TextStyle(
+                          color: Color(0xFF9CA3AF),
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }),
+            ),
+        ],
+      ),
+    );
+  }
+
 }

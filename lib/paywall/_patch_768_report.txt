@@ -1,0 +1,2 @@
+premium_page-import finnes allerede
+'/premium' route finnes allerede

@@ -1,0 +1,4 @@
+oppdaterte showModalBottomSheet med rootNavigator/isScrollControlled/useSafeArea
+wrapped PremiumPaywallSheet i FractionallySizedBox + ClipRRect + Material
+la til SingleChildScrollView rundt hoved-Column i premium_paywall_sheet
+lot eksisterende padding stå; ingen viewInsets-padding tvunget inn

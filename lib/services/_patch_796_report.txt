@@ -1,0 +1,2 @@
+la til import for travel_value_card.dart
+ADVARSEL: fant ikke trygg plass under poeng-estimatet

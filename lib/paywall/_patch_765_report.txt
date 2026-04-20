@@ -1,0 +1,3 @@
+la til route-state felter
+la til didChangeDependencies for route-arguments
+route-lesing lagt til; ingen ekstra UI-strip auto-injisert

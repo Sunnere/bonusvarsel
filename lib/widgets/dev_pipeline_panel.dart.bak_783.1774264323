@@ -1,0 +1,533 @@
+import 'package:flutter/material.dart';
+import '../services/api_service.dart';
+
+class DevPipelinePanel extends StatefulWidget {
+  const DevPipelinePanel({super.key});
+
+  @override
+  State<DevPipelinePanel> createState() => _DevPipelinePanelState();
+}
+
+class _DevPipelinePanelState extends State<DevPipelinePanel> {
+  static const Color _bg = Colors.white;
+  static const Color _text = Color(0xFF111827);
+  static const Color _textSoft = Color(0xFF4B5563);
+  static const Color _border = Color(0xFFE5E7EB);
+  static const Color _blue = Color(0xFF1D4ED8);
+  static const Color _blueSoft = Color(0xFFDBEAFE);
+  static const Color _green = Color(0xFF047857);
+  static const Color _greenSoft = Color(0xFFD1FAE5);
+  static const Color _amber = Color(0xFFB45309);
+  static const Color _amberSoft = Color(0xFFFEF3C7);
+  static const Color _red = Color(0xFFB91C1C);
+  static const Color _redSoft = Color(0xFFFEE2E2);
+
+  bool _refreshing = false;
+  bool _simulating = false;
+
+  String _scanStatus = 'idle';
+  String _queueStatus = 'idle';
+  String _dispatchStatus = 'idle';
+  String _lastUpdated = '-';
+  String _message = 'Pipeline-panel kobles til backend-status.';
+  String? _lastSimulationId;
+  String? _healthSummary;
+  Map<String, dynamic>? _lastHealth;
+
+  @override
+  void initState() {
+    super.initState();
+    _refreshStatus();
+  }
+
+  Future<void> _refreshStatus() async {
+    setState(() {
+      _refreshing = true;
+      _message = 'Henter backend-status...';
+    });
+
+    try {
+      final health = await ApiService.getHealth();
+
+      if (!mounted) return;
+
+      final normalized = _normalizeHealth(health);
+      setState(() {
+        _lastHealth = health;
+        _scanStatus = normalized.scan;
+        _queueStatus = normalized.queue;
+        _dispatchStatus = normalized.dispatch;
+        _healthSummary = normalized.summary;
+        _lastUpdated = DateTime.now().toIso8601String();
+        _message = 'Backend-status oppdatert.';
+        _refreshing = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        _scanStatus = 'unknown';
+        _queueStatus = 'unknown';
+        _dispatchStatus = 'unknown';
+        _healthSummary = null;
+        _lastUpdated = DateTime.now().toIso8601String();
+        _message = 'Kunne ikke hente backend-status: $e';
+        _refreshing = false;
+      });
+    }
+  }
+
+  Future<void> _simulateCampaign() async {
+    setState(() {
+      _simulating = true;
+      _message = 'Kjører backend-simulering...';
+    });
+
+    try {
+      final result = await ApiService.simulateCampaignPipeline();
+
+      if (!mounted) return;
+
+      final simulationId = (result['id'] ??
+              result['simulationId'] ??
+              result['simulation_id'] ??
+              'sim-${DateTime.now().millisecondsSinceEpoch}')
+          .toString();
+
+      final pipeline = result['pipeline'] is Map
+          ? Map<String, dynamic>.from(result['pipeline'] as Map)
+          : <String, dynamic>{};
+
+      final scanned = pipeline['scanned'];
+      final queued = pipeline['queued'];
+      final dispatched = pipeline['dispatched'];
+
+      final queueStatus = (queued is num && queued > 0)
+          ? 'queued'
+          : _normalizeStatusValue(
+              result['queueStatus'] ?? result['queue'] ?? _queueStatus,
+            );
+
+      final dispatchStatus = (dispatched is num && dispatched > 0)
+          ? 'dispatching'
+          : _normalizeStatusValue(
+              result['dispatchStatus'] ?? result['dispatch'] ?? _dispatchStatus,
+            );
+
+      final scanStatus = (scanned is num && scanned > 0)
+          ? 'healthy'
+          : _normalizeStatusValue(
+              result['scanStatus'] ?? result['scan'] ?? _scanStatus,
+            );
+
+      final summaryParts = <String>[
+        if (scanned != null) 'scanned=$scanned',
+        if (queued != null) 'queued=$queued',
+        if (dispatched != null) 'dispatched=$dispatched',
+      ];
+
+      final summary = summaryParts.isEmpty
+          ? result.toString()
+          : summaryParts.join(' • ');
+
+      setState(() {
+        _lastSimulationId = simulationId;
+        _scanStatus = scanStatus;
+        _queueStatus = queueStatus;
+        _dispatchStatus = dispatchStatus;
+        _healthSummary = summary;
+        _lastHealth = result;
+        _lastUpdated = DateTime.now().toIso8601String();
+        _message = 'Backend-simulering fullført: $simulationId';
+        _simulating = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _simulating = false;
+        _message = 'Backend-simulering feilet: $e';
+      });
+    }
+  }
+
+  ({String scan, String queue, String dispatch, String summary}) _normalizeHealth(
+    Map<String, dynamic> health,
+  ) {
+    final flatValues = <String>[];
+
+    void collect(dynamic value) {
+      if (value == null) return;
+      if (value is Map) {
+        for (final entry in value.entries) {
+          flatValues.add('${entry.key}:${entry.value}');
+          collect(entry.value);
+        }
+      } else if (value is Iterable) {
+        for (final item in value) {
+          collect(item);
+        }
+      } else {
+        flatValues.add(value.toString());
+      }
+    }
+
+    collect(health);
+
+    String pick(List<String> keys, {String fallback = 'unknown'}) {
+      for (final key in keys) {
+        if (health.containsKey(key) && health[key] != null) {
+          return _normalizeStatusValue(health[key]);
+        }
+      }
+
+      for (final entry in health.entries) {
+        final lowerKey = entry.key.toLowerCase();
+        for (final key in keys) {
+          if (lowerKey.contains(key.toLowerCase())) {
+            return _normalizeStatusValue(entry.value);
+          }
+        }
+      }
+
+      return fallback;
+    }
+
+    final scan = pick([
+      'scan',
+      'scanner',
+      'feed',
+      'ingest',
+    ], fallback: _inferStatusFromFlatValues(flatValues));
+
+    final queue = pick([
+      'queue',
+      'worker',
+      'jobs',
+      'pending',
+    ], fallback: _inferStatusFromFlatValues(flatValues));
+
+    final dispatch = pick([
+      'dispatch',
+      'push',
+      'notification',
+      'notifications',
+      'delivery',
+    ], fallback: _inferStatusFromFlatValues(flatValues));
+
+    final summary = health.entries
+        .take(6)
+        .map((e) => '${e.key}=${e.value}')
+        .join(' • ');
+
+    return (
+      scan: scan,
+      queue: queue,
+      dispatch: dispatch,
+      summary: summary.isEmpty ? 'Ingen health-felter funnet' : summary,
+    );
+  }
+
+  String _inferStatusFromFlatValues(List<String> flatValues) {
+    final lower = flatValues.join(' ').toLowerCase();
+
+    if (lower.contains('healthy') ||
+        lower.contains('ok') ||
+        lower.contains('ready') ||
+        lower.contains('up')) {
+      return 'healthy';
+    }
+
+    if (lower.contains('queue')) {
+      return 'queued';
+    }
+
+    if (lower.contains('preview')) {
+      return 'preview';
+    }
+
+    if (lower.contains('error') ||
+        lower.contains('failed') ||
+        lower.contains('down')) {
+      return 'failed';
+    }
+
+    return 'unknown';
+  }
+
+  String _normalizeStatusValue(dynamic value) {
+    final raw = (value ?? '').toString().trim().toLowerCase();
+
+    if (raw.isEmpty) return 'unknown';
+    if (raw.contains('healthy') || raw == 'ok' || raw == 'up') return 'healthy';
+    if (raw.contains('ready')) return 'ready';
+    if (raw.contains('queue')) return 'queued';
+    if (raw.contains('preview')) return 'preview';
+    if (raw.contains('dispatch')) return 'dispatching';
+    if (raw.contains('error') || raw.contains('fail') || raw == 'down') {
+      return 'failed';
+    }
+
+    return raw;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: _bg,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: _border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              const Icon(Icons.hub_outlined, color: _text),
+              const Text(
+                'Campaign push pipeline',
+                style: TextStyle(
+                  color: _text,
+                  fontSize: 17,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              IconButton(
+                tooltip: 'Oppdater status',
+                onPressed: _refreshing ? null : _refreshStatus,
+                icon: _refreshing
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.refresh, color: _text),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          const Text(
+            'Read-only backend health er koblet på. Simulering er fortsatt lokal til write-endepunkt er bekreftet.',
+            style: TextStyle(
+              color: _textSoft,
+              fontWeight: FontWeight.w700,
+              height: 1.4,
+            ),
+          ),
+          const SizedBox(height: 14),
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: [
+              _statusChip('Scan', _scanStatus),
+              _statusChip('Queue', _queueStatus),
+              _statusChip('Dispatch', _dispatchStatus),
+              _infoChip('Sist oppdatert', _lastUpdated),
+              if (_lastSimulationId != null)
+                _infoChip('Simulering', _lastSimulationId!),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: [
+              FilledButton.icon(
+                onPressed: _simulating ? null : _simulateCampaign,
+                icon: _simulating
+                    ? const SizedBox(
+                        width: 14,
+                        height: 14,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.science_outlined, size: 18),
+                label: Text(_simulating ? 'Simulerer...' : 'Simuler kampanje'),
+              ),
+              OutlinedButton.icon(
+                onPressed: _refreshing ? null : _refreshStatus,
+                icon: const Icon(Icons.sync_outlined, size: 18),
+                label: const Text('Refresh status'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          _sectionCard(
+            title: 'Backend summary',
+            body: _healthSummary ?? 'Ingen health-summary ennå.',
+            tone: _healthSummary == null ? _Tone.warning : _Tone.info,
+          ),
+          const SizedBox(height: 12),
+          _sectionCard(
+            title: 'Timeline',
+            body:
+                'idle → scan → queue → dispatch preview. Statuschips over leser nå fra ApiService.getHealth().',
+          ),
+          const SizedBox(height: 12),
+          _sectionCard(
+            title: 'Inspector',
+            body: _message,
+            tone: _message.toLowerCase().contains('kunne ikke')
+                ? _Tone.danger
+                : _message.toLowerCase().contains('oppdatert')
+                    ? _Tone.success
+                    : _Tone.warning,
+          ),
+          if (_lastHealth != null) ...[
+            const SizedBox(height: 12),
+            _sectionCard(
+              title: 'Raw health snapshot',
+              body: _lastHealth.toString(),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _sectionCard({
+    required String title,
+    required String body,
+    _Tone tone = _Tone.neutral,
+  }) {
+    final toneData = _toneData(tone);
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: toneData.bg,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: toneData.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(
+              color: _text,
+              fontWeight: FontWeight.w800,
+              fontSize: 14,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            body,
+            style: const TextStyle(
+              color: _textSoft,
+              fontWeight: FontWeight.w700,
+              height: 1.4,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _statusChip(String label, String value) {
+    final normalized = value.toLowerCase();
+    final tone = normalized == 'healthy'
+        ? _Tone.success
+        : normalized == 'ready' ||
+                normalized == 'preview' ||
+                normalized == 'dispatching'
+            ? _Tone.info
+            : normalized == 'queued'
+                ? _Tone.warning
+                : normalized == 'failed'
+                    ? _Tone.danger
+                    : _Tone.neutral;
+
+    final toneData = _toneData(tone);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: toneData.bg,
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: toneData.border),
+      ),
+      child: Text(
+        '$label: $value',
+        style: TextStyle(
+          color: toneData.text,
+          fontWeight: FontWeight.w800,
+          fontSize: 12,
+        ),
+      ),
+    );
+  }
+
+  Widget _infoChip(String label, String value) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.04),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: _border),
+      ),
+      child: Text(
+        '$label: $value',
+        style: const TextStyle(
+          color: _text,
+          fontWeight: FontWeight.w800,
+          fontSize: 12,
+        ),
+      ),
+    );
+  }
+
+  _ToneData _toneData(_Tone tone) {
+    switch (tone) {
+      case _Tone.success:
+        return const _ToneData(
+          bg: _greenSoft,
+          border: _green,
+          text: _green,
+        );
+      case _Tone.info:
+        return const _ToneData(
+          bg: _blueSoft,
+          border: _blue,
+          text: _blue,
+        );
+      case _Tone.warning:
+        return const _ToneData(
+          bg: _amberSoft,
+          border: _amber,
+          text: _amber,
+        );
+      case _Tone.danger:
+        return const _ToneData(
+          bg: _redSoft,
+          border: _red,
+          text: _red,
+        );
+      case _Tone.neutral:
+        return const _ToneData(
+          bg: Colors.white,
+          border: _border,
+          text: _text,
+        );
+    }
+  }
+}
+
+enum _Tone { neutral, success, info, warning, danger }
+
+class _ToneData {
+  final Color bg;
+  final Color border;
+  final Color text;
+
+  const _ToneData({
+    required this.bg,
+    required this.border,
+    required this.text,
+  });
+}

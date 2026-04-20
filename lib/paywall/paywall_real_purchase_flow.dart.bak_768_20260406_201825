@@ -1,0 +1,60 @@
+import 'package:flutter/material.dart';
+
+class PaywallRealPurchaseFlow {
+  static const String premiumRouteName = '/premium';
+
+  static Future<void> startPurchaseFlow(
+    BuildContext context, {
+    required String planId,
+  }) async {
+    final args = <String, dynamic>{
+      'source': 'paywall',
+      'action': 'purchase',
+      'planId': planId,
+      'billingCycle': planId,
+    };
+
+    final navigator = Navigator.of(context);
+
+    try {
+      await navigator.pushNamed(premiumRouteName, arguments: args);
+      return;
+    } catch (_) {
+      // fallback below
+    }
+
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text(
+          'Fant ikke /premium-route. Koble Premium-siden til named route for full kjøpsflyt.',
+        ),
+      ),
+    );
+  }
+
+  static Future<void> restorePurchases(BuildContext context) async {
+    final args = <String, dynamic>{
+      'source': 'paywall',
+      'action': 'restore',
+    };
+
+    final navigator = Navigator.of(context);
+
+    try {
+      await navigator.pushNamed(premiumRouteName, arguments: args);
+      return;
+    } catch (_) {
+      // fallback below
+    }
+
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text(
+          'Fant ikke /premium-route. Koble Premium-siden til named route for gjenoppretting.',
+        ),
+      ),
+    );
+  }
+}

@@ -1,0 +1,600 @@
+import 'dart:async';
+import 'dart:convert';
+
+import 'package:http/http.dart' as http;
+import 'package:flutter/foundation.dart';
+
+import '../models/activated_notification.dart';
+import '../models/feed_item.dart';
+import '../models/offer_record.dart';
+import '../models/push_dispatch_preview.dart';
+import '../config/api_config.dart';
+
+class ApiService {
+  static const String _nativeDefaultBaseUrl = 'http://127.0.0.1:8080';
+  static const String _envBaseUrl = String.fromEnvironment('API_BASE', defaultValue: '');
+
+  static String _webBaseUrl() {
+    final base = Uri.base;
+    final host = base.host;
+
+    if (host.contains('-8090.')) {
+      final apiHost = host.replaceFirst('-8090.', '-8080.');
+      return '${base.scheme}://$apiHost';
+    }
+
+    if (base.port == 8090) {
+      return '${base.scheme}://${base.host}:8080';
+    }
+
+    if (host == 'localhost' || host == '127.0.0.1') {
+      return '${base.scheme}://$host:8080';
+    }
+
+    return '${base.scheme}://${base.host}${base.hasPort ? ':8080' : ':8080'}';
+  }
+
+  static String get baseUrl {
+    if (_envBaseUrl.isNotEmpty) {
+      return _envBaseUrl;
+    }
+    if (kIsWeb) {
+      return _webBaseUrl();
+    }
+    return _nativeDefaultBaseUrl;
+  }
+
+  static Uri _uri(String path) => Uri.parse('$baseUrl$path');
+
+  static Future<Map<String, dynamic>> _getMap(String path) async {
+    final res = await http.get(_uri(path)).timeout(const Duration(seconds: 4));
+
+    if (res.statusCode < 200 || res.statusCode >= 300) {
+      throw Exception('GET $path failed: ${res.statusCode} ${res.body}');
+    }
+
+    final decoded = jsonDecode(res.body);
+    if (decoded is! Map<String, dynamic>) {
+      throw Exception('GET $path expected JSON object');
+    }
+
+    return decoded;
+  }
+
+  static Future<List<dynamic>> _getList(String path) async {
+    final res = await http.get(_uri(path)).timeout(const Duration(seconds: 4));
+
+    if (res.statusCode < 200 || res.statusCode >= 300) {
+      throw Exception('GET $path failed: ${res.statusCode} ${res.body}');
+    }
+
+    final decoded = jsonDecode(res.body);
+    if (decoded is! List) {
+      throw Exception('GET $path expected JSON list');
+    }
+
+    return decoded;
+  }
+
+
+  static Future<Map<String, dynamic>> getHealth() async {
+    return _getMap('/v1/health');
+  }
+
+  static Future<Map<String, dynamic>> getMe() async {
+    return _getMap('/v1/me');
+  }
+
+  static Future<Map<String, dynamic>> getPrefs() async {
+    return _getMap('/v1/prefs');
+  }
+
+  static Future<Map<String, dynamic>> setDevTier(String tier) async {
+    final res = await http
+        .put(
+          _uri('/v1/dev/tier'),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({'tier': tier}),
+        )
+        .timeout(const Duration(seconds: 4));
+
+    if (res.statusCode < 200 || res.statusCode >= 300) {
+      throw Exception('PUT /v1/dev/tier failed: ${res.statusCode} ${res.body}');
+    }
+
+    final decoded = jsonDecode(res.body);
+    if (decoded is! Map<String, dynamic>) {
+      throw Exception('PUT /v1/dev/tier expected JSON object');
+    }
+
+    return decoded;
+  }
+
+  static Future<Map<String, dynamic>> updatePrefs({
+    List<String>? sources,
+    List<String>? categories,
+    int? minRate,
+    bool? onlyCampaigns,
+    bool? favFirst,
+  }) async {
+    final body = <String, dynamic>{};
+    if (sources != null) body['sources'] = sources;
+    if (categories != null) body['categories'] = categories;
+    if (minRate != null) body['minRate'] = minRate;
+    if (onlyCampaigns != null) body['onlyCampaigns'] = onlyCampaigns;
+    if (favFirst != null) body['favFirst'] = favFirst;
+
+    final res = await http
+        .put(
+          _uri('/v1/prefs'),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode(body),
+        )
+        .timeout(const Duration(seconds: 4));
+
+    if (res.statusCode < 200 || res.statusCode >= 300) {
+      throw Exception('PUT /v1/prefs failed: ${res.statusCode} ${res.body}');
+    }
+
+    final decoded = jsonDecode(res.body);
+    if (decoded is! Map<String, dynamic>) {
+      throw Exception('PUT /v1/prefs expected JSON object');
+    }
+
+    return decoded;
+  }
+
+  static Future<List<FeedItem>> getFeed() async {
+    final decoded = await _getList('/v1/feed');
+    final items = decoded
+        .map((e) => FeedItem.fromJson(Map<String, dynamic>.from(e as Map)))
+        .toList();
+
+    return items;
+  }
+
+  static Future<List<Map<String, dynamic>>> getStores() async {
+    final decoded = await _getList('/v1/stores');
+    return decoded
+        .map((e) => Map<String, dynamic>.from(e as Map))
+        .toList();
+  }
+
+  static Future<List<OfferRecord>> getOffers() async {
+    final decoded = await _getList('/v1/offers');
+    return decoded
+        .map((e) => OfferRecord.fromJson(Map<String, dynamic>.from(e as Map)))
+        .toList();
+  }
+
+  static Future<Map<String, dynamic>> createOffer({
+    required String storeId,
+    required num rate,
+    required String rateText,
+    required bool campaign,
+    required String expires,
+    required String level,
+  }) async {
+    final res = await http
+        .post(
+          _uri('/v1/offers'),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({
+            'storeId': storeId,
+            'rate': rate,
+            'rateText': rateText,
+            'campaign': campaign,
+            'expires': expires,
+            'level': level,
+          }),
+        )
+        .timeout(const Duration(seconds: 4));
+
+    if (res.statusCode < 200 || res.statusCode >= 300) {
+      throw Exception('POST /v1/offers failed: ${res.statusCode} ${res.body}');
+    }
+
+    final decoded = jsonDecode(res.body);
+    if (decoded is! Map<String, dynamic>) {
+      throw Exception('POST /v1/offers expected JSON object');
+    }
+
+    return decoded;
+  }
+
+  static Future<Map<String, dynamic>> updateOffer(
+    String id, {
+    num? rate,
+    String? rateText,
+    bool? campaign,
+    String? expires,
+    String? level,
+    String? storeId,
+  }) async {
+    final body = <String, dynamic>{};
+    if (rate != null) body['rate'] = rate;
+    if (rateText != null) body['rateText'] = rateText;
+    if (campaign != null) body['campaign'] = campaign;
+    if (expires != null) body['expires'] = expires;
+    if (level != null) body['level'] = level;
+    if (storeId != null) body['storeId'] = storeId;
+
+    final res = await http
+        .put(
+          _uri('/v1/offers/$id'),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode(body),
+        )
+        .timeout(const Duration(seconds: 4));
+
+    if (res.statusCode < 200 || res.statusCode >= 300) {
+      throw Exception('PUT /v1/offers/$id failed: ${res.statusCode} ${res.body}');
+    }
+
+    final decoded = jsonDecode(res.body);
+    if (decoded is! Map<String, dynamic>) {
+      throw Exception('PUT /v1/offers/$id expected JSON object');
+    }
+
+    return decoded;
+  }
+
+  static Future<Map<String, dynamic>> deleteOffer(String id) async {
+    final res = await http
+        .delete(_uri('/v1/offers/$id'))
+        .timeout(const Duration(seconds: 4));
+
+    if (res.statusCode < 200 || res.statusCode >= 300) {
+      throw Exception(
+        'DELETE /v1/offers/$id failed: ${res.statusCode} ${res.body}',
+      );
+    }
+
+    final decoded = jsonDecode(res.body);
+    if (decoded is! Map<String, dynamic>) {
+      throw Exception('DELETE /v1/offers/$id expected JSON object');
+    }
+
+    return decoded;
+  }
+
+
+  static Future<void> registerDemoDeviceOnce() async {
+    try {
+      await registerDevice(
+        token: 'flutter-web-demo-device',
+        platform: 'web',
+      );
+    } catch (_) {
+      // ignore in dev bootstrap
+    }
+  }
+
+
+  static Future<List<Map<String, dynamic>>> getDevices() async {
+    final decoded = await _getList('/v1/devices');
+    return decoded
+        .map((e) => Map<String, dynamic>.from(e as Map))
+        .toList();
+  }
+
+  static Future<Map<String, dynamic>> registerDevice({
+    required String token,
+    required String platform,
+  }) async {
+    final res = await http
+        .post(
+          _uri('/v1/devices'),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({
+            'token': token,
+            'platform': platform,
+          }),
+        )
+        .timeout(const Duration(seconds: 4));
+
+    if (res.statusCode < 200 || res.statusCode >= 300) {
+      throw Exception('POST /v1/devices failed: ${res.statusCode} ${res.body}');
+    }
+
+    final decoded = jsonDecode(res.body);
+    if (decoded is! Map<String, dynamic>) {
+      throw Exception('POST /v1/devices expected JSON object');
+    }
+
+    return decoded;
+  }
+
+
+
+  static Future<Map<String, dynamic>> enqueueTestPush({
+    bool reset = false,
+  }) async {
+    final suffix = reset ? '?reset=1' : '';
+
+    final res = await http
+        .post(_uri('/v1/push/enqueue-test$suffix'))
+        .timeout(const Duration(seconds: 4));
+
+    if (res.statusCode < 200 || res.statusCode >= 300) {
+      throw Exception(
+        'POST /v1/push/enqueue-test failed: ${res.statusCode} ${res.body}',
+      );
+    }
+
+    final decoded = jsonDecode(res.body);
+    if (decoded is! Map<String, dynamic>) {
+      throw Exception('POST /v1/push/enqueue-test expected JSON object');
+    }
+
+    return decoded;
+  }
+
+  static Future<Map<String, dynamic>> getPushQueue() async {
+    return _getMap('/v1/push/queue');
+  }
+
+  static Future<Map<String, dynamic>> processPushQueue() async {
+    final res = await http
+        .post(_uri('/v1/push/queue/process'))
+        .timeout(const Duration(seconds: 4));
+
+    if (res.statusCode < 200 || res.statusCode >= 300) {
+      throw Exception(
+        'POST /v1/push/queue/process failed: ${res.statusCode} ${res.body}',
+      );
+    }
+
+    final decoded = jsonDecode(res.body);
+    if (decoded is! Map<String, dynamic>) {
+      throw Exception('POST /v1/push/queue/process expected JSON object');
+    }
+
+    return decoded;
+  }
+
+
+  
+  static Future<Map<String, dynamic>> simulateAlertConfig({
+    required int rate,
+    required String level,
+    required bool campaign,
+  }) async {
+
+    final res = await http.post(
+      _uri('/v1/push/simulate-alert'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'rate': rate,
+        'level': level,
+        'campaign': campaign,
+      }),
+    );
+
+    if (res.statusCode < 200 || res.statusCode >= 300) {
+      throw Exception('simulate-alert failed: ${res.statusCode}');
+    }
+
+    return jsonDecode(res.body);
+  }
+
+
+static Future<Map<String, dynamic>> simulateAlert() async {
+    final res = await http
+        .post(_uri('/v1/push/simulate-alert'))
+        .timeout(const Duration(seconds: 4));
+
+    if (res.statusCode < 200 || res.statusCode >= 300) {
+      throw Exception(
+        'POST /v1/push/simulate-alert failed: ${res.statusCode} ${res.body}',
+      );
+    }
+
+    final decoded = jsonDecode(res.body);
+    if (decoded is! Map<String, dynamic>) {
+      throw Exception('POST /v1/push/simulate-alert expected JSON object');
+    }
+
+    return decoded;
+  }
+
+  static Future<Map<String, dynamic>> clearPushQueue() async {
+    final res = await http
+        .post(_uri('/v1/push/queue/clear'))
+        .timeout(const Duration(seconds: 4));
+
+    if (res.statusCode < 200 || res.statusCode >= 300) {
+      throw Exception(
+        'POST /v1/push/queue/clear failed: ${res.statusCode} ${res.body}',
+      );
+    }
+
+    final decoded = jsonDecode(res.body);
+    if (decoded is! Map<String, dynamic>) {
+      throw Exception('POST /v1/push/queue/clear expected JSON object');
+    }
+
+    return decoded;
+  }
+
+  static Future<Map<String, dynamic>> sendTestPush({
+    bool reset = false,
+  }) async {
+    final suffix = reset ? '?reset=1' : '';
+
+    final res = await http
+        .post(_uri('/v1/push/send-test$suffix'))
+        .timeout(const Duration(seconds: 4));
+
+    if (res.statusCode < 200 || res.statusCode >= 300) {
+      throw Exception(
+        'POST /v1/push/send-test failed: ${res.statusCode} ${res.body}',
+      );
+    }
+
+    final decoded = jsonDecode(res.body);
+    if (decoded is! Map<String, dynamic>) {
+      throw Exception('POST /v1/push/send-test expected JSON object');
+    }
+
+    return decoded;
+  }
+
+  static Future<Map<String, dynamic>> getActivatedNotifications({
+    bool reset = false,
+  }) async {
+    final suffix = reset ? '?reset=1' : '';
+    final decoded = await _getMap('/v1/notifications/activated$suffix');
+
+    final raw = decoded['notifications'];
+    if (raw is List) {
+      decoded['notifications'] = raw
+          .map((e) => ActivatedNotification.fromJson(
+                Map<String, dynamic>.from(e as Map),
+              ))
+          .toList();
+    } else {
+      decoded['notifications'] = <ActivatedNotification>[];
+    }
+
+    return decoded;
+  }
+
+  static Future<Map<String, dynamic>> getPushDispatchPreview({
+    bool reset = false,
+  }) async {
+    final suffix = reset ? '?reset=1' : '';
+    final decoded = await _getMap('/v1/push/dispatch$suffix');
+
+    final raw = decoded['dispatches'];
+    if (raw is List) {
+      decoded['dispatches'] = raw
+          .map((e) => PushDispatchPreview.fromJson(
+                Map<String, dynamic>.from(e as Map),
+              ))
+          .toList();
+    } else {
+      decoded['dispatches'] = <PushDispatchPreview>[];
+    }
+
+    return decoded;
+  }
+
+
+  static Future<Map<String, dynamic>> resetDevState() async {
+    final res = await http
+        .post(_uri('/v1/dev/reset-state'))
+        .timeout(const Duration(seconds: 4));
+
+    if (res.statusCode < 200 || res.statusCode >= 300) {
+      throw Exception('POST /v1/dev/reset-state failed: ${res.statusCode} ${res.body}');
+    }
+
+    final decoded = jsonDecode(res.body);
+    if (decoded is! Map<String, dynamic>) {
+      throw Exception('POST /v1/dev/reset-state expected JSON object');
+    }
+
+    return decoded;
+  }
+
+  static Future<Map<String, dynamic>> seedDevOffer({
+    required String storeId,
+    required num rate,
+    required String rateText,
+    required String level,
+    required String expires,
+    String? startAt,
+    bool campaign = true,
+  }) async {
+    final res = await http
+        .post(
+          _uri('/v1/dev/seed-offer'),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({
+            'storeId': storeId,
+            'rate': rate,
+            'rateText': rateText,
+            'level': level,
+            'campaign': campaign,
+            'startAt': startAt,
+            'expires': expires,
+          }),
+        )
+        .timeout(const Duration(seconds: 4));
+
+    if (res.statusCode < 200 || res.statusCode >= 300) {
+      throw Exception(
+        'POST /v1/dev/seed-offer failed: ${res.statusCode} ${res.body}',
+      );
+    }
+
+    final decoded = jsonDecode(res.body);
+    if (decoded is! Map<String, dynamic>) {
+      throw Exception('POST /v1/dev/seed-offer expected JSON object');
+    }
+
+    return decoded;
+  }
+
+
+  static Future<Map<String, dynamic>> simulateCampaignPipeline({
+    int rate = 18,
+    String level = 'premium',
+    bool campaign = true,
+  }) async {
+    final uri = Uri.parse('${ApiConfig.baseUrl}/dev/simulate-campaign');
+
+    final response = await http.post(
+      uri,
+      headers: const {
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode({
+        'rate': rate,
+        'level': level,
+        'campaign': campaign,
+      }),
+    );
+
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      final decoded = jsonDecode(response.body);
+      if (decoded is Map<String, dynamic>) return decoded;
+      if (decoded is Map) return Map<String, dynamic>.from(decoded);
+      return {'result': decoded};
+    }
+
+    throw Exception(
+      'Simulate feilet: ${response.statusCode} ${response.body}',
+    );
+  }
+
+}
+
+class NotificationPolling {
+  static Timer? _timer;
+
+  static void start() {
+    _timer?.cancel();
+
+    _timer = Timer.periodic(const Duration(seconds: 30), (timer) async {
+      try {
+        final activated = await ApiService.getActivatedNotifications();
+        final items = activated['notifications'];
+
+        if (items is List && items.isNotEmpty) {
+          // ignore: avoid_print
+          print('🔔 Activated notifications: ${items.length}');
+        }
+      } catch (e) {
+        // ignore: avoid_print
+        print('Polling error: $e');
+      }
+    });
+  }
+
+  static void stop() {
+    _timer?.cancel();
+    _timer = null;
+  }
+}

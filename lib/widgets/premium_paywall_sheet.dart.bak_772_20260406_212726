@@ -1,0 +1,354 @@
+import 'package:flutter/material.dart';
+
+class PremiumPaywallSheet extends StatelessWidget {
+  static const Color card = Color(0xFF152742);
+
+  final String source;
+  final String title;
+  final String subtitle;
+  final VoidCallback onPrimary;
+
+  const PremiumPaywallSheet({
+    super.key,
+    required this.source,
+    required this.title,
+    required this.subtitle,
+    required this.onPrimary,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    const bg = Color(0xFF0B1628);
+    const blue = Color(0xFF60A5FA);
+    const premium = Color(0xFF22C55E);
+    const gold = Color(0xFFD4AF37);
+    const elite = Color(0xFF7C5CFF);
+
+    final effectiveTitle =
+        title == 'Få mer ut av bonusen' ? 'Lås opp flere bonusmuligheter' : title;
+
+    final effectiveSubtitle =
+        subtitle ==
+                'Typisk +1 500–4 000 ekstra poeng per måned med bedre oversikt, boosts og høyere rater.'
+            ? 'Se høyere bonusrate, flere tilbud og smartere valg før du klikker.'
+            : subtitle;
+
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
+        child: Container(
+          decoration: BoxDecoration(
+            color: bg,
+            borderRadius: BorderRadius.circular(30),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.07)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.34),
+                blurRadius: 26,
+                offset: const Offset(0, 16),
+              ),
+            ],
+          ),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(18, 18, 18, 18),
+            child: SingleChildScrollView(
+              child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 50,
+                      height: 50,
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            gold.withValues(alpha: 0.22),
+                            elite.withValues(alpha: 0.14),
+                          ],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: gold.withValues(alpha: 0.26),
+                        ),
+                      ),
+                      child: const Icon(
+                        Icons.workspace_premium,
+                        color: gold,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        effectiveTitle,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 24,
+                          height: 1.05,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      icon: const Icon(Icons.close, color: Colors.white70),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  effectiveSubtitle,
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.82),
+                    fontSize: 16,
+                    height: 1.35,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 14),
+                _pill('Kilde: $source', blue),
+                const SizedBox(height: 16),
+                _savingsBanner(),
+                const SizedBox(height: 14),
+                _featureCard(
+                  title: 'Premium',
+                  accent: premium,
+                  bullets: const [
+                    'Se flere butikker og tilbud',
+                    'Få høyere bonusrate',
+                    'Lås opp boost og kampanjer',
+                    'Velg smartere før du klikker',
+                  ],
+                  price: '49 kr/mnd',
+                  note: 'Typisk +1 500–4 000 poeng i måneden',
+                  isElite: false,
+                ),
+                const SizedBox(height: 12),
+                _featureCard(
+                  title: 'Elite',
+                  accent: elite,
+                  bullets: const [
+                    'Alt i Premium',
+                    'Flere bonusprogrammer',
+                    'Flere prioriterte muligheter',
+                    'Enda sterkere oversikt',
+                  ],
+                  price: '89 kr/mnd',
+                  note: 'For deg som vil maksimere bonus',
+                  isElite: true,
+                ),
+                const SizedBox(height: 18),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton(
+                    style: FilledButton.styleFrom(
+                      backgroundColor: gold,
+                      foregroundColor: Colors.black,
+                      padding: const EdgeInsets.symmetric(vertical: 15),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      elevation: 0,
+                    ),
+                    onPressed: onPrimary,
+                    child: const Text(
+                      'Lås opp Premium',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton(
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 15),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      side: BorderSide(
+                        color: Colors.white.withValues(alpha: 0.10),
+                      ),
+                    ),
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: Text(
+                      'Ikke nå',
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.92),
+                        fontSize: 17,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  static Widget _pill(String text, Color accent) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+      decoration: BoxDecoration(
+        color: accent.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: accent.withValues(alpha: 0.22)),
+      ),
+      child: Text(
+        text,
+        style: TextStyle(
+          color: accent,
+          fontSize: 12,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
+    );
+  }
+
+  static Widget _savingsBanner() {
+    const gold = Color(0xFFD4AF37);
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            gold.withValues(alpha: 0.14),
+            const Color(0xFF7C5CFF).withValues(alpha: 0.08),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: gold.withValues(alpha: 0.18)),
+      ),
+      child: const Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Du kan gå glipp av bedre rate',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 13,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          SizedBox(height: 4),
+          Text(
+            'Premium gjør det enklere å se hva som faktisk lønner seg før du handler.',
+            style: TextStyle(
+              color: Color(0xFFD9E2F1),
+              fontSize: 13,
+              height: 1.25,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  static Widget _featureCard({
+    required String title,
+    required Color accent,
+    required List<String> bullets,
+    required String price,
+    required String note,
+    required bool isElite,
+  }) {
+    final border = isElite
+        ? const Color(0xFFD4AF37).withValues(alpha: 0.24)
+        : accent.withValues(alpha: 0.24);
+
+    final background = isElite
+        ? LinearGradient(
+            colors: [
+              const Color(0xFF1A1830),
+              const Color(0xFF152742),
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          )
+        : null;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: background == null ? card : null,
+        gradient: background,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text(
+                title,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 20,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const Spacer(),
+              Text(
+                price,
+                style: TextStyle(
+                  color: accent,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            note,
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.72),
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 12),
+          ...bullets.map(
+            (b) => Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(Icons.check_circle, size: 18, color: accent),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      b,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 14,
+                        height: 1.2,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}

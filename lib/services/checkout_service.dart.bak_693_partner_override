@@ -1,0 +1,40 @@
+import 'package:shared_preferences/shared_preferences.dart';
+
+class CheckoutService {
+  CheckoutService._();
+  static final CheckoutService instance = CheckoutService._();
+
+  static const _keyPlan = 'checkout_plan';
+  static const _keyBilling = 'checkout_billing';
+
+  String _plan = 'Premium';
+  String _billing = 'monthly';
+
+  String get plan => _plan;
+  String get billing => _billing;
+
+  Future<void> load() async {
+    final prefs = await SharedPreferences.getInstance();
+    _plan = prefs.getString(_keyPlan) ?? 'Premium';
+    _billing = prefs.getString(_keyBilling) ?? 'monthly';
+  }
+
+  Future<void> setSelection({
+    required String plan,
+    required String billing,
+  }) async {
+    _plan = plan;
+    _billing = billing;
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_keyPlan, plan);
+    await prefs.setString(_keyBilling, billing);
+  }
+
+  Map<String, dynamic> toPayload() {
+    return {
+      'plan': _plan.toLowerCase(),       // premium / elite
+      'billing': _billing,               // monthly / yearly
+    };
+  }
+}

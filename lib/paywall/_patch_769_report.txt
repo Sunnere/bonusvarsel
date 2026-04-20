@@ -1,0 +1,3 @@
+oppdaterte hjelpetekst for kortvalg
+ADVARSEL: fant ikke _estimatePoints-blokken eksakt
+endrede label fra 'Estimert opptjening' til 'Foreløpig estimat'

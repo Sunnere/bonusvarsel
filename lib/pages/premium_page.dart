@@ -1,4 +1,11 @@
 import 'package:flutter/material.dart';
+import '../services/checkout_service.dart';
+import 'checkout_page.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:bonusvarsel/widgets/ad_slot.dart';
+import 'package:bonusvarsel/services/ad_service.dart';
+import 'package:bonusvarsel/models/ad_slot.dart';
+import '../paywall/paywall_launcher_button.dart';
 
 class PremiumPage extends StatefulWidget {
   const PremiumPage({
@@ -10,15 +17,102 @@ class PremiumPage extends StatefulWidget {
 }
 
 class _PremiumPageState extends State<PremiumPage> {
+  static const String _subscriptionsUrl = 'https://www.bonusvarsel.no/';
+  static const String _privacyPolicyUrl = 'https://www.bonusvarsel.no/privacy-policy/';
+  static const String _termsUrl =
+      'https://www.apple.com/legal/internet-services/itunes/dev/stdeula/';
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_routeArgsApplied) return;
+    _routeArgsApplied = true;
+
+    final args = ModalRoute.of(context)?.settings.arguments;
+    if (args is Map) {
+      final action = args['action']?.toString();
+      final planId = (args['planId'] ?? args['billingCycle'])?.toString();
+
+      _entryAction = action;
+      _entryPlanId = planId;
+
+      if (planId != null && mounted) {
+        setState(() {
+          if (planId.toLowerCase().contains('year')) {
+            _billingCycle = 'yearly';
+          } else if (planId.toLowerCase().contains('month')) {
+            _billingCycle = 'monthly';
+          }
+        });
+      }
+
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        if (action == 'restore') {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Gjenoppretting av kjøp åpnet')),
+          );
+        } else if (planId != null) {
+          final label = _billingCycle == 'yearly' ? 'Årsplan valgt' : 'Månedsplan valgt';
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(label)),
+          );
+        }
+      });
+    }
+  }
+
+  bool _routeArgsApplied = false;
+  // ignore: unused_field
+  String? _entryAction;
+  // ignore: unused_field
+  String? _entryPlanId;
+
+
+  String _billingCycle = 'monthly';
   String _selected = 'Premium'; // Gratis / Premium / Elite
 
   void _select(String v) => setState(() => _selected = v);
 
-  void _checkout(String plan) {
-    // TODO: Koble til betaling/IAP senere (RevenueCat/StoreKit/Google Play Billing)
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('TODO: Start $plan (betalingsflyt kommer).')),
+  
+  void _checkout(String plan) async {
+    if (plan == 'Gratis') {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Gratis krever ingen betaling.')),
+      );
+      return;
+    }
+
+    await CheckoutService.instance.setSelection(
+      plan: plan,
+      billing: _billingCycle,
     );
+
+    final payload = CheckoutService.instance.toPayload();
+
+    // TODO: kobles til ekte Apple IAP / StoreKit
+    debugPrint('Checkout payload: $payload');
+
+    if (!mounted) return;
+
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const CheckoutPage()),
+    );
+  }
+
+
+  Future<void> _openPartnerUrl(String url) async {
+    final uri = Uri.parse(url);
+    if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+      if (!mounted) return;
+      
+await launchUrl(
+  Uri.parse(_subscriptionsUrl),
+  mode: LaunchMode.externalApplication,
+);
+
+    }
   }
 
   @override
@@ -26,9 +120,14 @@ class _PremiumPageState extends State<PremiumPage> {
     final cs = Theme.of(context).colorScheme;
     final isMobile = MediaQuery.of(context).size.width < 520;
 
-    final accent = const Color(0xFFD4AF37);
+    final accent = _selected == 'Elite'
+        ? const Color(0xFFD4AF37)
+        : const Color(0xFFF0D48A);
 
     return Scaffold(
+      floatingActionButton: PaywallLauncherButton(
+        tooltip: 'Test Premium paywall',
+      ),
       appBar: AppBar(
         title: const Text('Premium & Elite'),
       ),
@@ -39,7 +138,7 @@ class _PremiumPageState extends State<PremiumPage> {
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 920),
                 child: ListView(
-                  padding: EdgeInsets.fromLTRB(16, 16, 16, isMobile ? 98 : 24),
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
                   children: [
                     _HeroConversion(
                       accent: accent,
@@ -59,28 +158,355 @@ class _PremiumPageState extends State<PremiumPage> {
                       accent: accent,
                       leftTitle: 'Typisk gevinst',
                       leftBody:
-                          'Du mister ekstra poeng hver gang du handler uten Premium/Elite.',
+                          'Typisk bruk kan gi ca. 1 500–4 000 ekstra poeng per måned med riktige valg.',
                       rightTitle: 'Mål',
                       rightBody:
-                          'Gjør det lett å samle nok poeng til billigere (eller gratis) reiser.',
+                          'Aktiv bruk kan gi opptil 8 000+ poeng per måned og gjøre reiser merkbart billigere.',
                     ),
+
+                    const SizedBox(height: 14),
+                    Container(
+                      padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(22),
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [
+                            const Color(0xFF0F172A),
+                            const Color(0xFF1E293B),
+                          ],
+                        ),
+                        border: Border.all(
+                          color: accent.withValues(alpha: 0.40),
+                          width: 1.2,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.14),
+                            blurRadius: 20,
+                            offset: const Offset(0, 10),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const SizedBox(height: 12),
+                          Text(
+                            'Dette er et auto-fornybart abonnement. Betaling skjer via din Apple-ID. '
+                            'Abonnementet fornyes automatisk med mindre det kanselleres minst 24 timer før slutten av perioden.',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey,
+                            ),
+                          ),
+                          Row(
+                            children: [
+                              Container(
+                                width: 34,
+                                height: 34,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: accent.withValues(alpha: 0.16),
+                                  border: Border.all(
+                                    color: accent.withValues(alpha: 0.45),
+                                  ),
+                                ),
+                                child: Icon(
+                                  Icons.workspace_premium_rounded,
+                                  color: accent,
+                                  size: 18,
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      _selected == 'Elite'
+                                          ? 'Utvalgt for Elite'
+                                          : 'Utvalgt for Premium',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w800,
+                                        letterSpacing: 0.2,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      _selected == 'Elite'
+                                          ? 'Et relevant kort eller tilbud for maksimal poengverdi.'
+                                          : 'Et relevant kort eller tilbud som løfter verdien av medlemskapet.',
+                                      style: TextStyle(
+                                        color: Colors.white.withValues(alpha: 0.78),
+                                        fontSize: 12.5,
+                                        height: 1.25,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(18),
+                            child: FutureBuilder<List<AdSlot>>(
+                              future: AdService.instance.pickAds(
+                                placement: 'elite_top_cards',
+                                count: 1,
+                              ),
+                              builder: (context, snap) {
+                                final ads = snap.data ?? const <AdSlot>[];
+                                if (ads.isEmpty) return const SizedBox.shrink();
+
+                                return AdSlotCard(
+                                  slot: ads.first,
+                                  placement: 'elite_top_cards',
+                                );
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 14),
+                    Container(
+                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(22),
+                        color: const Color(0xFF0F172A),
+                        border: Border.all(
+                          color: accent.withValues(alpha: 0.32),
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.10),
+                            blurRadius: 18,
+                            offset: const Offset(0, 8),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Container(
+                                width: 34,
+                                height: 34,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: accent.withValues(alpha: 0.14),
+                                  border: Border.all(
+                                    color: accent.withValues(alpha: 0.40),
+                                  ),
+                                ),
+                                child: Icon(
+                                  Icons.campaign_rounded,
+                                  color: accent,
+                                  size: 18,
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text(
+                                      'Start med riktig medlemskap',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w800,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      'To raske valg for å komme i gang med bonus og poeng.',
+                                      style: TextStyle(
+                                        color: Colors.white.withValues(alpha: 0.78),
+                                        fontSize: 12.5,
+                                        height: 1.25,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 14),
+                          Wrap(
+                            spacing: 10,
+                            runSpacing: 10,
+                            children: [
+                              _MembershipPromoCard(
+                                width: isMobile ? null : 390,
+                                accent: accent,
+                                icon: Icons.flight_takeoff_rounded,
+                                title: 'Bli SAS EuroBonus-medlem',
+                                body: 'Perfekt for deg som vil samle poeng til flyreiser, oppgraderinger og medlemsfordeler.',
+                                badge: 'SAS',
+                                highlight: 'Best for flyreiser',
+                                ctaLabel: 'Bli medlem her',
+                                onTap: () => _openPartnerUrl('https://www.sas.no/register/eurobonus'),
+                              ),
+                              _MembershipPromoCard(
+                                width: isMobile ? null : 390,
+                                accent: accent,
+                                icon: Icons.savings_rounded,
+                                title: 'Bli Trumf-medlem',
+                                body: 'Bra start hvis du vil samle bonus på dagligvarer, netthandel og senere kunne overføre verdi videre.',
+                                badge: 'TRUMF',
+                                highlight: 'Best for daglig bonus',
+                                ctaLabel: 'Bli medlem her',
+                                onTap: () => _openPartnerUrl('https://www.trumf.no/bli-medlem'),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 18),
 
                     const SizedBox(height: 16),
                     _SectionTitle(
                       title: 'Velg nivå',
                       subtitle:
-                          'Start Premium hvis du vil maksimere SAS Shopping. Velg Elite hvis du vil ha alt (SAS + mer).',
+                          'Premium hvis du vil maksimere SAS Shopping. Elite hvis du vil ha alt (SAS + mer).',
                     ),
                     const SizedBox(height: 10),
 
-                    _PlanPicker(
-                      accent: accent,
-                      selected: _selected,
-                      onSelect: _select,
-                      onCheckout: _checkout,
+                    Container(
+                      padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(24),
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: _selected == 'Elite'
+                              ? const [
+                                  Color(0xFF120F2A),
+                                  Color(0xFF1F1B4D),
+                                  Color(0xFF0F172A),
+                                ]
+                              : const [
+                                  Color(0xFF0F172A),
+                                  Color(0xFF172033),
+                                  Color(0xFF1E293B),
+                                ],
+                        ),
+                        border: Border.all(
+                          color: (_selected == 'Elite'
+                                  ? const Color(0xFFD4AF37)
+                                  : accent)
+                              .withValues(alpha: _selected == 'Elite' ? 0.52 : 0.34),
+                          width: _selected == 'Elite' ? 1.4 : 1.2,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.14),
+                            blurRadius: 24,
+                            offset: const Offset(0, 10),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(16),
+                              gradient: LinearGradient(
+                                begin: Alignment.centerLeft,
+                                end: Alignment.centerRight,
+                                colors: _selected == 'Elite'
+                                    ? [
+                                        const Color(0xFFD4AF37).withValues(alpha: 0.24),
+                                        const Color(0xFF8B5CF6).withValues(alpha: 0.10),
+                                      ]
+                                    : [
+                                        accent.withValues(alpha: 0.18),
+                                        accent.withValues(alpha: 0.05),
+                                      ],
+                              ),
+                              border: Border.all(
+                                color: (_selected == 'Elite'
+                                        ? const Color(0xFFD4AF37)
+                                        : accent)
+                                    .withValues(alpha: _selected == 'Elite' ? 0.34 : 0.24),
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                Container(
+                                  width: 38,
+                                  height: 38,
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(12),
+                                    color: const Color(0xFF0F172A).withValues(alpha: 0.42),
+                                    border: Border.all(
+                                      color: accent.withValues(alpha: 0.24),
+                                    ),
+                                  ),
+                                  child: Icon(
+                                    _selected == 'Elite'
+                                        ? Icons.workspace_premium_rounded
+                                        : Icons.auto_awesome_rounded,
+                                    color: accent,
+                                    size: 20,
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        _selected == 'Elite'
+                                            ? 'Elite — maks verdi'
+                                            : 'Premium — smartere opptjening',
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 15.5,
+                                          fontWeight: FontWeight.w800,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        _selected == 'Elite'
+                                            ? 'Mer eksklusiv visning og tydeligere fokus på total poengmaksimering.'
+                                            : 'Typisk: +1 500–4 000 ekstra poeng per måned ved normal bruk.',
+                                        style: TextStyle(
+                                          color: Colors.white.withValues(alpha: 0.76),
+                                          fontSize: 12.5,
+                                          height: 1.25,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 14),
+                          _PlanPicker(
+                            accent: accent,
+                            selected: _selected,
+                            onSelect: _select,
+                            onCheckout: _checkout,
+                          ),
+                        ],
+                      ),
                     ),
 
-                    const SizedBox(height: 18),
+
                     _SectionTitle(
                       title: 'Slik funker det',
                       subtitle:
@@ -193,14 +619,45 @@ class _PremiumPageState extends State<PremiumPage> {
                             ),
                           ),
                           const SizedBox(width: 10),
+                          
+                    const SizedBox(height: 20),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        TextButton(
+                          onPressed: () async {
+                            await launchUrl(
+                            Uri.parse(_privacyPolicyUrl),
+                            mode: LaunchMode.externalApplication,
+                          );
+                          },
+                          child: const Text('Privacy Policy'),
+                        ),
+                        const SizedBox(width: 10),
+                        TextButton(
+                          onPressed: () async {
+                            await launchUrl(
+                            Uri.parse(_termsUrl),
+                            mode: LaunchMode.externalApplication,
+                          );
+                          },
+                          child: const Text('Terms of Use'),
+                        ),
+                      ],
+                    ),
+
                           FilledButton(
                             style: FilledButton.styleFrom(
                               backgroundColor: accent,
-                              foregroundColor: Colors.black,
+                              foregroundColor: const Color(0xFF111111),
                               textStyle: const TextStyle(fontWeight: FontWeight.w900),
                             ),
                             onPressed: () => _checkout(_selected),
-                            child: Text(_selected == 'Elite' ? 'Start Elite' : 'Start Premium'),
+                            child: Text(
+                              _selected == 'Elite'
+                                  ? 'Fortsett til betaling • Elite'
+                                  : 'Fortsett til betaling • Premium',
+                            ),
                           ),
                         ],
                       ),
@@ -210,17 +667,7 @@ class _PremiumPageState extends State<PremiumPage> {
               ),
             ),
 
-            if (isMobile)
-              Positioned(
-                left: 12,
-                right: 12,
-                bottom: 12,
-                child: _StickyCta(
-                  accent: accent,
-                  selected: _selected,
-                  onCheckout: () => _checkout(_selected),
-                ),
-              ),
+
           ],
         ),
       ),
@@ -473,36 +920,37 @@ class _PlanPicker extends StatelessWidget {
           selected: selected == 'Gratis',
           accent: accent,
           bullets: const [
-            'Begrenset antall butikker',
-            'Ingen boost / høyeste rate',
+            'Begrensede butikker',
+            'Ingen boost / topp-rate',
             'Mindre oversikt',
           ],
           onTap: () => onSelect('Gratis'),
-          ctaLabel: 'Fortsett gratis',
-          ctaLabelColor: Colors.white,
+          ctaLabel: 'Gratis',          ctaColor: const Color(0xFF60A5FA),
+
           onCta: () => onCheckout('Gratis'),
         ),
         _PlanCard(
           title: 'Premium',
-          badge: 'Mest valgt • Best for de fleste',
+          badge: 'Mest valgt',
           emphasis: true,
           selected: selected == 'Premium',
           accent: accent,
           bullets: const [
             'Alle SAS Shopping-butikker',
             'Høyeste poengrate',
-            'Boost-tilbud og kampanjer',
-            'Maks oversikt i appen',
+            'Boost og kampanjer',
+            'Maks oversikt',
           ],
           onTap: () => onSelect('Premium'),
-          ctaLabel: 'Start Premium',
-              ctaColor: const Color(0xFF22C55E),
-              note: 'Typisk ekstra: +2 000–8 000 poeng/år',
+          ctaLabel: 'Premium',          ctaColor: const Color(0xFF22C55E),
+          note: '49 kr/mnd · Typisk: +1 500–4 000 poeng/mnd',
+
+
           onCta: () => onCheckout('Premium'),
         ),
         _PlanCard(
           title: 'Elite',
-          badge: 'Mest verdi',
+          badge: 'Mest eksklusiv',
           emphasis: true,
           selected: selected == 'Elite',
           accent: accent,
@@ -513,7 +961,9 @@ class _PlanPicker extends StatelessWidget {
             'Smartere prioritering (kommer)',
           ],
           onTap: () => onSelect('Elite'),
-          ctaLabel: 'Start Elite',
+          ctaLabel: 'Elite',
+          ctaColor: const Color(0xFFD4AF37),
+          note: '89 kr/mnd · Opptil 8 000+ poeng/mnd',
           onCta: () => onCheckout('Elite'),
         ),
       ],
@@ -522,7 +972,8 @@ class _PlanPicker extends StatelessWidget {
 }
 
 class _PlanCard extends StatelessWidget {
-  final Color? ctaColor;
+    // ignore: unused_element_parameter
+    final Color? ctaColor;
 
   final String title;
   final String badge;
@@ -534,6 +985,7 @@ class _PlanCard extends StatelessWidget {
   final String ctaLabel;
   final String? note;
 
+  // ignore: unused_element_parameter
   final Color? ctaLabelColor;
   final VoidCallback onCta;
 
@@ -550,19 +1002,41 @@ class _PlanCard extends StatelessWidget {
     this.ctaLabelColor,
     required this.onCta,
     this.ctaColor,
-});
+
+  });
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final isElite = title == 'Elite';
+    final isPremium = title == 'Premium';
+    final isFree = title == 'Gratis';
 
     final borderColor = selected
-        ? accent.withValues(alpha: 0.85)
+        ? (isElite
+            ? const Color(0xFFD4AF37)
+            : accent.withValues(alpha: 0.85))
         : (emphasis
-            ? accent.withValues(alpha: 0.45)
+            ? (isElite
+                ? const Color(0xFFD4AF37).withValues(alpha: 0.58)
+                : (title == 'Premium'
+                    ? const Color(0xFF93C5FD)
+                    : accent.withValues(alpha: 0.45)))
             : cs.onSurface.withValues(alpha: 0.36));
 
-    final bg = cs.surface.withValues(alpha: emphasis ? 0.92 : 0.80);
+    final bg = isElite
+        ? (selected
+            ? const Color(0xFF140F2A)
+            : const Color(0xFF101826))
+        : isPremium
+            ? (selected
+                ? const Color(0xFF0F3D2E)
+                : const Color(0xFF123A2C))
+            : isFree
+                ? (selected
+                    ? const Color(0xFF173B63)
+                    : const Color(0xFF102A43))
+                : cs.surface.withValues(alpha: emphasis ? 0.92 : 0.80);
 
     return SizedBox(
       width: 285,
@@ -572,13 +1046,31 @@ class _PlanCard extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            color: bg,
+            color: isElite ? null : bg,
+            gradient: isElite
+                ? LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: selected
+                        ? const [
+                            Color(0xFF2A1754),
+                            Color(0xFF16112F),
+                            Color(0xFF0D1522),
+                          ]
+                        : const [
+                            Color(0xFF1A2232),
+                            Color(0xFF151B28),
+                          ],
+                  )
+                : null,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: borderColor),
+            border: Border.all(color: borderColor, width: isElite ? 1.8 : 1.0),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.36),
-                blurRadius: 16,
+                color: isElite
+                    ? const Color(0xFFD4AF37).withValues(alpha: selected ? 0.22 : 0.10)
+                    : Colors.black.withValues(alpha: 0.36),
+                blurRadius: isElite ? 30 : 16,
                 offset: const Offset(0, 10),
               ),
             ],
@@ -592,6 +1084,8 @@ class _PlanCard extends StatelessWidget {
                     title,
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.w900,
+                          color: isElite ? const Color(0xFFFFE08A) : null,
+                          letterSpacing: isElite ? 0.35 : null,
                         ),
                   ),
                   const Spacer(),
@@ -599,12 +1093,24 @@ class _PlanCard extends StatelessWidget {
                     padding:
                         const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                     decoration: BoxDecoration(
-                      color: (emphasis ? accent : cs.onSurface)
-                          .withValues(alpha: 0.36),
+                      color: isElite
+                          ? const Color(0xFFD4AF37).withValues(alpha: 0.24)
+                          : isPremium
+                              ? const Color(0xFF22C55E).withValues(alpha: 0.18)
+                              : isFree
+                                  ? const Color(0xFF60A5FA).withValues(alpha: 0.18)
+                                  : (emphasis ? accent : cs.onSurface)
+                                      .withValues(alpha: 0.36),
                       borderRadius: BorderRadius.circular(999),
                       border: Border.all(
-                        color: (emphasis ? accent : cs.onSurface)
-                            .withValues(alpha: 0.36),
+                        color: isElite
+                            ? const Color(0xFFD4AF37).withValues(alpha: 0.78)
+                            : isPremium
+                                ? const Color(0xFF22C55E).withValues(alpha: 0.58)
+                                : isFree
+                                    ? const Color(0xFF60A5FA).withValues(alpha: 0.54)
+                                    : (emphasis ? accent : cs.onSurface)
+                                        .withValues(alpha: 0.36),
                       ),
                     ),
                     child: Text(
@@ -676,7 +1182,7 @@ Icon(
               const SizedBox(height: 6),
               if (selected)
                 Text(
-                  'Valgt nå',
+                  '',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         fontWeight: FontWeight.w900,
                         color: accent,
@@ -891,6 +1397,7 @@ class _FaqItem {
   const _FaqItem({required this.q, required this.a});
 }
 
+// ignore: unused_element
 class _StickyCta extends StatelessWidget {
   final Color accent;
   final String selected;
@@ -939,13 +1446,184 @@ class _StickyCta extends StatelessWidget {
           FilledButton(
             style: FilledButton.styleFrom(
               backgroundColor: accent,
-              foregroundColor: Colors.black,
+              foregroundColor: const Color(0xFF111111),
               textStyle: const TextStyle(fontWeight: FontWeight.w900),
             ),
             onPressed: onCheckout,
-            child: Text(selected == 'Elite' ? 'Start Elite' : 'Oppgrader'),
+            child: Text(selected == 'Elite' ? 'Elite' : 'Oppgrader'),
           ),
         ],
+      ),
+    );
+  }
+}
+
+
+class _MembershipPromoCard extends StatelessWidget {
+  final double? width;
+  final Color accent;
+  final IconData icon;
+  final String title;
+  final String body;
+  final String badge;
+  final String highlight;
+  final String ctaLabel;
+  final VoidCallback onTap;
+
+  const _MembershipPromoCard({
+    this.width,
+    required this.accent,
+    required this.icon,
+    required this.title,
+    required this.body,
+    required this.badge,
+    required this.highlight,
+    required this.ctaLabel,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: width,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(20),
+          onTap: onTap,
+          child: Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(20),
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Colors.white.withValues(alpha: 0.075),
+                  Colors.white.withValues(alpha: 0.045),
+                ],
+              ),
+              border: Border.all(
+                color: Colors.white.withValues(alpha: 0.09),
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.10),
+                  blurRadius: 16,
+                  offset: const Offset(0, 8),
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(14),
+                    gradient: LinearGradient(
+                      begin: Alignment.centerLeft,
+                      end: Alignment.centerRight,
+                      colors: [
+                        accent.withValues(alpha: 0.22),
+                        accent.withValues(alpha: 0.08),
+                      ],
+                    ),
+                    border: Border.all(
+                      color: accent.withValues(alpha: 0.28),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 38,
+                        height: 38,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(12),
+                          color: const Color(0xFF0F172A).withValues(alpha: 0.45),
+                          border: Border.all(
+                            color: accent.withValues(alpha: 0.24),
+                          ),
+                        ),
+                        child: Icon(icon, color: accent, size: 20),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          badge,
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 0.8,
+                          ),
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(999),
+                          color: const Color(0xFF0F172A).withValues(alpha: 0.30),
+                          border: Border.all(
+                            color: accent.withValues(alpha: 0.24),
+                          ),
+                        ),
+                        child: Text(
+                          highlight,
+                          style: TextStyle(
+                            color: accent,
+                            fontSize: 10.5,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 0.2,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 14),
+                Text(
+                  title,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 15.5,
+                    height: 1.15,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  body,
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.76),
+                    fontSize: 12.5,
+                    height: 1.3,
+                  ),
+                ),
+                const SizedBox(height: 14),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: FilledButton.icon(
+                    onPressed: onTap,
+                    icon: const Icon(Icons.open_in_new_rounded, size: 16),
+                    label: Text(ctaLabel),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: accent,
+                      foregroundColor: const Color(0xFF0F172A),
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      textStyle: const TextStyle(
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }

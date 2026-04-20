@@ -1,0 +1,298 @@
+=== FILE ===
+lib/pages/eb_shopping_page.dart
+
+=== FIRST MATCHES ===
+Scaffold( -> line 731
+body: -> line 761
+Column( -> line 97
+Expanded( -> line 448
+
+=== AROUND REPORTED OVERFLOW AREA (720-790) ===
+  720:                 ],
+  721:               );
+  722:             },
+  723:           ),
+  724:         ],
+  725:       ),
+  726:     );
+  727:   }
+  728: 
+  729:   @override
+  730:   Widget build(BuildContext context) {
+  731:     return Scaffold(
+  732:       appBar: AppBar(
+  733:         title: GestureDetector(
+  734:           onLongPress: _openDebugAdmin,
+  735:           child: Text('EuroBonus Shopping', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+  736:         ),
+  737:         actions: [
+  738:           IconButton(
+  739:             tooltip: 'Oppdater',
+  740:             onPressed: () {
+  741:               setState(() {
+  742:                 _futureShops = _repo.fetchShops(forceRefresh: true);
+  743:                 _filterCacheKey = '';
+  744:               });
+  745:             },
+  746:             icon: const Icon(Icons.refresh),
+  747:           ),
+  748:         
+  749:         if (kDebugMode)
+  750:           IconButton(
+  751:             tooltip: 'Ad debug',
+  752:             icon: const Icon(Icons.bug_report),
+  753:             onPressed: () {
+  754:               Navigator.of(context).push(
+  755:                 MaterialPageRoute(builder: (_) => const AdDebugPage()),
+  756:               );
+  757:             },
+  758:           ),
+  759: ],
+  760:       ),
+  761:       body: Column(
+  762:         children: [
+  763:           const _PremiumHeader(),
+  764:           SmartBestRecommendationCard(
+  765:             futureOffers: _futureShops,
+  766:             amountNok: 5000,
+  767:             onTapPaywall: () => _openPremiumPage(context),
+  768:           ),
+  769: 
+  770:         // BV_SOURCE_FILTER
+  771:         const SizedBox(height: 4),
+  772:         
+  773: 
+  774:           const SizedBox(height: 8),
+  775:           _buildSourceFilter(context),
+  776: 
+  777:           if (_source == 'Alle')
+  778:             Padding(
+  779:               padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+  780:               child: Text(
+  781:                 'Toppbutikker akkurat nå',
+  782:                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
+  783:                       fontWeight: FontWeight.w900,
+  784:                     ),
+  785:               ),
+  786:             ),
+  787: 
+  788:           Expanded(
+  789:             child: FutureBuilder<List<ShopOffer>>(
+  790:         future: _futureShops,
+
+=== AROUND 790-860 ===
+  790:         future: _futureShops,
+  791:         builder: (context, snap) {
+  792:           if (snap.connectionState != ConnectionState.done) {
+  793:             return const Center(child: CircularProgressIndicator());
+  794:           }
+  795:           if (snap.hasError) {
+  796:             return Center(
+  797:               child: Padding(
+  798:                 padding: const EdgeInsets.all(16),
+  799:                 child: Text('Feil: ${snap.error}'),
+  800:               ),
+  801:             );
+  802:           }
+  803: 
+  804:           final data = snap.data ?? const <ShopOffer>[];
+  805:           final categories = _getCategoriesCached(data);
+  806: 
+  807:           if (!categories.contains(_category)) {
+  808:             _category = 'Alle';
+  809:           }
+  810: 
+  811:           final filtered = _applyFilters(data);
+  812:           final isGated = !_isPremium && filtered.length > _freeLimit;
+  813:           final visible =
+  814:               isGated ? filtered.take(_freeLimit).toList() : filtered;
+  815: 
+  816:           return ListView(
+  817:             padding: const EdgeInsets.all(12),
+  818:             children: [
+  819:               // BV_ELITE_V2_INJECT
+  820:               if (_safeTier() == SubscriptionTier.elite)
+  821:                 _eliteV2TopCardsSection(context),
+  822: 
+  823:               
+  824:               // --- Filters: search + category (equal width, 44px) ---
+  825:               Row(
+  826:                 children: [
+  827:                   Expanded(
+  828:                     child: SizedBox(
+  829:                       height: 44,
+  830:                       child: TextField(
+  831:                         controller: _searchCtrl,
+  832:                         decoration: const InputDecoration(
+  833:                           isDense: true,
+  834:                           contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+  835:                           labelText: 'Søk butikk',
+  836:                           prefixIcon: Icon(Icons.search),
+  837:                           border: OutlineInputBorder(),
+  838:                         ),
+  839:                       ),
+  840:                     ),
+  841:                   ),
+  842:                   const SizedBox(width: 10),
+  843:                   Expanded(
+  844:                     child: SizedBox(
+  845:                       height: 44,
+  846:                       child: DropdownButtonFormField<String>(
+  847:                         initialValue: _category,
+  848:                         isExpanded: true,
+  849:                         items: categories
+  850:                             .map((c) => DropdownMenuItem<String>(
+  851:                                   value: c,
+  852:                                   child: Text(c),
+  853:                                 ))
+  854:                             .toList(),
+  855:                         onChanged: (v) => setState(() {
+  856:                           _category = v ?? 'Alle';
+  857:                           _filterCacheKey = '';
+  858:                         }),
+  859:                         decoration: const InputDecoration(
+  860:                           isDense: true,
+
+=== AROUND FIRST SCAFFOLD ===
+  711: 
+  712:               final top3 = list.take(3).toList();
+  713:               return Column(
+  714:                 children: [
+  715: // ignore: unused_local_variable
+  716:                   for (final slot in top3) ...[
+  717: 
+  718:                     const SizedBox(height: 4),
+  719:                   ],
+  720:                 ],
+  721:               );
+  722:             },
+  723:           ),
+  724:         ],
+  725:       ),
+  726:     );
+  727:   }
+  728: 
+  729:   @override
+  730:   Widget build(BuildContext context) {
+  731:     return Scaffold(
+  732:       appBar: AppBar(
+  733:         title: GestureDetector(
+  734:           onLongPress: _openDebugAdmin,
+  735:           child: Text('EuroBonus Shopping', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+  736:         ),
+  737:         actions: [
+  738:           IconButton(
+  739:             tooltip: 'Oppdater',
+  740:             onPressed: () {
+  741:               setState(() {
+  742:                 _futureShops = _repo.fetchShops(forceRefresh: true);
+  743:                 _filterCacheKey = '';
+  744:               });
+  745:             },
+  746:             icon: const Icon(Icons.refresh),
+  747:           ),
+  748:         
+  749:         if (kDebugMode)
+  750:           IconButton(
+  751:             tooltip: 'Ad debug',
+  752:             icon: const Icon(Icons.bug_report),
+  753:             onPressed: () {
+  754:               Navigator.of(context).push(
+  755:                 MaterialPageRoute(builder: (_) => const AdDebugPage()),
+  756:               );
+  757:             },
+  758:           ),
+  759: ],
+  760:       ),
+  761:       body: Column(
+  762:         children: [
+  763:           const _PremiumHeader(),
+  764:           SmartBestRecommendationCard(
+  765:             futureOffers: _futureShops,
+  766:             amountNok: 5000,
+  767:             onTapPaywall: () => _openPremiumPage(context),
+  768:           ),
+  769: 
+  770:         // BV_SOURCE_FILTER
+  771:         const SizedBox(height: 4),
+  772:         
+  773: 
+  774:           const SizedBox(height: 8),
+  775:           _buildSourceFilter(context),
+  776: 
+  777:           if (_source == 'Alle')
+  778:             Padding(
+  779:               padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+  780:               child: Text(
+  781:                 'Toppbutikker akkurat nå',
+  782:                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
+  783:                       fontWeight: FontWeight.w900,
+  784:                     ),
+  785:               ),
+  786:             ),
+  787: 
+  788:           Expanded(
+  789:             child: FutureBuilder<List<ShopOffer>>(
+  790:         future: _futureShops,
+  791:         builder: (context, snap) {
+  792:           if (snap.connectionState != ConnectionState.done) {
+  793:             return const Center(child: CircularProgressIndicator());
+  794:           }
+  795:           if (snap.hasError) {
+  796:             return Center(
+  797:               child: Padding(
+  798:                 padding: const EdgeInsets.all(16),
+  799:                 child: Text('Feil: ${snap.error}'),
+  800:               ),
+  801:             );
+  802:           }
+  803: 
+  804:           final data = snap.data ?? const <ShopOffer>[];
+  805:           final categories = _getCategoriesCached(data);
+  806: 
+  807:           if (!categories.contains(_category)) {
+  808:             _category = 'Alle';
+  809:           }
+  810: 
+  811:           final filtered = _applyFilters(data);
+  812:           final isGated = !_isPremium && filtered.length > _freeLimit;
+  813:           final visible =
+  814:               isGated ? filtered.take(_freeLimit).toList() : filtered;
+  815: 
+  816:           return ListView(
+  817:             padding: const EdgeInsets.all(12),
+  818:             children: [
+  819:               // BV_ELITE_V2_INJECT
+  820:               if (_safeTier() == SubscriptionTier.elite)
+  821:                 _eliteV2TopCardsSection(context),
+  822: 
+  823:               
+  824:               // --- Filters: search + category (equal width, 44px) ---
+  825:               Row(
+  826:                 children: [
+  827:                   Expanded(
+  828:                     child: SizedBox(
+  829:                       height: 44,
+  830:                       child: TextField(
+  831:                         controller: _searchCtrl,
+  832:                         decoration: const InputDecoration(
+  833:                           isDense: true,
+  834:                           contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+  835:                           labelText: 'Søk butikk',
+  836:                           prefixIcon: Icon(Icons.search),
+  837:                           border: OutlineInputBorder(),
+  838:                         ),
+  839:                       ),
+  840:                     ),
+  841:                   ),
+  842:                   const SizedBox(width: 10),
+  843:                   Expanded(
+  844:                     child: SizedBox(
+  845:                       height: 44,
+  846:                       child: DropdownButtonFormField<String>(
+  847:                         initialValue: _category,
+  848:                         isExpanded: true,
+  849:                         items: categories
+  850:                             .map((c) => DropdownMenuItem<String>(
+  851:                                   value: c,
+

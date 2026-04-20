@@ -1,0 +1,301 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+FILE="lib/widgets/ad_slot.dart"
+STAMP="$(date +%Y%m%d-%H%M%S)"
+
+if [ -f "$FILE" ]; then
+  cp "$FILE" "${FILE}.bak.${STAMP}"
+  echo "Backup laget: ${FILE}.bak.${STAMP}"
+else
+  echo "Fant ikke $FILE"
+  exit 1
+fi
+
+cat > "$FILE" <<'DART'
+import 'package:flutter/material.dart';
+import '../theme/app_theme.dart';
+import '../theme/brand_theme.dart';
+
+import 'package:url_launcher/url_launcher.dart';
+
+import '../models/ad_slot.dart';
+import '../services/ad_service.dart';
+
+class AdSlotCard extends StatefulWidget {
+  final AdSlot slot;
+  final String placement;
+
+  const AdSlotCard({
+    super.key,
+    required this.slot,
+    required this.placement,
+  });
+
+  @override
+  State<AdSlotCard> createState() => _AdSlotCardState();
+}
+
+class _AdSlotCardState extends State<AdSlotCard> {
+  bool _counted = false;
+
+  bool get _isPremiumPlacement {
+    final p = widget.placement.toLowerCase();
+    return p.contains('premium') || p.contains('elite');
+  }
+
+  bool get _isElitePlacement {
+    final p = widget.placement.toLowerCase();
+    return p.contains('elite');
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_counted) {
+      _counted = true;
+      AdService.instance.recordImpression(
+        placement: widget.placement,
+        adId: widget.slot.id,
+      );
+    }
+  }
+
+  Future<void> _openUrl(String url) async {
+    final uri = Uri.tryParse(url);
+    if (uri == null) return;
+    await launchUrl(uri, mode: LaunchMode.externalApplication);
+  }
+
+  String _displayTitle(AdSlot slot) {
+    final raw = slot.title.trim();
+    if (!_isPremiumPlacement) return raw;
+
+    final lower = raw.toLowerCase();
+    final looksGenericAmex = lower == 'amex' ||
+        lower == 'american express' ||
+        lower.contains('amex: høy poeng') ||
+        raw.endsWith('...');
+
+    if (looksGenericAmex) {
+      return _isElitePlacement
+          ? 'American Express Platinum'
+          : 'American Express Gold';
+    }
+
+    return raw;
+  }
+
+  String _displayBody(AdSlot slot) {
+    final raw = slot.body.trim();
+    if (!_isPremiumPlacement) return raw;
+
+    final lower = raw.toLowerCase();
+    final looksGeneric = lower.contains('bruk amex på hverdagskjøp') ||
+        lower.contains('bygg poeng raskere') ||
+        lower.contains('relevant kort eller tilbud');
+
+    if (looksGeneric) {
+      return _isElitePlacement
+          ? 'Bygg poeng raskere med premiumfordeler, reisegoder og sterkere verdi for hyppige reisende.'
+          : 'Tjen flere poeng på kjøp og få bedre oversikt over kortfordeler og reiserelevante tilbud.';
+    }
+
+    return raw;
+  }
+
+  String _displayCta(AdSlot slot) {
+    final raw = slot.cta.trim();
+    if (!_isPremiumPlacement) return raw.isEmpty ? 'Se tilbud' : raw;
+    if (raw.isEmpty || raw.toLowerCase() == 'se tilbud') {
+      return 'Se kort & fordeler';
+    }
+    return raw;
+  }
+
+  String get _disclaimerText {
+    if (!_isPremiumPlacement) return '';
+    return 'Eksempelplassering – ikke et aktivt partnerskap';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final slot = widget.slot;
+    final title = _displayTitle(slot);
+    final body = _displayBody(slot);
+    final cta = _displayCta(slot);
+
+    const navy = Color(0xFF245AA8);
+    const navy2 = Color(0xFF163A70);
+    const gold = BrandTheme.gold;
+
+    final accentTop = _isElitePlacement
+        ? const Color(0xFFD4AF37)
+        : (_isPremiumPlacement ? const Color(0xFFC9A227) : gold);
+
+    final badgeBg = _isPremiumPlacement
+        ? Colors.white.withValues(alpha: 0.14)
+        : Colors.white.withValues(alpha: 0.22);
+
+    final badgeBorder = _isPremiumPlacement
+        ? Colors.white.withValues(alpha: 0.20)
+        : Colors.white.withValues(alpha: 0.32);
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(18),
+          gradient: const LinearGradient(
+            colors: [navy, navy2],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          border: Border.all(
+            color: _isPremiumPlacement
+                ? accentTop.withValues(alpha: 0.38)
+                : Colors.transparent,
+            width: _isPremiumPlacement ? 1.1 : 0,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.16),
+              blurRadius: 18,
+              offset: const Offset(0, 10),
+            ),
+          ],
+        ),
+        child: Stack(
+          children: [
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              child: Container(
+                height: _isPremiumPlacement ? 2 : 4,
+                decoration: BoxDecoration(
+                  color: accentTop,
+                  borderRadius:
+                      const BorderRadius.vertical(top: Radius.circular(18)),
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 18, 16, 14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        _isElitePlacement
+                            ? Icons.workspace_premium
+                            : Icons.flight_takeoff,
+                        color: Colors.white,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w800,
+                            color: AppTheme.surface,
+                          ),
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 7,
+                          vertical: 3,
+                        ),
+                        decoration: BoxDecoration(
+                          color: badgeBg,
+                          borderRadius: BorderRadius.circular(999),
+                          border: Border.all(color: badgeBorder),
+                        ),
+                        child: const Text(
+                          'Annonse',
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w800,
+                            color: AppTheme.surface,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    body,
+                    maxLines: _isPremiumPlacement ? 3 : 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: _isPremiumPlacement ? 14 : 13,
+                      height: 1.28,
+                      color: Colors.white.withValues(alpha: 0.98),
+                      fontWeight:
+                          _isPremiumPlacement ? FontWeight.w600 : FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: FilledButton.icon(
+                      style: FilledButton.styleFrom(
+                        backgroundColor: accentTop,
+                        foregroundColor: Colors.black,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 10,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      onPressed: slot.link.trim().isEmpty
+                          ? null
+                          : () async {
+                              await AdService.instance.recordClick(
+                                placement: widget.placement,
+                                adId: slot.id,
+                              );
+                              await _openUrl(slot.link);
+                            },
+                      icon: const Icon(Icons.open_in_new, size: 18),
+                      label: Text(
+                        cta,
+                        style: const TextStyle(fontWeight: FontWeight.w800),
+                      ),
+                    ),
+                  ),
+                  if (_disclaimerText.isNotEmpty) ...[
+                    const SizedBox(height: 10),
+                    Text(
+                      _disclaimerText,
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.white.withValues(alpha: 0.72),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+DART
+
+echo "Skrev ny $FILE"
+echo
+echo "Kjør nå:"
+echo "  flutter analyze"
+echo "  flutter test"

@@ -1,0 +1,131 @@
+import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+import '../paywall/paywall_real_purchase_flow.dart';
+import '../widgets/premium_paywall_sheet.dart';
+
+class PaywallTriggerService {
+  static const String _adClickCountKey = 'paywall_ad_click_count';
+  static const String _appOpenCountKey = 'paywall_app_open_count';
+  static const String _scrollDepthSeenKey = 'paywall_scroll_depth_seen';
+  static const int _clicksBeforePrompt = 2;
+  static const int _appOpensBeforePrompt = 3;
+
+  static Future<bool> _canShowPaywall() async {
+    return true;
+  }
+
+  static Future<void> showPaywall(
+    BuildContext context, {
+    String source = 'manual',
+    bool elite = false,
+    String? title,
+    String? subtitle,
+  }) async {
+    final allowed = await _canShowPaywall();
+    if (!allowed || !context.mounted) return;
+
+    await showModalBottomSheet<void>(
+      context: context,
+      useRootNavigator: true,
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) {
+        return FractionallySizedBox(
+          heightFactor: 0.92,
+          child: ClipRRect(
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+            child: Material(
+              color: Colors.transparent,
+              child: PremiumPaywallSheet(
+                source: source,
+                elite: elite,
+                title: title,
+                subtitle: subtitle,
+                onClose: () => Navigator.of(sheetContext).pop(),
+                onPrimary: (planId) async {
+                  Navigator.of(sheetContext).pop();
+                  await Future<void>.delayed(const Duration(milliseconds: 80));
+                  if (!context.mounted) return;
+                  await PaywallRealPurchaseFlow.startPurchaseFlow(
+                    context,
+                    planId: planId,
+                  );
+                },
+                onRestore: () async {
+                  Navigator.of(sheetContext).pop();
+                  await Future<void>.delayed(const Duration(milliseconds: 80));
+                  if (!context.mounted) return;
+                  await PaywallRealPurchaseFlow.restorePurchases(context);
+                },
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  static Future<void> registerAdClick(BuildContext context) async {
+    final prefs = await SharedPreferences.getInstance();
+    final count = prefs.getInt(_adClickCountKey) ?? 0;
+    final newCount = count + 1;
+    await prefs.setInt(_adClickCountKey, newCount);
+
+    if (newCount >= _clicksBeforePrompt) {
+      await prefs.setInt(_adClickCountKey, 0);
+      final allowed = await _canShowPaywall();
+      if (allowed && context.mounted) {
+        await showPaywall(
+          context,
+          source: 'locked_ad',
+          elite: true,
+          title: 'Lås opp Elite-fordeler',
+          subtitle:
+              'Elite gir tilgang til flere programmer, mer prioriterte valg og enda flere bonusmuligheter.',
+        );
+      }
+    }
+  }
+
+
+  static Future<void> registerAppOpen(BuildContext context) async {
+    final prefs = await SharedPreferences.getInstance();
+    final count = prefs.getInt(_appOpenCountKey) ?? 0;
+    final newCount = count + 1;
+    await prefs.setInt(_appOpenCountKey, newCount);
+
+    if (newCount >= _appOpensBeforePrompt) {
+      await prefs.setInt(_appOpenCountKey, 0);
+      final allowed = await _canShowPaywall();
+      if (allowed && context.mounted) {
+        await showPaywall(
+          context,
+          source: 'app_open',
+          elite: false,
+          title: 'Få maks bonuspoeng – automatisk',
+          subtitle:
+              'Lås opp smartere valg, høyere bonusrate og flere fordeler i Premium.',
+        );
+      }
+    }
+  }
+
+  static Future<bool> hasSeenScrollDepth() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_scrollDepthSeenKey) ?? false;
+  }
+
+  static Future<void> markScrollDepthSeen() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_scrollDepthSeenKey, true);
+  }
+
+  static Future<void> reset() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_adClickCountKey);
+    await prefs.remove(_appOpenCountKey);
+    await prefs.remove(_scrollDepthSeenKey);
+  }
+}

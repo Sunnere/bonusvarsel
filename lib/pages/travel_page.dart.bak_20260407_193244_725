@@ -1,0 +1,1261 @@
+import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+import '../models/card_catalog.dart';
+import '../services/user_state.dart';
+import '../widgets/travel_value_card.dart';
+import '../services/offers_feed_repository.dart';
+
+class TravelPage extends StatefulWidget {
+  const TravelPage({super.key});
+
+  @override
+  State<TravelPage> createState() => _TravelPageState();
+}
+
+class _TravelPageState extends State<TravelPage> {
+  static const String _sasPointsPrefsKey = 'travel_manual_sas_points';
+
+  final TextEditingController _amountCtrl = TextEditingController(text: '5000');
+  final TextEditingController _sasPointsCtrl = TextEditingController(text: '0');
+  final TextEditingController _destinationCtrl =
+      TextEditingController(text: 'Thailand');
+
+  final List<String> _programs = const [
+    'SAS EuroBonus',
+    'CashPoints',
+    'Flying Blue',
+  ];
+
+  final List<int> _countOptions = const [0, 1, 2, 3, 4, 5, 6];
+  final List<int> _dayOptions = const [3, 5, 7, 10, 14, 21, 30];
+  final List<String> _tripTypes = const [
+    'Strandferie',
+    'Byferie',
+    'Familieferie',
+    'Vintertur',
+    'Aktiv ferie',
+  ];
+
+  String _selectedProgram = 'SAS EuroBonus';
+  String _selectedTripType = 'Familieferie';
+
+  int _adults = 2;
+  int _children = 2;
+  int _days = 14;
+
+  String? _selectedCardId;
+  int _cardRatePer100 = 0;
+  bool _isSavingSasPoints = false;
+  int _savedSasPoints = 0;
+
+  Future<List<_TravelOfferSuggestion>>? _tripFeedSuggestionsFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSelectedCard();
+    _loadSavedSasPoints();
+    _tripFeedSuggestionsFuture = _loadTripFeedSuggestions();
+  }
+
+  @override
+  void dispose() {
+    _amountCtrl.dispose();
+    _sasPointsCtrl.dispose();
+    _destinationCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadSelectedCard() async {
+    final id = await UserState.getSelectedCardId();
+    final savedRate = await UserState.getSelectedCardRatePer100();
+
+    if (!mounted) return;
+
+    final catalogRate = CardCatalog.rateFor(id);
+    final rateInt =
+        (catalogRate != 0) ? catalogRate : ((savedRate ?? 0).round());
+
+    setState(() {
+      _selectedCardId = id;
+      _cardRatePer100 = rateInt;
+    });
+  }
+
+  Future<void> _loadSavedSasPoints() async {
+    final prefs = await SharedPreferences.getInstance();
+    final points = prefs.getInt(_sasPointsPrefsKey) ?? 0;
+
+    if (!mounted) return;
+
+    setState(() {
+      _savedSasPoints = points;
+      _sasPointsCtrl.text = points.toString();
+    });
+  }
+
+  Future<void> _saveSasPoints() async {
+    final parsed = _parseSasPoints();
+
+    setState(() => _isSavingSasPoints = true);
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_sasPointsPrefsKey, parsed);
+
+    if (!mounted) return;
+
+    setState(() {
+      _savedSasPoints = parsed;
+      _isSavingSasPoints = false;
+      _sasPointsCtrl.text = parsed.toString();
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('SAS EuroBonus-poeng lagret')),
+    );
+  }
+
+  void _refreshTripFeedSuggestions() {
+    setState(() {
+      _tripFeedSuggestionsFuture = _loadTripFeedSuggestions();
+    });
+  }
+
+  Future<List<_TravelOfferSuggestion>> _loadTripFeedSuggestions() async {
+    try {
+      final dynamic response = await _fetchOffersFeedResponse();
+      if (response == null) {
+        return _fallbackOfferSuggestions();
+      }
+
+      final result = await response;
+      final items = _extractTripFeedItems(result);
+      final keywords = _buildTripFeedKeywords();
+
+      final ranked = <_TravelOfferSuggestion>[];
+      for (final item in items) {
+        final map = _feedItemAsMap(item);
+        if (map == null || map.isEmpty) continue;
+
+        final score = _scoreTripFeedItem(map, keywords);
+        if (score <= 0) continue;
+
+        final suggestion = _mapTripFeedItemToSuggestion(map, score);
+        if (suggestion != null) {
+          ranked.add(suggestion);
+        }
+      }
+
+      ranked.sort((a, b) => b.score.compareTo(a.score));
+
+      final deduped = <_TravelOfferSuggestion>[];
+      final seen = <String>{};
+      for (final item in ranked) {
+        final key = (item.title + '|' + item.subtitle).toLowerCase().trim();
+        if (seen.add(key)) {
+          deduped.add(item);
+        }
+        if (deduped.length >= 6) break;
+      }
+
+      if (deduped.isEmpty) {
+        return _fallbackOfferSuggestions();
+      }
+
+      return deduped;
+    } catch (_) {
+      return _fallbackOfferSuggestions();
+    }
+  }
+
+  List<_TravelOfferSuggestion> _fallbackOfferSuggestions() {
+    final stores = _buildStoreSuggestions(_buildPackingNeeds());
+    return stores
+        .map(
+          (store) => _TravelOfferSuggestion(
+            title: store.title,
+            subtitle: 'Fallback fra familietur-planlegger',
+            score: 1,
+            description: store.why,
+          ),
+        )
+        .take(4)
+        .toList();
+  }
+
+  List<dynamic> _extractTripFeedItems(dynamic response) {
+    if (response == null) return const <dynamic>[];
+
+    try {
+      final items = response.items;
+      if (items is List) return items;
+    } catch (_) {}
+
+    try {
+      final offers = response.offers;
+      if (offers is List) return offers;
+    } catch (_) {}
+
+    try {
+      final json = response.toJson();
+      if (json is Map<String, dynamic>) {
+        final items = json['items'];
+        if (items is List) return items;
+
+        final offers = json['offers'];
+        if (offers is List) return offers;
+      }
+    } catch (_) {}
+
+    return const <dynamic>[];
+  }
+
+  Map<String, dynamic>? _feedItemAsMap(dynamic item) {
+    if (item is Map<String, dynamic>) return item;
+    try {
+      final json = item.toJson();
+      if (json is Map<String, dynamic>) return json;
+    } catch (_) {}
+    return null;
+  }
+
+  Set<String> _buildTripFeedKeywords() {
+    final needs = _buildPackingNeeds();
+
+    final keywords = <String>{
+      _destinationCtrl.text.trim().toLowerCase(),
+      _selectedTripType.toLowerCase(),
+      _selectedProgram.toLowerCase(),
+      'reise',
+      'travel',
+      'familie',
+      'family',
+      'shopping',
+      'butikk',
+      'bagasje',
+      'koffert',
+      'sport',
+      'apotek',
+      'barn',
+    };
+
+    for (final need in needs) {
+      keywords.add(need.label.toLowerCase());
+      keywords.add(need.category.toLowerCase());
+
+      for (final part in need.storeHint.toLowerCase().split(',')) {
+        final value = part.trim();
+        if (value.isNotEmpty) {
+          keywords.add(value);
+        }
+      }
+    }
+
+    final expanded = <String>{};
+    for (final keyword in keywords) {
+      final trimmed = keyword.trim();
+      if (trimmed.isEmpty) continue;
+      expanded.add(trimmed);
+
+      for (final token in trimmed.split(RegExp(r'\s+'))) {
+        final t = token.trim();
+        if (t.length >= 3) {
+          expanded.add(t);
+        }
+      }
+    }
+
+    return expanded;
+  }
+
+  int _scoreTripFeedItem(Map<String, dynamic> map, Set<String> keywords) {
+    final haystack = [
+      map['title'],
+      map['name'],
+      map['headline'],
+      map['subtitle'],
+      map['description'],
+      map['body'],
+      map['details'],
+      map['merchantName'],
+      map['merchant'],
+      map['brand'],
+      map['category'],
+      map['vertical'],
+      map['placement'],
+      map['type'],
+      map['pointsText'],
+      map['rewardText'],
+      map['bonusText'],
+      map['tags'],
+      map['channel'],
+      map['surface'],
+      map['program'],
+    ].where((e) => e != null).join(' ').toLowerCase();
+
+    if (haystack.trim().isEmpty) return 0;
+
+    int score = 0;
+
+    for (final keyword in keywords) {
+      if (haystack.contains(keyword)) {
+        score += keyword.length > 6 ? 3 : 2;
+      }
+    }
+
+    if (haystack.contains('shopping')) score += 1;
+    if (haystack.contains('travel') || haystack.contains('reise')) score += 2;
+    if (haystack.contains('bagasje') || haystack.contains('koffert')) score += 3;
+    if (haystack.contains('sport')) score += 2;
+    if (haystack.contains('apotek') || haystack.contains('helse')) score += 2;
+    if (haystack.contains('barn') || haystack.contains('family')) score += 2;
+
+    return score;
+  }
+
+  _TravelOfferSuggestion? _mapTripFeedItemToSuggestion(
+    Map<String, dynamic> map,
+    int score,
+  ) {
+    final title =
+        (map['title'] ??
+                map['name'] ??
+                map['headline'] ??
+                map['merchantName'] ??
+                map['merchant'] ??
+                map['brand'])
+            ?.toString()
+            .trim();
+
+    if (title == null || title.isEmpty) return null;
+
+    final merchant =
+        (map['merchantName'] ?? map['merchant'] ?? map['brand'])
+            ?.toString()
+            .trim();
+
+    final bonus =
+        (map['pointsText'] ?? map['rewardText'] ?? map['bonusText'])
+            ?.toString()
+            .trim();
+
+    final category =
+        (map['category'] ?? map['vertical'] ?? map['type'])
+            ?.toString()
+            .trim();
+
+    final description =
+        (map['subtitle'] ?? map['description'] ?? map['body'] ?? map['details'])
+            ?.toString()
+            .trim();
+
+    final subtitleParts = <String>[];
+    if (merchant != null && merchant.isNotEmpty) subtitleParts.add(merchant);
+    if (bonus != null && bonus.isNotEmpty) subtitleParts.add(bonus);
+    if (category != null && category.isNotEmpty) subtitleParts.add(category);
+
+    final subtitle = subtitleParts.isNotEmpty
+        ? subtitleParts.join(' • ')
+        : (description ?? 'Relevans fra offers feed');
+
+    return _TravelOfferSuggestion(
+      title: title,
+      subtitle: subtitle,
+      score: score,
+      description: description,
+    );
+  }
+
+  int _parseSasPoints() {
+    final raw = _sasPointsCtrl.text.replaceAll(RegExp(r'[^0-9]'), '');
+    return int.tryParse(raw) ?? 0;
+  }
+
+  double _amount() {
+    final raw =
+        _amountCtrl.text.trim().replaceAll(' ', '').replaceAll(',', '.');
+    return double.tryParse(raw) ?? 0.0;
+  }
+
+  int _estimatePoints(double amountNok) {
+    if (amountNok <= 0) return 0;
+    if (_cardRatePer100 <= 0) return 0;
+
+    final card = (amountNok / 100.0) * _cardRatePer100;
+    return card.round();
+  }
+
+  String _formatInt(int value) {
+    final s = value.toString();
+    final chars = <String>[];
+    int count = 0;
+
+    for (int i = s.length - 1; i >= 0; i--) {
+      chars.add(s[i]);
+      count++;
+      if (count == 3 && i != 0) {
+        chars.add(' ');
+        count = 0;
+      }
+    }
+
+    return chars.reversed.join();
+  }
+
+  int get _familySize => _adults + _children;
+
+  List<_PackingNeed> _buildPackingNeeds() {
+    final destination = _destinationCtrl.text.trim().toLowerCase();
+
+    final isWarm =
+        destination.contains('thailand') ||
+        destination.contains('spania') ||
+        destination.contains('mallorca') ||
+        destination.contains('gran canaria') ||
+        destination.contains('kreta') ||
+        destination.contains('hellas') ||
+        destination.contains('varm') ||
+        _selectedTripType == 'Strandferie';
+
+    final isCold =
+        destination.contains('ski') ||
+        destination.contains('vinter') ||
+        destination.contains('geilo') ||
+        destination.contains('hafjell') ||
+        destination.contains('trysil') ||
+        _selectedTripType == 'Vintertur';
+
+    final needs = <_PackingNeed>[
+      _PackingNeed(
+        label: 'Kofferter / bagasje',
+        quantity: _familySize,
+        priority: 'Høy',
+        category: 'Bagasje',
+        storeHint: 'Bagasje, reiseutstyr',
+      ),
+      _PackingNeed(
+        label: 'Passmapper / reiselommer',
+        quantity: _familySize,
+        priority: 'Middels',
+        category: 'Reisetilbehør',
+        storeHint: 'Reisetilbehør, organisering',
+      ),
+      _PackingNeed(
+        label: 'Powerbank / ladere',
+        quantity: (_adults >= 2) ? 2 : 1,
+        priority: 'Middels',
+        category: 'Elektronikk',
+        storeHint: 'Elektronikk',
+      ),
+    ];
+
+    if (_children > 0) {
+      needs.add(
+        _PackingNeed(
+          label: 'Barnevennlige snacks / reiseaktiviteter',
+          quantity: _children,
+          priority: 'Middels',
+          category: 'Barn',
+          storeHint: 'Barn, reise, underholdning',
+        ),
+      );
+    }
+
+    if (isWarm) {
+      needs.addAll([
+        _PackingNeed(
+          label: 'Solkrem',
+          quantity: _familySize,
+          priority: 'Høy',
+          category: 'Helse / apotek',
+          storeHint: 'Apotek, helse, hudpleie',
+        ),
+        _PackingNeed(
+          label: 'Badetøy',
+          quantity: _familySize,
+          priority: 'Høy',
+          category: 'Klær',
+          storeHint: 'Sport, klær, strand',
+        ),
+        _PackingNeed(
+          label: 'Strandhåndklær',
+          quantity: _familySize,
+          priority: 'Middels',
+          category: 'Strand / fritid',
+          storeHint: 'Sport, hjem, fritid',
+        ),
+        _PackingNeed(
+          label: 'Snorkelutstyr',
+          quantity: _children > 0 ? _children : 2,
+          priority: 'Lav',
+          category: 'Sport / fritid',
+          storeHint: 'Sport, fritid, strand',
+        ),
+      ]);
+    }
+
+    if (isCold) {
+      needs.addAll([
+        _PackingNeed(
+          label: 'Ullundertøy',
+          quantity: _familySize,
+          priority: 'Høy',
+          category: 'Klær',
+          storeHint: 'Sport, klær',
+        ),
+        _PackingNeed(
+          label: 'Hansker / luer',
+          quantity: _familySize,
+          priority: 'Høy',
+          category: 'Klær',
+          storeHint: 'Sport, klær',
+        ),
+        _PackingNeed(
+          label: 'Håndvarmere / vintertilbehør',
+          quantity: _familySize,
+          priority: 'Middels',
+          category: 'Vinterutstyr',
+          storeHint: 'Sport, vinter, fritid',
+        ),
+      ]);
+    }
+
+    if (_days >= 10) {
+      needs.add(
+        _PackingNeed(
+          label: 'Toalettsaker / refill',
+          quantity: 1,
+          priority: 'Middels',
+          category: 'Helse / apotek',
+          storeHint: 'Apotek, dagligvarer',
+        ),
+      );
+    }
+
+    if (_selectedTripType == 'Byferie') {
+      needs.add(
+        _PackingNeed(
+          label: 'Komfortable gåsko',
+          quantity: _familySize,
+          priority: 'Middels',
+          category: 'Sko / klær',
+          storeHint: 'Klær, sport, sko',
+        ),
+      );
+    }
+
+    if (_selectedTripType == 'Aktiv ferie') {
+      needs.add(
+        _PackingNeed(
+          label: 'Sportsklær / treningsutstyr',
+          quantity: _familySize,
+          priority: 'Middels',
+          category: 'Sport',
+          storeHint: 'Sport, fritid',
+        ),
+      );
+    }
+
+    return needs;
+  }
+
+  List<_StoreSuggestion> _buildStoreSuggestions(List<_PackingNeed> needs) {
+    final categories = <String>{};
+    final hints = <String>{};
+
+    for (final need in needs) {
+      categories.add(need.category);
+      hints.add(need.storeHint);
+    }
+
+    final results = <_StoreSuggestion>[];
+
+    if (categories.contains('Bagasje')) {
+      results.add(
+        const _StoreSuggestion(
+          title: 'Bagasje og kofferter',
+          why: 'Høy relevans for familie, flere kolli og organisering.',
+        ),
+      );
+    }
+
+    if (categories.contains('Helse / apotek')) {
+      results.add(
+        const _StoreSuggestion(
+          title: 'Apotek og helsebutikk',
+          why: 'Bra for solkrem, reiseapotek og hygiene før tur.',
+        ),
+      );
+    }
+
+    if (categories.contains('Sport / fritid') ||
+        categories.contains('Sport') ||
+        categories.contains('Vinterutstyr')) {
+      results.add(
+        const _StoreSuggestion(
+          title: 'Sportsbutikk / friluft',
+          why: 'God match for strandutstyr, vinterutstyr og aktiv ferie.',
+        ),
+      );
+    }
+
+    if (categories.contains('Klær') || categories.contains('Sko / klær')) {
+      results.add(
+        const _StoreSuggestion(
+          title: 'Klesbutikk / skobutikk',
+          why: 'Relevant for badetøy, gåsko, ull og familieklær.',
+        ),
+      );
+    }
+
+    if (categories.contains('Elektronikk')) {
+      results.add(
+        const _StoreSuggestion(
+          title: 'Elektronikkbutikk',
+          why: 'Bra for powerbank, ladere og reiseteknologi.',
+        ),
+      );
+    }
+
+    if (_children > 0) {
+      results.add(
+        const _StoreSuggestion(
+          title: 'Barn og familiebutikk',
+          why: 'Smart for småbarnsutstyr, aktiviteter og familietilbehør.',
+        ),
+      );
+    }
+
+    if (results.isEmpty) {
+      results.add(
+        _StoreSuggestion(
+          title: 'Relevante butikker i appen',
+          why: 'Se etter kategorier som matcher: ${hints.join(', ')}.',
+        ),
+      );
+    }
+
+    return results.take(5).toList();
+  }
+
+  int _suggestedTargetPoints() {
+    final base = _children > 0 ? 160000 : 100000;
+    final extraDays = (_days > 7) ? ((_days - 7) * 2500) : 0;
+    return base + extraDays;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final amount = _amount();
+    final estPoints = _estimatePoints(amount);
+    final currentSasPoints = _parseSasPoints();
+    final projectedSasPoints = currentSasPoints + estPoints;
+    final targetPoints = _suggestedTargetPoints();
+    final pointsGap = (targetPoints - projectedSasPoints).clamp(0, 999999999);
+
+    final packingNeeds = _buildPackingNeeds();
+    final storeSuggestions = _buildStoreSuggestions(packingNeeds);
+
+    final cardName = CardCatalog.nameFor(_selectedCardId);
+    final cardLabel = (_selectedCardId == null)
+        ? 'Gå til "Kort" og velg et kort'
+        : 'Valgt kort: $cardName • $_cardRatePer100 poeng per 100 kr';
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Reise'),
+        actions: [
+          IconButton(
+            tooltip: 'Oppdater valgt kort',
+            onPressed: _loadSelectedCard,
+            icon: const Icon(Icons.refresh),
+          ),
+        ],
+      ),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Familietur-planlegger',
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.w900,
+                    ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                'Planlegg familiebehov, estimer poeng og finn hvilke butikktyper som passer best i appen.',
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
+              const SizedBox(height: 16),
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(14),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Reiseprofil',
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w800,
+                            ),
+                      ),
+                      const SizedBox(height: 12),
+                      DropdownButtonFormField<String>(
+                        initialValue: _selectedProgram,
+                        decoration: const InputDecoration(
+                          labelText: 'Bonusprogram',
+                          border: OutlineInputBorder(),
+                        ),
+                        items: _programs
+                            .map(
+                              (p) => DropdownMenuItem<String>(
+                                value: p,
+                                child: Text(p),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: (v) {
+                          if (v == null) return;
+                          setState(() => _selectedProgram = v);
+                          _refreshTripFeedSuggestions();
+                        },
+                      ),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: _destinationCtrl,
+                        decoration: const InputDecoration(
+                          labelText: 'Reisemål',
+                          hintText: 'f.eks Thailand, Spania, Trysil',
+                          border: OutlineInputBorder(),
+                        ),
+                        onChanged: (_) {
+                          setState(() {});
+                          _refreshTripFeedSuggestions();
+                        },
+                      ),
+                      const SizedBox(height: 12),
+                      DropdownButtonFormField<String>(
+                        initialValue: _selectedTripType,
+                        decoration: const InputDecoration(
+                          labelText: 'Type tur',
+                          border: OutlineInputBorder(),
+                        ),
+                        items: _tripTypes
+                            .map(
+                              (t) => DropdownMenuItem<String>(
+                                value: t,
+                                child: Text(t),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: (v) {
+                          if (v == null) return;
+                          setState(() => _selectedTripType = v);
+                          _refreshTripFeedSuggestions();
+                        },
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: DropdownButtonFormField<int>(
+                              initialValue: _adults,
+                              decoration: const InputDecoration(
+                                labelText: 'Voksne',
+                                border: OutlineInputBorder(),
+                              ),
+                              items: _countOptions
+                                  .where((v) => v >= 1)
+                                  .map(
+                                    (v) => DropdownMenuItem<int>(
+                                      value: v,
+                                      child: Text('$v'),
+                                    ),
+                                  )
+                                  .toList(),
+                              onChanged: (v) {
+                                if (v == null) return;
+                                setState(() => _adults = v);
+                                _refreshTripFeedSuggestions();
+                              },
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: DropdownButtonFormField<int>(
+                              initialValue: _children,
+                              decoration: const InputDecoration(
+                                labelText: 'Barn',
+                                border: OutlineInputBorder(),
+                              ),
+                              items: _countOptions
+                                  .map(
+                                    (v) => DropdownMenuItem<int>(
+                                      value: v,
+                                      child: Text('$v'),
+                                    ),
+                                  )
+                                  .toList(),
+                              onChanged: (v) {
+                                if (v == null) return;
+                                setState(() => _children = v);
+                                _refreshTripFeedSuggestions();
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      DropdownButtonFormField<int>(
+                        initialValue: _days,
+                        decoration: const InputDecoration(
+                          labelText: 'Antall dager',
+                          border: OutlineInputBorder(),
+                        ),
+                        items: _dayOptions
+                            .map(
+                              (d) => DropdownMenuItem<int>(
+                                value: d,
+                                child: Text('$d dager'),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: (v) {
+                          if (v == null) return;
+                          setState(() => _days = v);
+                          _refreshTripFeedSuggestions();
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 14),
+              Card(
+                color: Theme.of(context).colorScheme.primaryContainer,
+                child: Padding(
+                  padding: const EdgeInsets.all(14),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(Icons.travel_explore),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Butikkforslag fra offers feed',
+                              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                    fontWeight: FontWeight.w900,
+                                  ),
+                            ),
+                          ),
+                          IconButton(
+                            tooltip: 'Oppdater butikkforslag',
+                            onPressed: _refreshTripFeedSuggestions,
+                            icon: const Icon(Icons.refresh),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Denne blokken skal være synlig høyt oppe på siden.',
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                      const SizedBox(height: 10),
+                      FutureBuilder<List<_TravelOfferSuggestion>>(
+                        future: _tripFeedSuggestionsFuture,
+                        builder: (context, snap) {
+                          if (snap.connectionState != ConnectionState.done) {
+                            return const Padding(
+                              padding: EdgeInsets.symmetric(vertical: 12),
+                              child: Center(child: CircularProgressIndicator()),
+                            );
+                          }
+
+                          final items =
+                              snap.data ?? const <_TravelOfferSuggestion>[];
+
+                          if (items.isEmpty) {
+                            return Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Ingen direkte treff akkurat nå. Fallback vises.',
+                                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                ),
+                                const SizedBox(height: 8),
+                                Wrap(
+                                  spacing: 8,
+                                  runSpacing: 8,
+                                  children: storeSuggestions
+                                      .map((store) => Chip(label: Text(store.title)))
+                                      .toList(),
+                                ),
+                              ],
+                            );
+                          }
+
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Fant ${items.length} relevante forslag',
+                                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                              ),
+                              const SizedBox(height: 8),
+                              for (final item in items.take(4)) ...[
+                                Container(
+                                  width: double.infinity,
+                                  margin: const EdgeInsets.only(bottom: 8),
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: Theme.of(context).colorScheme.surface,
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        item.title,
+                                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                                              fontWeight: FontWeight.w800,
+                                            ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(item.subtitle),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        'Relevansscore: ${item.score}',
+                                        style: Theme.of(context).textTheme.bodySmall,
+                                      ),
+                                      if ((item.description ?? '').isNotEmpty) ...[
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          item.description!,
+                                          style: Theme.of(context).textTheme.bodySmall,
+                                        ),
+                                      ],
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ],
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 14),
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(14),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'SAS EuroBonus-saldo',
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w800,
+                            ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        'Legg inn poengene du allerede har. Senere kan dette byttes til automatisk sync hvis Bonusvarsel får avtale med SAS.',
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: _sasPointsCtrl,
+                        keyboardType: TextInputType.number,
+                        decoration: const InputDecoration(
+                          labelText: 'Nåværende SAS EuroBonus-poeng',
+                          hintText: 'f.eks 125000',
+                          border: OutlineInputBorder(),
+                        ),
+                        onChanged: (_) => setState(() {}),
+                      ),
+                      const SizedBox(height: 12),
+                      Wrap(
+                        runSpacing: 8,
+                        spacing: 8,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: [
+                          FilledButton.icon(
+                            onPressed: _isSavingSasPoints ? null : _saveSasPoints,
+                            icon: _isSavingSasPoints
+                                ? const SizedBox(
+                                    width: 16,
+                                    height: 16,
+                                    child: CircularProgressIndicator(strokeWidth: 2),
+                                  )
+                                : const Icon(Icons.save),
+                            label: Text(
+                              _isSavingSasPoints ? 'Lagrer...' : 'Lagre poengsaldo',
+                            ),
+                          ),
+                          Text(
+                            'Lagret: ${_formatInt(_savedSasPoints)} poeng',
+                            style: Theme.of(context).textTheme.bodyMedium,
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 14),
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(14),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Planlagt kjøp før reisen',
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w800,
+                            ),
+                      ),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: _amountCtrl,
+                        keyboardType:
+                            const TextInputType.numberWithOptions(decimal: true),
+                        decoration: const InputDecoration(
+                          labelText: 'Reisebeløp / handlebudsjett (NOK)',
+                          hintText: 'f.eks 5000',
+                          border: OutlineInputBorder(),
+                        ),
+                        onChanged: (_) => setState(() {}),
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        cardLabel,
+                        style: Theme.of(context).textTheme.bodyMedium,
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        'Foreløpig estimat',
+                        style: Theme.of(context).textTheme.labelMedium,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        '$estPoints poeng',
+                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 14),
+              Card(
+                color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                child: Padding(
+                  padding: const EdgeInsets.all(14),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Poengplan for familien',
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w800,
+                            ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text('Nåværende saldo: ${_formatInt(currentSasPoints)} poeng'),
+                      const SizedBox(height: 4),
+                      Text('Estimert opptjening: +${_formatInt(estPoints)} poeng'),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Mulig saldo etter kjøpet: ${_formatInt(projectedSasPoints)} poeng',
+                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                              fontWeight: FontWeight.w700,
+                            ),
+                      ),
+                      const SizedBox(height: 10),
+                      Text(
+                        'Forsiktig familie-estimat for mål: ${_formatInt(targetPoints)} poeng',
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        pointsGap > 0
+                            ? 'Manglende poeng til målet: ${_formatInt(pointsGap)}'
+                            : 'Du er på eller over målpoeng for denne enkle planen.',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              fontWeight: FontWeight.w700,
+                            ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 14),
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(14),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Anbefalt pakkeliste',
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w800,
+                            ),
+                      ),
+                      const SizedBox(height: 10),
+                      for (final need in packingNeeds) ...[
+                        _NeedTile(need: need),
+                        const SizedBox(height: 8),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 14),
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(14),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Butikktyper som passer best',
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w800,
+                            ),
+                      ),
+                      const SizedBox(height: 10),
+                      for (final store in storeSuggestions) ...[
+                        ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          leading: const Icon(Icons.storefront_outlined),
+                          title: Text(store.title),
+                          subtitle: Text(store.why),
+                        ),
+                        const Divider(height: 1),
+                      ],
+                      const SizedBox(height: 10),
+                      Text(
+                        'Live-blokken over viser feed/fallback direkte.',
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 10),
+              TravelValueCard(
+                amountNok: amount,
+                selectedProgram: _selectedProgram,
+              ),
+              if (_selectedCardId == null) ...[
+                const SizedBox(height: 10),
+                Text(
+                  'Velg et kort i "Kort"-siden for mer presis beregning.',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _PackingNeed {
+  final String label;
+  final int quantity;
+  final String priority;
+  final String category;
+  final String storeHint;
+
+  const _PackingNeed({
+    required this.label,
+    required this.quantity,
+    required this.priority,
+    required this.category,
+    required this.storeHint,
+  });
+}
+
+class _StoreSuggestion {
+  final String title;
+  final String why;
+
+  const _StoreSuggestion({
+    required this.title,
+    required this.why,
+  });
+}
+
+class _TravelOfferSuggestion {
+  final String title;
+  final String subtitle;
+  final int score;
+  final String? description;
+
+  const _TravelOfferSuggestion({
+    required this.title,
+    required this.subtitle,
+    required this.score,
+    this.description,
+  });
+}
+
+class _NeedTile extends StatelessWidget {
+  final _PackingNeed need;
+
+  const _NeedTile({required this.need});
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final isHigh = need.priority == 'Høy';
+    final isMedium = need.priority == 'Middels';
+
+    final bg = isHigh
+        ? colorScheme.errorContainer
+        : isMedium
+            ? colorScheme.secondaryContainer
+            : colorScheme.surfaceContainerHighest;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            need.label,
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w800,
+                ),
+          ),
+          const SizedBox(height: 4),
+          Text('Antall: ${need.quantity}'),
+          Text('Prioritet: ${need.priority}'),
+          Text('Kategori: ${need.category}'),
+          Text('Se etter butikker i appen for: ${need.storeHint}'),
+        ],
+      ),
+    );
+  }
+}

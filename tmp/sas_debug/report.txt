@@ -1,0 +1,62 @@
+=== SAS SCRAPER DEBUG REPORT ===
+HTML size: 381373 bytes
+
+=== KEYWORD HITS ===
+poeng: 5
+bonus: 0
+kampanj: 7
+campaign: 25
+offers: 0
+__NUXT__: 2
+_nuxt: 150
+graphql: 0
+api: 4
+store: 5
+merchant: 0
+
+=== TITLE TAG ===
+SAS Online Shopping - Shop &amp; tjen poeng
+
+=== TOP 40 TEXT SNIPPETS THAT LOOK INTERESTING ===
+- SAS Online Shopping - Shop &amp; tjen poeng shop og tjen poeng logg inn Velg en butikk kategorier Søk Kundeservice Søk Nye butikker Aktuelle kampanjer Se alle butikker Fremsida Slik
+- Norway Sweden Finland Velg språk Aktuelle kampanjer Slik fungerer det Manglende poeng? Vanlige spørsmål Vilkår og betingelser Tjen nivåpoeng © Copyright 2026 | Powered by LK Systems ApS
+
+=== TOP 60 LINKS WITH INTERESTING TEXT OR URL ===
+- href=/da-DK/kampagner/1 | text=Denmark
+- href=/nb-NO/kampanjer/1 | text=Norway
+- href=/kampanjer/1 | text=Sweden
+- href=/fi/campaigns/1 | text=Finland
+- href=/en-DK/campaigns/1 | text=
+- href=/en-NO/campaigns/1 | text=
+- href=/en-SE/campaigns/1 | text=
+- href=/da-DK/kampagner/1 | text=
+- href=/nb-NO/kampanjer/1 | text=
+- href=/kampanjer/1 | text=
+- href=/fi/campaigns/1 | text=
+
+=== NUXT / JSON-LIKE HINTS ===
+- __NUXT__
+- _nuxt
+- _NUXT
+
+=== FIRST 20 _nuxt ASSET REFERENCES ===
+- /_nuxt/black.emtokPGY.woff)
+- /_nuxt/regular.C91_7iZs.woff)
+- /_nuxt/bold.CJcXdQhX.woff)
+- /_nuxt/black.emtokPGY.woff)
+- /_nuxt/regular.C91_7iZs.woff)
+- /_nuxt/bold.CJcXdQhX.woff)
+- /_nuxt/star.DlizdopX.css
+- /_nuxt/D1y0Ppus.js
+- /_nuxt/CtFEwn_2.js
+- /_nuxt/BdguZ04C.js
+- /_nuxt/Evh0m69L.js
+- /_nuxt/BQG8kaBY.js
+- /_nuxt/TQD-z39x.js
+- /_nuxt/BaBuTEeA.js
+- /_nuxt/DvWlNUag.js
+- /_nuxt/CIUIZ-jy.js
+- /_nuxt/BPG0YBOd.js
+- /_nuxt/C5FzvcUu.js
+- /_nuxt/BsRobGxI.js
+- /_nuxt/CkJX0LZk.js

@@ -1,0 +1,373 @@
+import express from "express";
+import cors from "cors";
+import fetch from "node-fetch";
+import * as cheerio from "cheerio";
+
+const app = express();
+
+const port = Number(process.env.PORT || 8080);
+const enableDevRoutes = process.env.ENABLE_DEV_ROUTES === "true";
+const appVersion = process.env.APP_VERSION || "dev-local";
+
+app.use(cors());
+app.use(express.json({ limit: "256kb" }));
+
+const state = {
+  tier: "premium",
+  devices: [
+    {
+      id: "device-demo-1",
+      token: "flutter-demo-token",
+      platform: "web",
+      createdAt: new Date().toISOString(),
+    },
+  ],
+  activatedNotifications: [],
+  seededOffers: [],
+  pipeline: {
+    scanStatus: "idle",
+    queueStatus: "idle",
+    dispatchStatus: "idle",
+    scanned: 0,
+    queued: 0,
+    dispatched: 0,
+    lastSimulationId: null,
+    lastUpdated: null,
+    source: "none",
+    summary: "Ingen simulering kjørt ennå.",
+    recentCampaigns: [],
+  },
+};
+
+function nowIso() {
+  return new Date().toISOString();
+}
+
+function buildPipelineState() {
+  return {
+    ok: true,
+    scanStatus: state.pipeline.scanStatus,
+    queueStatus: state.pipeline.queueStatus,
+    dispatchStatus: state.pipeline.dispatchStatus,
+    pipeline: {
+      scanned: state.pipeline.scanned,
+      queued: state.pipeline.queued,
+      dispatched: state.pipeline.dispatched,
+    },
+    lastSimulationId: state.pipeline.lastSimulationId,
+    lastUpdated: state.pipeline.lastUpdated,
+    summary: state.pipeline.summary,
+    source: state.pipeline.source,
+    recentCampaigns: state.pipeline.recentCampaigns,
+    notifications: {
+      count: state.activatedNotifications.length,
+      items: state.activatedNotifications,
+    },
+  };
+}
+
+async function fetchCampaigns() {
+  const url = "https://onlineshopping.flysas.com/nb-NO/kampanjer/1";
+
+  const r = await fetch(url, {
+    headers: {
+      "User-Agent": "BonusVarsel/1.0 (Mac local dev)",
+    },
+  });
+
+  if (!r.ok) {
+    throw new Error(`Upstream error ${r.status}`);
+  }
+
+  const html = await r.text();
+  const $ = cheerio.load(html);
+
+  const items = [];
+
+  $("a").each((_, a) => {
+    const href = $(a).attr("href") || "";
+    const text = $(a).text().replace(/\s+/g, " ").trim();
+    if (!text || text.length < 10) return;
+
+    const absolute = href.startsWith("http")
+      ? href
+      : href.startsWith("/")
+          ? `https://onlineshopping.flysas.com${href}`
+          : `https://onlineshopping.flysas.com/${href}`;
+
+    const lower = text.toLowerCase();
+    const looksLikeCampaign =
+      lower.includes("poeng") ||
+      lower.includes("bonus") ||
+      /(\d+\s*x)/i.test(text);
+
+    if (!looksLikeCampaign) return;
+
+    const m = text.match(/(\d+)\s*x/i);
+    const multiplier = m ? Number(m[1]) : null;
+
+    items.push({
+      id: `campaign-${items.length + 1}`,
+      title: text,
+      store: null,
+      details: null,
+      multiplier,
+      url: absolute,
+    });
+  });
+
+  const seen = new Set();
+  return items.filter((x) => {
+    const k = `${x.url}::${x.title}`;
+    if (seen.has(k)) return false;
+    seen.add(k);
+    return true;
+  }).slice(0, 50);
+}
+
+function resetState() {
+  state.activatedNotifications = [];
+  state.seededOffers = [];
+  state.pipeline = {
+    scanStatus: "idle",
+    queueStatus: "idle",
+    dispatchStatus: "idle",
+    scanned: 0,
+    queued: 0,
+    dispatched: 0,
+    lastSimulationId: null,
+    lastUpdated: nowIso(),
+    source: "reset",
+    summary: "Tilstand nullstilt.",
+    recentCampaigns: [],
+  };
+}
+
+async function runSimulation(reqBody = {}) {
+  const simulationId = `sim-${Date.now()}`;
+  const campaigns = await fetchCampaigns();
+  const seeded = state.seededOffers.map((offer, i) => ({
+    id: `seeded-${i + 1}`,
+    title: `${offer.title} (${offer.store})`,
+    multiplier: offer.rate,
+    url: null,
+  }));
+
+  const combined = [...seeded, ...campaigns]
+    .sort((a, b) => (Number(b.multiplier || 0) - Number(a.multiplier || 0)))
+    .slice(0, 20);
+
+  const scanned = combined.length;
+  const queued = Math.min(scanned, 5);
+  const dispatched = Math.min(queued, 3);
+
+  state.activatedNotifications = combined.slice(0, dispatched).map((item, i) => ({
+    id: `${simulationId}-notification-${i + 1}`,
+    title: item.title,
+    rate: item.multiplier ?? reqBody.rate ?? 18,
+    level: reqBody.level ?? "premium",
+    campaign: reqBody.campaign ?? true,
+    activatedAt: nowIso(),
+  }));
+
+  state.pipeline = {
+    scanStatus: scanned > 0 ? "healthy" : "idle",
+    queueStatus: queued > 0 ? "queued" : "idle",
+    dispatchStatus: dispatched > 0 ? "dispatching" : "idle",
+    scanned,
+    queued,
+    dispatched,
+    lastSimulationId: simulationId,
+    lastUpdated: nowIso(),
+    source: seeded.length > 0 ? "seeded+live" : "sas-live",
+    summary: `scanned=${scanned} • queued=${queued} • dispatched=${dispatched}`,
+    recentCampaigns: combined.slice(0, 5).map((item) => ({
+      title: item.title,
+      multiplier: item.multiplier,
+      url: item.url,
+    })),
+  };
+
+  return {
+    ok: true,
+    id: simulationId,
+    source: state.pipeline.source,
+    pipeline: {
+      scanned,
+      queued,
+      dispatched,
+    },
+    notifications: {
+      count: state.activatedNotifications.length,
+      items: state.activatedNotifications,
+    },
+    recentCampaigns: state.pipeline.recentCampaigns,
+    summary: state.pipeline.summary,
+  };
+}
+
+app.get("/health", (_, res) => {
+  res.json({
+    ok: true,
+    api: "up",
+    version: appVersion,
+    devRoutesEnabled: enableDevRoutes,
+    pipeline: buildPipelineState(),
+  });
+});
+
+app.get("/version", (_, res) => {
+  res.json({
+    ok: true,
+    version: appVersion,
+    devRoutesEnabled: enableDevRoutes,
+  });
+});
+
+app.get("/api/campaigns", async (_, res) => {
+  try {
+    const campaigns = await fetchCampaigns();
+    res.json({
+      source: "sas-live",
+      count: campaigns.length,
+      campaigns,
+    });
+  } catch (e) {
+    res.status(500).json({ error: String(e) });
+  }
+});
+
+if (enableDevRoutes) {
+  app.get("/v1/dev/campaign-push-state", (_, res) => {
+    res.json(buildPipelineState());
+  });
+
+  app.get("/v1/notifications/activated", (req, res) => {
+    if (req.query.reset === "1") {
+      state.activatedNotifications = [];
+    }
+
+    res.json({
+      ok: true,
+      count: state.activatedNotifications.length,
+      items: state.activatedNotifications,
+    });
+  });
+
+  app.get("/v1/devices", (_, res) => {
+    res.json({
+      ok: true,
+      count: state.devices.length,
+      devices: state.devices,
+    });
+  });
+
+  app.post("/v1/devices", (req, res) => {
+    const token = req.body?.token || `token-${Date.now()}`;
+    const platform = req.body?.platform || "unknown";
+
+    const existing = state.devices.find((d) => d.token === token);
+    if (!existing) {
+      state.devices.push({
+        id: `device-${state.devices.length + 1}`,
+        token,
+        platform,
+        createdAt: nowIso(),
+      });
+    }
+
+    res.json({
+      ok: true,
+      count: state.devices.length,
+      devices: state.devices,
+    });
+  });
+
+  app.put("/v1/dev/tier", (req, res) => {
+    state.tier = req.body?.tier || "premium";
+    res.json({
+      ok: true,
+      tier: state.tier,
+    });
+  });
+
+  app.post("/v1/dev/reset-state", (_, res) => {
+    resetState();
+    res.json({
+      ok: true,
+      state: buildPipelineState(),
+    });
+  });
+
+  app.post("/v1/dev/seed-offer", (req, res) => {
+    const offer = {
+      id: `offer-${state.seededOffers.length + 1}`,
+      title: req.body?.title || "Seeded kampanje",
+      store: req.body?.store || "Demo Store",
+      rate: req.body?.rate || 12,
+      level: req.body?.level || "premium",
+      campaign: req.body?.campaign ?? true,
+      createdAt: nowIso(),
+    };
+
+    state.seededOffers.push(offer);
+
+    res.json({
+      ok: true,
+      offer,
+      seededOffers: state.seededOffers,
+    });
+  });
+
+  app.post("/dev/simulate-campaign", async (req, res) => {
+    try {
+      const result = await runSimulation(req.body ?? {});
+      res.json(result);
+    } catch (e) {
+      res.status(500).json({ error: String(e) });
+    }
+  });
+
+  app.post("/v1/dev/simulate-campaign", async (req, res) => {
+    try {
+      const result = await runSimulation(req.body ?? {});
+      res.json(result);
+    } catch (e) {
+      res.status(500).json({ error: String(e) });
+    }
+  });
+}
+
+
+
+app.post("/v1/push/simulate-alert", express.json(), (req, res) => {
+  const now = new Date().toISOString();
+
+  const rate = req.body?.rate ?? 10;
+
+  const result = {
+    simulatedAt: now,
+    offer: {
+      rate,
+      rateText: rate + "x",
+      level: rate >= 10 ? "premium" : "basic",
+      campaign: "Simulated campaign"
+    },
+    evaluation: {
+      score: Math.round(rate * 7),
+      momentum: rate > 5 ? "high" : "low",
+      timing: "now",
+      shouldNotify: rate >= 8,
+      reason: rate >= 8
+        ? "High value campaign → should notify"
+        : "Too low value → skip"
+    }
+  };
+
+  res.json(result);
+});
+
+app.listen(port, () => {
+  console.log(`API running on http://127.0.0.1:${port}`);
+  console.log(`DEV routes enabled: ${enableDevRoutes}`);
+});

@@ -1,0 +1,230 @@
+import 'dart:async';
+
+import 'package:flutter/foundation.dart';
+import 'package:in_app_purchase/in_app_purchase.dart';
+
+import 'entitlement_service.dart';
+
+class CheckoutService {
+  CheckoutService._();
+  static final CheckoutService instance = CheckoutService._();
+
+  final InAppPurchase _iap = InAppPurchase.instance;
+
+  final Set<String> _productIds = const {
+    'premium_monthly',
+    'premium_yearly',
+    'elite_monthly',
+    'elite_yearly',
+  };
+
+  List<ProductDetails> products = <ProductDetails>[];
+  StreamSubscription<List<PurchaseDetails>>? _purchaseSub;
+  bool _initialized = false;
+
+  String _plan = 'Premium';
+  String _billing = 'monthly';
+  bool _isPartner = false;
+
+  String get plan => _plan;
+  String get billing => _billing;
+  bool get isPartner => _isPartner;
+
+  String get effectivePlan {
+    if (_isPartner && _plan.toLowerCase() == 'premium') {
+      return 'elite';
+    }
+    return _plan.toLowerCase();
+  }
+
+  Map<String, dynamic> toPayload() {
+    return {
+      'plan': _plan.toLowerCase(),
+      'billing': _billing,
+      'effectivePlan': effectivePlan,
+      'isPartner': _isPartner,
+    };
+  }
+
+  Future<void> init() async {
+    if (_initialized) return;
+    _initialized = true;
+
+    await EntitlementService.instance.load();
+    debugPrint('CheckoutService.init: entitlement plan=$EntitlementService.instance.plan productId=$EntitlementService.instance.productId');
+
+    final available = await _iap.isAvailable();
+    if (!available) {
+      debugPrint('IAP unavailable on this device/account. isAvailable=false');
+      return;
+    }
+
+    _purchaseSub = _iap.purchaseStream.listen(
+      _onPurchaseUpdate,
+      onError: (Object error, StackTrace stackTrace) {
+        debugPrint('Purchase stream error: $error');
+      },
+      cancelOnError: false,
+    );
+
+    await loadProducts();
+  }
+
+  Future<void> dispose() async {
+    await _purchaseSub?.cancel();
+    _purchaseSub = null;
+    _initialized = false;
+  }
+
+  Future<void> loadProducts() async {
+    final response = await _iap.queryProductDetails(_productIds);
+
+    if (response.error != null) {
+      debugPrint('IAP query error: $response.error');
+    }
+
+    if (response.notFoundIDs.isNotEmpty) {
+      debugPrint('IAP not found: $response.notFoundIDs');
+    }
+
+    products = response.productDetails;
+    debugPrint('IAP loaded products count=$products.length');
+    for (final p in products) {
+      debugPrint('IAP product loaded: id=$p.id title=$p.title price=$p.price');
+    }
+  }
+
+  ProductDetails? getProduct(String id) {
+    try {
+      return products.firstWhere((p) => p.id == id);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> setSelection({
+    required String plan,
+    required String billing,
+  }) async {
+    _plan = plan;
+    _billing = billing;
+    debugPrint('CheckoutService.setSelection: plan=$_plan billing=$_billing partner=$_isPartner effectivePlan=$effectivePlan productId=${selectedProductId()}');
+  }
+
+  Future<void> setBilling(String value) async {
+    _billing = value;
+    debugPrint('CheckoutService.setBilling: billing=$_billing productId=${selectedProductId()}');
+  }
+
+  Future<void> setPartner(bool value) async {
+    _isPartner = value;
+    debugPrint('CheckoutService.setPartner: partner=$_isPartner plan=$_plan billing=$_billing effectivePlan=$effectivePlan productId=${selectedProductId()}');
+  }
+
+  String selectedProductId() {
+    final _planPart = _plan.toLowerCase();
+    final billingPart = _billing == 'yearly' ? 'yearly' : 'monthly';
+    return '${_planPart}}_$billingPart';
+  }
+
+
+  Future<String> buySelectedVerbose() async {
+    final productId = selectedProductId();
+    debugPrint('buySelectedVerbose: selected productId=$productId');
+
+    if (products.isEmpty) {
+      debugPrint('buySelectedVerbose: products empty, reloading...');
+      await loadProducts();
+    }
+
+    final product = getProduct(productId);
+    if (product == null) {
+      final ids = products.map((p) => p.id).toList();
+      debugPrint('buySelectedVerbose: product not found. loaded=$ids');
+      return 'Produkt ikke tilgjengelig enda i App Store / TestFlight.';
+    }
+
+    try {
+      debugPrint('buySelectedVerbose: calling buy for $productId');
+      await buy(productId);
+      return 'Apple-kjøpsdialog skal vises nå.';
+    } catch (e) {
+      debugPrint('buySelectedVerbose: exception=$e');
+      return 'Kjøp feilet: $e';
+    }
+  }
+
+  Future<void> buySelected() async {
+    final productId = selectedProductId();
+    debugPrint('buySelected: plan=$_plan billing=$_billing partner=$_isPartner effectivePlan=$effectivePlan productId=$productId');
+    await buy(productId);
+  }
+
+  Future<void> buy(String productId) async {
+    if (products.isEmpty) {
+      await loadProducts();
+    }
+
+    final product = getProduct(productId);
+    debugPrint('buy: requested productId=$productId');
+    if (product == null) {
+      debugPrint('buy: available products=${products.map((p) => p.id).toList()}');
+      debugPrint('Product not found: $productId');
+      return;
+    }
+
+    debugPrint('buy: found product id=$product.id title=$product.title price=$product.price');
+    final purchaseParam = PurchaseParam(productDetails: product);
+
+    // Subscriptions håndteres som non-consumable-kjøp i in_app_purchase-flowen.
+    debugPrint('buy: calling buyNonConsumable...');
+    await _iap.buyNonConsumable(purchaseParam: purchaseParam);
+    debugPrint('buy: buyNonConsumable returned without throw');
+  }
+
+  Future<void> restorePurchases() async {
+    final available = await _iap.isAvailable();
+    if (!available) {
+      debugPrint('Restore skipped: IAP unavailable.');
+      return;
+    }
+    debugPrint('restorePurchases: calling restorePurchases()');
+    await _iap.restorePurchases();
+    debugPrint('restorePurchases: returned without throw');
+  }
+
+  Future<void> _onPurchaseUpdate(List<PurchaseDetails> purchases) async {
+    for (final purchase in purchases) {
+      switch (purchase.status) {
+        case PurchaseStatus.pending:
+          debugPrint('Purchase pending: $purchase.productID');
+          break;
+
+        case PurchaseStatus.error:
+          debugPrint('Purchase error: $purchase.error');
+          if (purchase.pendingCompletePurchase) {
+            await _iap.completePurchase(purchase);
+          }
+          break;
+
+        case PurchaseStatus.purchased:
+        case PurchaseStatus.restored:
+          await EntitlementService.instance.unlock(purchase.productID);
+          debugPrint(
+            'Unlocked plan=$EntitlementService.instance.plan via $purchase.productID ($purchase.status.name)',
+          );
+          if (purchase.pendingCompletePurchase) {
+            await _iap.completePurchase(purchase);
+          }
+          break;
+
+        case PurchaseStatus.canceled:
+          debugPrint('Purchase canceled: $purchase.productID');
+          if (purchase.pendingCompletePurchase) {
+            await _iap.completePurchase(purchase);
+          }
+          break;
+      }
+    }
+  }
+}

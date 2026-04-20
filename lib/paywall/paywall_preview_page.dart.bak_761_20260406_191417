@@ -1,0 +1,23 @@
+import 'package:flutter/material.dart';
+import 'paywall_sheet.dart';
+
+class PaywallPreviewPage extends StatelessWidget {
+  const PaywallPreviewPage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return PaywallSheet(
+      onClose: () => Navigator.of(context).maybePop(),
+      onStartPlan: (planId) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Valgt plan: $planId')),
+        );
+      },
+      onRestorePurchases: () {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Gjenopprett kjøp trykket')),
+        );
+      },
+    );
+  }
+}

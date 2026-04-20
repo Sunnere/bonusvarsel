@@ -1,0 +1,263 @@
+== Bonusvarsel release snapshot ==
+Dato: tor. 26 mar. 2026 19.02.03 CET
+
+-- git status --
+ M api/server.js
+ M lib/pages/bonusvarsel_dev_hub_page.dart
+ M lib/services/api_service.dart
+ M lib/widgets/dev_pipeline_panel.dart
+?? api/server.js.bak_774.1774133360
+?? api/server.js.bak_775.1774134977
+?? api/server.js.bak_782.1774261272
+?? api/server.js.bak_785.1774273475
+?? api/server.js.bak_792.1774279497
+?? api/server.js.bak_793.1774281903
+?? api/server.js.bak_796.1774287794
+?? api/server.js.bak_798.1774290810
+?? api/server.js.bak_799.1774291419
+?? api/server.js.bak_799_1.1774291844
+?? api/server.js.bak_800.1774292121
+?? api/server.js.bak_801.1774293147
+?? api/server.js.bak_802.1774295704
+?? api/server.js.bak_803.1774297340
+?? api/server.js.bak_804.1774298689
+?? api/server.js.bak_811.1774339299
+?? api/server.js.bak_812.1774340439
+?? api/server.js.bak_813.1774340649
+?? api/server.js.bak_826.1774352965
+?? api/server.js.bak_832.1774392134
+?? api/server.js.bak_833.1774392480
+?? api/server.js.bak_834.1774393112
+?? api/server.js.bak_835.1774393490
+?? api/server.js.bak_837.1774456514
+?? api/server.js.bak_838.1774457967
+?? api/server.js.bak_840.1774458858
+?? api/server.js.bak_841.1774459641
+?? api/server.js.bak_849.1774520876
+?? api/server.js.bak_853.1774529008
+?? api/server.js.bak_854.1774529305
+?? docs/
+?? lib/pages/bonusvarsel_alerts_page.dart
+?? lib/pages/bonusvarsel_alerts_page.dart.bak_863.1774546034
+?? lib/pages/bonusvarsel_alerts_page.dart.bak_863.1774546066
+?? lib/pages/bonusvarsel_alerts_page.dart.bak_864.1774546233
+?? lib/pages/bonusvarsel_alerts_page.dart.bak_864.1774546626
+?? lib/pages/bonusvarsel_alerts_page.dart.bak_865.1774547001
+?? lib/pages/bonusvarsel_dev_hub_page.dart.bak_776.1774166842
+?? lib/pages/bonusvarsel_dev_hub_page.dart.bak_778.1774168264
+?? lib/pages/bonusvarsel_dev_hub_page.dart.bak_778_1.1774169213
+?? lib/pages/bonusvarsel_dev_hub_page.dart.bak_778_2.1774169542
+?? lib/pages/bonusvarsel_dev_hub_page.dart.bak_778_3.1774169760
+?? lib/pages/bonusvarsel_dev_hub_page.dart.bak_779.1774170720
+?? lib/pages/bonusvarsel_dev_hub_page.dart.bak_781.1774194367
+?? lib/pages/bonusvarsel_dev_hub_page.dart.bak_781_1.1774194798
+?? lib/pages/bonusvarsel_dev_hub_page.dart.bak_781_2.1774197164
+?? lib/pages/bonusvarsel_dev_hub_page.dart.bak_781_3.1774197523
+?? lib/pages/bonusvarsel_dev_hub_page.dart.bak_781_4.1774199153
+?? lib/pages/bonusvarsel_dev_hub_page.dart.bak_781_5.1774200523
+?? lib/pages/bonusvarsel_dev_hub_page.dart.bak_784.1774265440
+?? lib/pages/bonusvarsel_dev_hub_page.dart.bak_788.1774276727
+?? lib/pages/bonusvarsel_dev_hub_page.dart.bak_789.1774276951
+?? lib/pages/bonusvarsel_dev_hub_page.dart.bak_819.1774345409
+?? lib/pages/bonusvarsel_dev_hub_page.dart.bak_820_before_restore.1774346140
+?? lib/pages/bonusvarsel_dev_hub_page.dart.bak_821.1774346571
+?? lib/pages/bonusvarsel_dev_hub_page.dart.bak_822.1774349867
+?? lib/pages/bonusvarsel_dev_hub_page.dart.bak_823.1774349976
+?? lib/pages/bonusvarsel_dev_hub_page.dart.bak_824.1774350230
+?? lib/pages/bonusvarsel_dev_hub_page.dart.bak_825.1774350596
+?? lib/pages/bonusvarsel_dev_hub_page.dart.bak_830.1774390442
+?? lib/pages/bonusvarsel_dev_hub_page.dart.bak_831.1774390705
+?? lib/pages/bonusvarsel_dev_hub_page.dart.bak_831.1774390734
+?? lib/pages/bonusvarsel_dev_hub_page.dart.bak_858.1774537621
+?? lib/pages/bonusvarsel_dev_hub_page.dart.bak_859.1774538048
+?? lib/pages/bonusvarsel_dev_hub_page.dart.bak_861.1774539273
+?? lib/services/api_service.dart.bak_804.1774298689
+?? lib/services/api_service.dart.bak_804_1.1774299436
+?? lib/services/api_service.dart.bak_804_2.1774299860
+?? lib/services/api_service.dart.bak_805_before_restore.1774300721
+?? lib/services/api_service.dart.bak_806_broken_1774300963
+?? lib/services/api_service.dart.bak_807_before_force_restore.1774301488
+?? lib/services/api_service.dart.bak_808_before_restore.1774301784
+?? lib/services/api_service.dart.bak_809.1774302164
+?? lib/services/api_service.dart.bak_811.1774339299
+?? lib/services/api_service.dart.bak_817.1774344188
+?? lib/services/api_service.dart.bak_818.1774344602
+?? lib/services/api_service.dart.bak_recovery_804_3.1774300285
+?? lib/services/api_service.dart.bak_revert_818.1774344886
+?? lib/widgets/dev_pipeline_panel.dart.bak_774.1774133360
+?? lib/widgets/dev_pipeline_panel.dart.bak_780.1774191912
+?? lib/widgets/dev_pipeline_panel.dart.bak_783.1774264323
+?? lib/widgets/dev_pipeline_panel.dart.bak_785.1774273475
+?? lib/widgets/dev_pipeline_panel.dart.bak_786.1774274511
+?? lib/widgets/dev_pipeline_panel.dart.bak_787.1774275500
+?? lib/widgets/dev_pipeline_panel.dart.bak_787.1774275628
+?? lib/widgets/dev_pipeline_panel.dart.bak_793.1774281903
+?? lib/widgets/dev_pipeline_panel.dart.bak_803.1774297340
+?? lib/widgets/dev_pipeline_panel.dart.bak_804.1774298689
+?? lib/widgets/dev_pipeline_panel.dart.bak_814.1774341266
+?? lib/widgets/dev_pipeline_panel.dart.bak_816.1774343791
+?? lib/widgets/dev_pipeline_panel.dart.bak_827.1774354550
+?? lib/widgets/dev_pipeline_panel.dart.bak_828.1774355387
+?? lib/widgets/dev_pipeline_panel.dart.bak_829.1774369402
+?? lib/widgets/dev_pipeline_panel.dart.bak_829.1774370795
+?? lib/widgets/dev_pipeline_panel.dart.bak_836.1774437054
+?? lib/widgets/dev_pipeline_panel.dart.bak_837.1774457379
+?? lib/widgets/dev_pipeline_panel.dart.bak_839.1774458590
+?? lib/widgets/dev_pipeline_panel.dart.bak_842.1774460843
+?? lib/widgets/dev_pipeline_panel.dart.bak_843.1774461845
+?? lib/widgets/dev_pipeline_panel.dart.bak_844.1774464000
+?? lib/widgets/dev_pipeline_panel.dart.bak_845.1774464579
+?? lib/widgets/dev_pipeline_panel.dart.bak_846_before_restore.1774464944
+?? lib/widgets/dev_pipeline_panel.dart.bak_847.1774519353
+?? lib/widgets/dev_pipeline_panel.dart.bak_848.1774520107
+?? lib/widgets/dev_pipeline_panel.dart.bak_850.1774521940
+?? lib/widgets/dev_pipeline_panel.dart.bak_851_before_restore.1774525681
+?? lib/widgets/dev_pipeline_panel.dart.bak_852.1774527916
+?? lib/widgets/dev_pipeline_panel.dart.bak_855.1774530617
+?? lib/widgets/dev_pipeline_panel.dart.bak_856.1774531688
+?? lib/widgets/dev_pipeline_panel.dart.bak_recovery_804_3.1774300285
+?? scripts/774_make_pipeline_use_live_campaigns_and_show_them.sh
+?? scripts/775_add_dedupe_threshold_and_notify_decision.sh
+?? scripts/776_fix_dev_hub_contrast_colors.sh
+?? scripts/778_1_fix_system_health_collection_if.sh
+?? scripts/778_2_close_system_health_else_collection.sh
+?? scripts/778_3_fix_system_health_pipeline_cast.sh
+?? scripts/778_add_real_system_health_card_to_dev_hub.sh
+?? scripts/779_add_decision_insight_card_to_dev_hub.sh
+?? scripts/780_add_live_decision_insight_to_pipeline_panel.sh
+?? scripts/781_1_fix_alert_simulation_text_contrast_exact.sh
+?? scripts/781_2_fix_score_meter_and_debug_card_contrast.sh
+?? scripts/781_3_fix_exact_remaining_dark_text.sh
+?? scripts/781_4_fix_score_meter_and_alert_summary_momentum.sh
+?? scripts/781_5_fix_exact_dev_hub_black_text_hits.sh
+?? scripts/781_fix_remaining_dev_hub_dark_contrast.sh
+?? scripts/782_connect_simulate_alert_to_live_feed.sh
+?? scripts/783_show_live_pipeline_source_and_counts.sh
+?? scripts/784_mount_dev_pipeline_panel.sh
+?? scripts/785_make_pipeline_automatic.sh
+?? scripts/786_show_last_auto_tick_and_summary_in_pipeline.sh
+?? scripts/787_make_pipeline_meta_obvious_and_use_fallbacks.sh
+?? scripts/788_force_mount_pipeline_visible.sh
+?? scripts/789_fix_pipeline_mount_to_real_widget.sh
+?? scripts/790_start_backend_with_live_pipeline.sh
+?? scripts/791_start_flutter_dev_clean.sh
+?? scripts/792_add_live_feed_fallback_cache.sh
+?? scripts/793_show_live_cache_status_clearly.sh
+?? scripts/794_debug_sas_scraper_locally.sh
+?? scripts/795_find_sas_client_data_source.sh
+?? scripts/796_switch_campaign_fetch_to_loyaltykey_api_first.sh
+?? scripts/797_debug_loyaltykey_campaign_json.sh
+?? scripts/798_fix_loyaltykey_campaign_mapping.sh
+?? scripts/799_1_force_add_debug_campaign_fetch_route.sh
+?? scripts/799_add_debug_campaign_fetch_endpoint.sh
+?? scripts/800_add_raw_loyaltykey_debug_route.sh
+?? scripts/801_force_replace_fetch_campaigns_with_working_loyaltykey_version.sh
+?? scripts/802_lower_auto_pipeline_threshold_to_2.sh
+?? scripts/803_make_auto_pipeline_threshold_configurable.sh
+?? scripts/804_1_fix_threshold_api_service_scope.sh
+?? scripts/804_2_repair_api_service_threshold_methods_clean.sh
+?? scripts/804_3_restore_api_service_and_remove_runtime_threshold_ui.sh
+?? scripts/804_add_runtime_threshold_control.sh
+?? scripts/805_restore_api_service_from_best_backup.sh
+?? scripts/806_hard_restore_api_service_from_best_backup.sh
+?? scripts/807_force_restore_api_service_from_known_good_backup.sh
+?? scripts/808_restore_api_service_from_clean_source.sh
+?? scripts/809_add_missing_simulate_campaign_pipeline_method.sh
+?? scripts/810_dev_boot_and_verify_pipeline.sh
+?? scripts/811_add_user_alert_threshold_prefs.sh
+?? scripts/812_prioritize_high_bonus_candidates.sh
+?? scripts/813_fix_sort_reference_error.sh
+?? scripts/814_add_high_bonus_badge_in_pipeline_ui.sh
+?? scripts/816_force_replace_dev_pipeline_panel_with_recent_campaigns.sh
+?? scripts/817_fix_health_endpoint_fallback.sh
+?? scripts/818_make_simulate_campaign_fallback_paths_robust.sh
+?? scripts/818_revert_api_service_to_pre_818.sh
+?? scripts/819_cleanup_dev_hub_warnings_safe.sh
+?? scripts/820_restore_dev_hub_page_from_pre_819_backup.sh
+?? scripts/821_make_pushTestExpanded_final_safe.sh
+?? scripts/822_remove_expandedHistoryRows_safe.sh
+?? scripts/823_remove_pushTestKey_safe.sh
+?? scripts/824_remove_simulationSummaryText_safe.sh
+?? scripts/825_remove_diagnosticColor_safe.sh
+?? scripts/826_make_real_auto_dispatch_rules.sh
+?? scripts/827_show_dispatch_eligible_in_pipeline_panel.sh
+?? scripts/828_show_activated_notifications_in_pipeline_panel.sh
+?? scripts/829_surface_activated_notifications_higher_in_panel.sh
+?? scripts/830_fix_scroll_dev_hub_safe.sh
+?? scripts/831_force_dev_hub_body_to_listview_safe.sh
+?? scripts/832_force_auto_pipeline_threshold_usage_safe.sh
+?? scripts/833_replace_remaining_hardcoded_threshold_8.sh
+?? scripts/834_make_auto_pipeline_ignore_user_prefs_threshold.sh
+?? scripts/835_fix_remaining_auto_pipeline_threshold_8.sh
+?? scripts/836_make_activated_notifications_visible_in_ui.sh
+?? scripts/837_make_dispatch_smart.sh
+?? scripts/837_show_selected_dispatch_candidates.sh
+?? scripts/838_smarter_dispatch_priority_rules.sh
+?? scripts/839_show_priority_reason_in_pipeline_ui.sh
+?? scripts/840_fix_priority_reason_backend.sh
+?? scripts/841_reset_state_must_clear_dedupe.sh
+?? scripts/842_highlight_winner_in_pipeline_ui.sh
+?? scripts/843_winner_badge_on_selected_for_dispatch.sh
+?? scripts/844_use_real_dispatch_results_in_pipeline_ui.sh
+?? scripts/845_reduce_noise_in_recent_campaigns_ui.sh
+?? scripts/846_restore_dev_pipeline_panel_after_845.sh
+?? scripts/847_soften_recent_campaigns_text_only.sh
+?? scripts/848_show_commission_type_in_selected.sh
+?? scripts/849_add_smart_revenue_scoring.sh
+?? scripts/850_show_business_score_in_selected.sh
+?? scripts/851_restore_dev_pipeline_panel_after_850.sh
+?? scripts/852_precise_business_score_fix_selected_only.sh
+?? scripts/853_fix_dedupe_with_ttl_and_reset.sh
+?? scripts/854_add_dev_disable_dedupe_flag.sh
+?? scripts/855_show_business_and_priority_on_winner.sh
+?? scripts/856_make_selected_for_dispatch_stable_with_fallback.sh
+?? scripts/857_create_release_checklist_docs.sh
+?? scripts/858_hide_dev_hub_in_prod_safe.sh
+?? scripts/859_remove_unnecessary_foundation_import.sh
+?? scripts/861_connect_alerts_page_from_dev_hub.sh
+?? scripts/862_create_missing_alerts_page_file.sh
+?? scripts/863_make_alerts_page_greener.sh
+?? scripts/864_fix_unnecessary_const_alerts_page.sh
+?? scripts/865_make_alerts_page_launch_ready.sh
+?? scripts/866_create_release_scripts.sh
+?? scripts/release_checklist_run.sh
+?? scripts/release_snapshot.sh
+?? scripts/run_prod_like_web.sh
+?? scripts/verify_dev_hub_hidden.sh
+?? tmp/
+
+-- flutter analyze --
+Resolving dependencies...
+Downloading packages...
+  async 2.13.0 (2.13.1 available)
+  cupertino_icons 1.0.8 (1.0.9 available)
+  ffi 2.1.5 (2.2.0 available)
+  intl 0.19.0 (0.20.2 available)
+  lints 6.0.0 (6.1.0 available)
+  meta 1.17.0 (1.18.2 available)
+  shared_preferences 2.5.4 (2.5.5 available)
+  shared_preferences_android 2.4.20 (2.4.23 available)
+  shared_preferences_platform_interface 2.4.1 (2.4.2 available)
+  source_span 1.10.1 (1.10.2 available)
+  test_api 0.7.10 (0.7.11 available)
+  url_launcher_android 6.3.28 (6.3.29 available)
+  url_launcher_ios 6.3.6 (6.4.1 available)
+  url_launcher_web 2.4.1 (2.4.2 available)
+  vector_math 2.2.0 (2.3.0 available)
+Got dependencies!
+15 packages have newer versions incompatible with dependency constraints.
+Try `flutter pub outdated` for more information.
+Analyzing bonusvarsel...                                        
+No issues found! (ran in 1.1s)
+
+-- launch docs --
+app_store_text.md
+play_store_text.md
+privacy_policy.md
+release_checklist.md
+
+-- release scripts --
+scripts/release_checklist_run.sh
+scripts/release_snapshot.sh
+scripts/run_prod_like_web.sh
+scripts/verify_dev_hub_hidden.sh

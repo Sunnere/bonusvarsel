@@ -1,0 +1,4 @@
+la til import for paywall_preview_page.dart
+la til _openPremiumPaywall()-helper
+wiret eksisterende knapp med teksten 'Elite' (1 treff)
+wiret eksisterende knapp med teksten 'Premium' (1 treff)

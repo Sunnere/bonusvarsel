@@ -1,0 +1,284 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$ROOT"
+
+WIDGET="lib/widgets/best_recommendation_card.dart"
+
+echo "==> patch_789_force_rewrite_best_recommendation_card_clean"
+
+if [ ! -f "$WIDGET" ]; then
+  echo "❌ Fant ikke $WIDGET"
+  exit 1
+fi
+
+cp "$WIDGET" "$WIDGET.bak_789_$(date +%Y%m%d_%H%M%S)"
+echo "✅ Backup laget"
+
+cat > "$WIDGET" <<'DART'
+import 'package:flutter/material.dart';
+
+import '../models/bonus_recommendation.dart';
+import '../models/shop_offer.dart';
+import '../models/subscription_tier.dart';
+import '../services/bonus_recommendation_engine.dart';
+import '../services/subscription_service.dart';
+import '../services/user_state.dart';
+
+class SmartBestRecommendationCard extends StatelessWidget {
+  final Future<List<ShopOffer>> futureOffers;
+  final double amountNok;
+  final VoidCallback? onTapPaywall;
+
+  const SmartBestRecommendationCard({
+    super.key,
+    required this.futureOffers,
+    required this.amountNok,
+    this.onTapPaywall,
+  });
+
+  Future<_RecommendationState> _loadState() async {
+    final selectedCardId = await UserState.getSelectedCardId();
+    final tierEnum = await SubscriptionService.instance.getTier();
+
+    final tier = switch (tierEnum) {
+      SubscriptionTier.elite => 'elite',
+      SubscriptionTier.pro => 'premium',
+      SubscriptionTier.free => 'free',
+    };
+
+    return _RecommendationState(
+      selectedCardId: selectedCardId,
+      tier: tier,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<_RecommendationState>(
+      future: _loadState(),
+      builder: (context, stateSnap) {
+        final state = stateSnap.data ??
+            const _RecommendationState(
+              selectedCardId: null,
+              tier: 'free',
+            );
+
+        return FutureBuilder<List<ShopOffer>>(
+          future: futureOffers,
+          builder: (context, offersSnap) {
+            final offers = offersSnap.data ?? const <ShopOffer>[];
+            if (offers.isEmpty) return const SizedBox.shrink();
+
+            final offerMaps = offers.map((s) => s.toJson()).toList();
+
+            final recommendations =
+                BonusRecommendationEngine.recommendForShopping(
+              offers: offerMaps,
+              amountNok: amountNok,
+              selectedCardId: state.selectedCardId,
+              tier: state.tier,
+              favoriteIds: const <String>{},
+            );
+
+            if (recommendations.isEmpty) return const SizedBox.shrink();
+
+            final best = recommendations.first;
+            final rawPoints = best.estimatedPoints;
+            final safePoints = rawPoints > 5000 ? 5000 : rawPoints;
+
+            final rawUplift = best.upliftVsCurrent ?? 0;
+            final uplift = rawUplift <= 0
+                ? 0
+                : (rawUplift > 2000 ? 2000 : rawUplift);
+
+            final locked =
+                best.requiredTier != BonusTier.free && state.tier == 'free';
+
+            return Container(
+              margin: const EdgeInsets.fromLTRB(16, 6, 16, 10),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(18),
+                gradient: const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Color(0xFF0A1931),
+                    Color(0xFF102847),
+                    Color(0xFF0C1F36),
+                  ],
+                ),
+                border: Border.all(color: const Color(0xFF315A8E)),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color(0x2200A3FF),
+                    blurRadius: 18,
+                    offset: Offset(0, 8),
+                  ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Expanded(
+                        child: Text(
+                          '⭐ Beste valg akkurat nå',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      ),
+                      _chip(
+                        text: _tierLabel(state.tier),
+                        fg: const Color(0xFF9ED1FF),
+                        bg: const Color(0xFF112740),
+                        border: const Color(0xFF315A8E),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    best.title,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    best.subtitle,
+                    style: const TextStyle(
+                      color: Colors.white70,
+                      fontSize: 13,
+                      height: 1.25,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 10,
+                    runSpacing: 8,
+                    children: [
+                      _chip(
+                        text: '+$safePoints poeng',
+                        fg: const Color(0xFF8CFF64),
+                        bg: const Color(0xFF102842),
+                        border: const Color(0xFF224E77),
+                      ),
+                      _chip(
+                        text: uplift > 0 ? '+$uplift ekstra' : 'Standard',
+                        fg: const Color(0xFFFFC44D),
+                        bg: const Color(0xFF3A2B10),
+                        border: const Color(0xFF7A5A1E),
+                      ),
+                      if (locked)
+                        _chip(
+                          text: 'Låst',
+                          fg: const Color(0xFFFFC44D),
+                          bg: const Color(0xFF3A2B10),
+                          border: const Color(0xFF7A5A1E),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    uplift > 0
+                        ? '${best.title} kan gi deg ca. +$uplift poeng mer enn standardvalget.'
+                        : best.subtitle,
+                    style: const TextStyle(
+                      color: Colors.white70,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton(
+                      onPressed: onTapPaywall,
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.white,
+                        side: const BorderSide(color: Color(0xFF4A75B1)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                      ),
+                      child: Text(
+                        locked ? 'Lås opp' : 'Se hvorfor',
+                        style: const TextStyle(fontWeight: FontWeight.w800),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  static String _tierLabel(String tier) {
+    switch (tier.toLowerCase()) {
+      case 'elite':
+        return 'Elite';
+      case 'premium':
+        return 'Premium';
+      default:
+        return 'Gratis';
+    }
+  }
+
+  Widget _chip({
+    required String text,
+    required Color fg,
+    required Color bg,
+    required Color border,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: border),
+      ),
+      child: Text(
+        text,
+        style: TextStyle(
+          color: fg,
+          fontWeight: FontWeight.w900,
+          fontSize: 14,
+        ),
+      ),
+    );
+  }
+}
+
+class _RecommendationState {
+  final String? selectedCardId;
+  final String tier;
+
+  const _RecommendationState({
+    required this.selectedCardId,
+    required this.tier,
+  });
+}
+DART
+
+echo
+echo "==> Verifisering"
+sed -n '1,260p' "$WIDGET"
+
+echo
+echo "✅ Ferdig"
+echo "Kjør nå:"
+echo "1) flutter analyze"
+echo "2) flutter run -d macos"

@@ -1,0 +1,2 @@
+premium_page.dart-import finnes allerede
+la til ny routes-map med '/premium' i MaterialApp

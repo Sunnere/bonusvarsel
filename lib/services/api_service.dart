@@ -10,7 +10,16 @@ import '../models/offer_record.dart';
 import '../models/push_dispatch_preview.dart';
 
 class ApiService {
-  static const String _nativeDefaultBaseUrl = 'http://127.0.0.1:8080';
+
+  static bool _hasUsableBaseUrl(String rawBaseUrl) {
+    final raw = rawBaseUrl.trim();
+    if (raw.isEmpty) return false;
+    if (raw.contains("127.0.0.1")) return false;
+    if (raw.contains("localhost")) return false;
+    return true;
+  }
+
+  static const String _nativeDefaultBaseUrl = '';
   static const String _envBaseUrl = String.fromEnvironment('API_BASE', defaultValue: '');
 
   static String _webBaseUrl() {
@@ -77,7 +86,11 @@ class ApiService {
 
 
   static Future<Map<String, dynamic>> getHealth() async {
-    return _getMap('/v1/health');
+    try {
+      return await _getMap('/v1/health');
+    } catch (_) {
+      return _getMap('/health');
+    }
   }
 
   static Future<Map<String, dynamic>> getMe() async {
@@ -113,6 +126,7 @@ class ApiService {
     List<String>? sources,
     List<String>? categories,
     int? minRate,
+    num? alertThreshold,
     bool? onlyCampaigns,
     bool? favFirst,
   }) async {
@@ -120,6 +134,7 @@ class ApiService {
     if (sources != null) body['sources'] = sources;
     if (categories != null) body['categories'] = categories;
     if (minRate != null) body['minRate'] = minRate;
+    if (alertThreshold != null) body['alertThreshold'] = alertThreshold;
     if (onlyCampaigns != null) body['onlyCampaigns'] = onlyCampaigns;
     if (favFirst != null) body['favFirst'] = favFirst;
 
@@ -157,6 +172,41 @@ class ApiService {
     return decoded
         .map((e) => Map<String, dynamic>.from(e as Map))
         .toList();
+  }
+
+
+
+  static Future<Map<String, dynamic>> getOffersFeed({
+    String? program,
+    String? level,
+    String? category,
+    String? updatedSince,
+  }) async {
+    final query = <String, String>{};
+
+    if (program != null && program.isNotEmpty) query['program'] = program;
+    if (level != null && level.isNotEmpty) query['level'] = level;
+    if (category != null && category.isNotEmpty) query['category'] = category;
+    if (updatedSince != null && updatedSince.isNotEmpty) {
+      query['updated_since'] = updatedSince;
+    }
+
+    final uri = _uri('/v1/offers').replace(
+      queryParameters: query.isEmpty ? null : query,
+    );
+
+    final res = await http.get(uri).timeout(const Duration(seconds: 4));
+
+    if (res.statusCode < 200 || res.statusCode >= 300) {
+      throw Exception('GET /v1/offers failed: ${res.statusCode} ${res.body}');
+    }
+
+    final decoded = jsonDecode(res.body);
+    if (decoded is! Map<String, dynamic>) {
+      throw Exception('GET /v1/offers expected JSON object');
+    }
+
+    return decoded;
   }
 
   static Future<List<OfferRecord>> getOffers() async {
@@ -443,6 +493,9 @@ static Future<Map<String, dynamic>> simulateAlert() async {
     bool reset = false,
   }) async {
     final suffix = reset ? '?reset=1' : '';
+    if (!_hasUsableBaseUrl(baseUrl)) {
+      return <String, dynamic>{};
+    }
     final decoded = await _getMap('/v1/notifications/activated$suffix');
 
     final raw = decoded['notifications'];
@@ -495,6 +548,54 @@ static Future<Map<String, dynamic>> simulateAlert() async {
     }
 
     return decoded;
+  }
+
+
+  static Future<Map<String, dynamic>> simulateCampaignPipeline({
+    Map<String, dynamic>? body,
+  }) async {
+    final payload = body ?? <String, dynamic>{};
+
+    final paths = <String>[
+      '/dev/simulate-campaign',
+      '/v1/dev/simulate-campaign',
+      '/v1/dev/pipeline/simulate',
+      '/dev/simulate',
+      '/v1/dev/simulate',
+    ];
+
+    Object? lastError;
+
+    for (final path in paths) {
+      try {
+        final res = await http
+            .post(
+              _uri(path),
+              headers: {'Content-Type': 'application/json'},
+              body: jsonEncode(payload),
+            )
+            .timeout(const Duration(seconds: 6));
+
+        if (res.statusCode < 200 || res.statusCode >= 300) {
+          lastError = 'POST $path failed: ${res.statusCode} ${res.body}';
+          continue;
+        }
+
+        final decoded = jsonDecode(res.body);
+        if (decoded is! Map<String, dynamic>) {
+          lastError = 'POST $path expected JSON object';
+          continue;
+        }
+
+        return decoded;
+      } catch (e) {
+        lastError = e;
+      }
+    }
+
+    throw Exception(
+      'simulateCampaignPipeline failed on all paths: $lastError',
+    );
   }
 
   static Future<Map<String, dynamic>> seedDevOffer({

@@ -1,0 +1,218 @@
+import 'package:flutter/material.dart';
+
+class PremiumPage extends StatefulWidget {
+  const PremiumPage({
+    super.key,
+  });
+
+  @override
+  State<PremiumPage> createState() => _PremiumPageState();
+}
+
+class _PremiumPageState extends State<PremiumPage> {
+  String _selected = 'Premium'; // Gratis / Premium / Elite
+
+  void _select(String v) => setState(() => _selected = v);
+
+  void _checkout(String plan) {
+    // TODO: Koble til betaling/IAP senere (RevenueCat/StoreKit/Google Play Billing)
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('TODO: Start $plan (betalingsflyt kommer).')),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final isMobile = MediaQuery.of(context).size.width < 520;
+
+    final accent = const Color(0xFFE0C46C);
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Premium & Elite'),
+      ),
+      body: SafeArea(
+        child: Stack(
+          children: [
+            Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 920),
+                child: ListView(
+                  padding: EdgeInsets.fromLTRB(16, 16, 16, isMobile ? 98 : 24),
+                  children: [
+                    _HeroConversion(
+                      accent: accent,
+                      title: 'Få alle poengene — uten å tenke',
+                      subtitle:
+                          'Premium/Elite gjør at du alltid ser beste poengrate og boost-tilbud. '
+                          'Du handler som vanlig — og får mer tilbake.',
+                      chips: const [
+                        _ProofChip(icon: Icons.store, text: '+200 butikker'),
+                        _ProofChip(icon: Icons.bolt, text: 'Boost & kampanjer'),
+                        _ProofChip(icon: Icons.auto_graph, text: 'Høyeste rate'),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
+
+                    _ValueBar(
+                      accent: accent,
+                      leftTitle: 'Typisk gevinst',
+                      leftBody:
+                          'Du mister ekstra poeng hver gang du handler uten Premium/Elite.',
+                      rightTitle: 'Mål',
+                      rightBody:
+                          'Gjør det lett å samle nok poeng til billigere (eller gratis) reiser.',
+                    ),
+
+                    const SizedBox(height: 16),
+                    _SectionTitle(
+                      title: 'Velg nivå',
+                      subtitle:
+                          'Premium hvis du vil maksimere SAS Shopping. Velg Elite hvis du vil ha alt (SAS + mer).',
+                    ),
+                    const SizedBox(height: 10),
+
+                    _PlanPicker(
+                      accent: accent,
+                      selected: _selected,
+                      onSelect: _select,
+                      onCheckout: _checkout,
+                    ),
+
+                    const SizedBox(height: 18),
+                    _SectionTitle(
+                      title: 'Slik funker det',
+                      subtitle:
+                          'Vi gjør bonusverdenen enkel: finn butikk → handle → få poeng.',
+                    ),
+                    const SizedBox(height: 10),
+                    _Steps(
+                      steps: const [
+                        _StepItem(
+                          n: '1',
+                          title: 'Velg program',
+                          body:
+                              'SAS Shopping og/eller Trumf — du ser hva som gir mest på hvert kjøp.',
+                        ),
+                        _StepItem(
+                          n: '2',
+                          title: 'Handle via riktig butikk',
+                          body:
+                              'Start handelen fra lenken i appen og fullfør kjøpet i samme økt. Hvis du åpner nye faner eller bruker kuponger som ikke er tillatt kan poengene utebli.',
+                        ),
+                        _StepItem(
+                          n: '3',
+                          title: 'Overfør til EuroBonus',
+                          body:
+                              'Trumf kan overføres til EuroBonus. Vi viser hva du får og når det lønner seg.',
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 18),
+                    _SectionTitle(
+                      title: 'Hvorfor Elite?',
+                      subtitle:
+                          'For deg som vil maksimere alt — flere programmer, flere boosts, mer oversikt.',
+                    ),
+                    const SizedBox(height: 10),
+                    _FeatureGrid(
+                      accent: accent,
+                      items: const [
+                        _FeatureItem(
+                          icon: Icons.public,
+                          title: 'Flere programmer',
+                          body: 'SAS + SkyTeam + Trumf m.fl. (trinnvis utrulling).',
+                        ),
+                        _FeatureItem(
+                          icon: Icons.star,
+                          title: 'Smartere anbefalinger',
+                          body: 'Vi fremhever beste rate og aktive boosts først.',
+                        ),
+                        _FeatureItem(
+                          icon: Icons.favorite,
+                          title: 'Favoritter på tvers',
+                          body:
+                              'Samme favorittliste for SAS og Trumf — én oversikt.',
+                        ),
+                        _FeatureItem(
+                          icon: Icons.notifications_active,
+                          title: 'Bedre varsler',
+                          body:
+                              'Prioriterte kampanjer + store boosts (kommer).',
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 18),
+                    _SectionTitle(
+                      title: 'FAQ',
+                      subtitle: 'Fjerner friksjon før kjøp.',
+                    ),
+                    const SizedBox(height: 10),
+                    const _Faq(
+                      items: [
+                        _FaqItem(
+                          q: 'Må jeg binde meg?',
+                          a: 'Nei. Ingen binding — avslutt når som helst.',
+                        ),
+                        _FaqItem(
+                          q: 'Hva er forskjellen på Premium og Elite?',
+                          a: 'Premium fokuserer på SAS Shopping. Elite gir mer: flere programmer og mer maksimalisering.',
+                        ),
+                        _FaqItem(
+                          q: 'Må jeg legge inn EuroBonus-nummer?',
+                          a: 'Ikke for å bruke appen, men for full verdi (tracking/oversikt) blir det anbefalt.',
+                        ),
+                        _FaqItem(
+                          q: 'Trumf → EuroBonus: hvordan funker det?',
+                          a: 'Trumf kan overføres til EuroBonus. Vi viser hva du får og hva som lønner seg per kjøp.',
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 18),
+                    Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: cs.surface.withValues(alpha: 0.82),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: cs.onSurface.withValues(alpha: 0.10)),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.lock_open, color: accent),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              'Klar for å låse opp alle poengene?',
+                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                    fontWeight: FontWeight.w900,
+                                  ),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          FilledButton(
+                            style: FilledButton.styleFrom(
+                              backgroundColor: accent,
+                              foregroundColor: Colors.black,
+                              textStyle: const TextStyle(fontWeight: FontWeight.w900),
+                            ),
+                            onPressed: () => _checkout(_selected),
+                            child: Text(_selected == 'Elite' ? 'Start Elite' : 'Premium'),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            if (isMobile)
+        ],
+      ),
+    );
+  }
+}

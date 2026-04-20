@@ -1,0 +1,2955 @@
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+
+import '../services/api_service.dart';
+import 'bonusvarsel_alerts_page.dart';
+import 'bonusvarsel_device_monitor_page.dart';
+import 'bonusvarsel_dev_tools_page.dart';
+import 'bonusvarsel_notifications_page.dart';
+import 'bonusvarsel_push_preview_page.dart';
+import '../widgets/dev_pipeline_panel.dart';
+
+
+class BonusvarselDevHubPage extends StatefulWidget {
+  const BonusvarselDevHubPage({super.key});
+
+  @override
+  State<BonusvarselDevHubPage> createState() => _BonusvarselDevHubPageState();
+}
+
+
+class _StaticInfoChip extends StatelessWidget {
+  final String label;
+  final String value;
+
+  const _StaticInfoChip({
+    required this.label,
+    required this.value,
+  });
+
+  @override
+  @override
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(999),
+        color: Colors.black.withValues(alpha: 0.06),
+        border: Border.all(color: const Color(0xFFE5E7EB)),
+      ),
+      child: Text(
+        '$label: $value',
+        style: const TextStyle(
+          fontWeight: FontWeight.w800,
+          fontSize: 12,
+        ),
+      ),
+    );
+  }
+}
+
+class _BonusvarselDevHubPageState extends State<BonusvarselDevHubPage> {
+<<<<<<< Updated upstream
+=======
+  static const bool _devHubEnabled = bool.fromEnvironment('ENABLE_DEV_HUB', defaultValue: false);
+
+  Map<String, dynamic>? _systemHealth;
+>>>>>>> Stashed changes
+  // AI_ANCHOR: DEV_HUB_STATE_START
+  bool _sendingTestPush = false;
+  bool _queueBusy = false;
+  bool _simulatingAlert = false;
+<<<<<<< Updated upstream
+  bool _pushTestExpanded = true;
+  bool _systemHealthExpanded = true;
+=======
+  final bool _pushTestExpanded = true;
+>>>>>>> Stashed changes
+  Map<String, dynamic>? _lastSendTestResult;
+  Map<String, dynamic>? _queueState;
+  Map<String, dynamic>? _alertSimulationResult;
+  final List<Map<String, dynamic>> _alertSimulationHistory = [];
+  int? _pinnedSimulationIndex;
+  bool _simulationHistoryExpanded = true;
+  int _simRate = 18;
+  String _simLevel = 'premium';
+  bool _simCampaign = true;
+
+  String _lastSendTestStatus = 'idle';
+  bool _loadingHealth = false;
+  Map<String, dynamic>? _systemHealth;
+
+  final _dispatchKey = GlobalKey();
+  final _devicesKey = GlobalKey();
+
+
+  // AI_ANCHOR: DEV_HUB_LIFECYCLE_START
+  @override
+  void initState() {
+    super.initState();
+    _loadSystemHealth();
+    _loadQueueState();
+  }
+
+  Future<void> _loadSystemHealth() async {
+    setState(() => _loadingHealth = true);
+
+    try {
+      final health = await ApiService.getHealth();
+      final feed = await ApiService.getFeed();
+      final notifications = await ApiService.getActivatedNotifications();
+
+      if (!mounted) return;
+
+      setState(() {
+        _systemHealth = {
+          'apiOk': health['ok'] == true,
+          'feedCount': feed.length,
+          'notificationCount': notifications['count'] ?? 0,
+          'checkedAt': DateTime.now().toIso8601String(),
+        };
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _systemHealth = {
+          'apiOk': false,
+          'feedCount': 0,
+          'notificationCount': 0,
+          'checkedAt': DateTime.now().toIso8601String(),
+          'error': e.toString(),
+        };
+      });
+    } finally {
+      if (mounted) {
+        setState(() => _loadingHealth = false);
+      }
+    }
+  }
+
+  Future<void> _sendTestPush() async {
+    setState(() {
+      _sendingTestPush = true;
+      _lastSendTestStatus = 'running';
+    });
+
+    try {
+      final res = await ApiService.sendTestPush();
+      if (!mounted) return;
+
+      setState(() {
+        _lastSendTestResult = res;
+        _lastSendTestStatus = 'success';
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Test-push ok • sent: ${res['sentCount'] ?? 0} • dispatches: ${res['dispatchCount'] ?? 0}',
+          ),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        _lastSendTestResult = {
+          'error': e.toString(),
+          'failedAt': DateTime.now().toIso8601String(),
+        };
+        _lastSendTestStatus = 'error';
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Test-push feilet: $e')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _sendingTestPush = false);
+      }
+    }
+  }
+
+
+<<<<<<< Updated upstream
+  String _simulationSummaryText(Map<String, dynamic> entry) {
+    final offer = entry['offer'] as Map<String, dynamic>?;
+    final evaluation = entry['evaluation'] as Map<String, dynamic>?;
+
+    return [
+      'Bonusvarsel simulation',
+      'Rate: ${offer?['rateText'] ?? '-'}',
+      'Level: ${offer?['level'] ?? '-'}',
+      'Campaign: ${offer?['campaign'] ?? '-'}',
+      'Score: ${evaluation?['score'] ?? '-'}',
+      'Momentum: ${evaluation?['momentum'] ?? '-'}',
+      'Timing: ${evaluation?['timing'] ?? '-'}',
+      'Notify: ${evaluation?['shouldNotify'] ?? '-'}',
+      'Reason: ${(evaluation?['reason'] ?? '-').toString()}',
+      'Simulated at: ${entry['simulatedAt'] ?? '-'}',
+    ].join('\n');
+  }
+
+  Future<void> _copySimulationSummary(Map<String, dynamic> entry) async {
+    await Clipboard.setData(
+      ClipboardData(text: _simulationSummaryText(entry)),
+    );
+
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Simulation summary kopiert')),
+    );
+  }
+
+  void _scrollTo(GlobalKey key) {
+    final ctx = key.currentContext;
+    if (ctx != null) {
+      Scrollable.ensureVisible(
+        ctx,
+        duration: const Duration(milliseconds: 350),
+        curve: Curves.easeOut,
+      );
+    }
+  }
+
+=======
+>>>>>>> Stashed changes
+  Widget _entry(
+    BuildContext context, {
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required Widget page,
+    Key? containerKey,
+  }) {
+    return Container(
+      key: containerKey,
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(18),
+        color: const Color(0xFF111827),
+        border: Border.all(color: const Color(0xFFE5E7EB)),
+      ),
+      child: ListTile(
+        leading: Icon(icon),
+        title: Text(
+          title,
+          style: const TextStyle(fontWeight: FontWeight.w800),
+        ),
+        subtitle: Text(subtitle),
+        trailing: const Icon(Icons.chevron_right),
+        onTap: () {
+          Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => page),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _statusCard({
+    required String label,
+    required String value,
+    required IconData icon,
+    VoidCallback? onTap,
+  }) {
+  
+return InkWell(
+
+      borderRadius: BorderRadius.circular(18),
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(18),
+          color: Colors.white,
+          border: Border.all(color: Colors.black12),
+        ),
+        child: Row(
+          children: [
+        const DevPipelinePanel(),
+            Icon(icon, size: 20),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: TextStyle(
+                      color: Colors.black.withValues(alpha: 0.82),
+                      fontWeight: FontWeight.w700,
+                      fontSize: 12,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    value,
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+
+
+
+
+  Future<void> _triggerAlertSimulation() async {
+    setState(() => _simulatingAlert = true);
+
+    try {
+      final res = await ApiService.simulateAlert();
+      if (!mounted) return;
+
+      setState(() {
+        _alertSimulationResult = res;
+        _alertSimulationHistory.insert(0, Map<String, dynamic>.from(res));
+        if (_alertSimulationHistory.length > 8) {
+          _alertSimulationHistory.removeRange(8, _alertSimulationHistory.length);
+        }
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Alert simulation ok')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Alert simulation feilet: $e')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _simulatingAlert = false);
+      }
+    }
+  }
+
+
+
+
+  Future<void> _runSimulationEntryAgain(Map<String, dynamic> entry) async {
+    final rateRaw = entry['rate'];
+    final levelRaw = entry['level'];
+    final campaignRaw = entry['campaign'];
+
+    final rate = rateRaw is int
+        ? rateRaw
+        : rateRaw is num
+            ? rateRaw.toInt()
+            : _simRate;
+
+    final level = levelRaw is String ? levelRaw : _simLevel;
+    final campaign = campaignRaw is bool ? campaignRaw : _simCampaign;
+
+    setState(() {
+      _simRate = rate;
+      _simLevel = level;
+      _simCampaign = campaign;
+    });
+
+    await _triggerAlertSimulation();
+  }
+
+  void _loadSimulationFromHistory(Map<String, dynamic> entry) {
+    final rate = entry['rate'];
+    final level = entry['level'];
+    final campaign = entry['campaign'];
+
+    setState(() {
+      _alertSimulationResult = Map<String, dynamic>.from(entry);
+
+      if (rate is int) {
+        _simRate = rate;
+      } else if (rate is num) {
+        _simRate = rate.toInt();
+      }
+
+      if (level is String &&
+          (level == 'standard' ||
+              level == 'boost' ||
+              level == 'premium' ||
+              level == 'elite')) {
+        _simLevel = level;
+      }
+
+      if (campaign is bool) {
+        _simCampaign = campaign;
+      }
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Simulering lastet fra historikk')),
+    );
+  }
+
+
+
+  void _togglePinnedSimulation(int index) {
+    setState(() {
+      if (_pinnedSimulationIndex == index) {
+        _pinnedSimulationIndex = null;
+      } else {
+        _pinnedSimulationIndex = index;
+      }
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          _pinnedSimulationIndex == index
+              ? 'Simulering pinnet'
+              : 'Pin fjernet',
+        ),
+      ),
+    );
+  }
+
+  int _bestSimulationIndex() {
+    if (_alertSimulationHistory.isEmpty) {
+      return -1;
+    }
+
+    var bestIndex = 0;
+    var bestScore = -999999.0;
+    var bestMomentum = -999999.0;
+
+    for (var i = 0; i < _alertSimulationHistory.length; i++) {
+      final entry = _alertSimulationHistory[i];
+      final evaluation = entry['evaluation'] as Map<String, dynamic>?;
+      final score = (evaluation?['score'] as num?)?.toDouble() ?? -999999.0;
+      final momentum =
+          (evaluation?['momentum'] as num?)?.toDouble() ?? -999999.0;
+
+      if (score > bestScore ||
+          (score == bestScore && momentum > bestMomentum)) {
+        bestIndex = i;
+        bestScore = score;
+        bestMomentum = momentum;
+      }
+    }
+
+    return bestIndex;
+  }
+
+
+  // AI_ANCHOR: DEV_HUB_ALERT_HISTORY_START
+  Widget _alertSimulationHistoryCard() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(18),
+        color: const Color(0xFF111827),
+        border: Border.all(color: const Color(0xFFE5E7EB)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          InkWell(
+            borderRadius: BorderRadius.circular(12),
+            onTap: () {
+              setState(() {
+                _simulationHistoryExpanded = !_simulationHistoryExpanded;
+              });
+            },
+            child: Row(
+              children: [
+                const Expanded(
+                  child: Text(
+                    'Simulation history',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+                Icon(
+                  _simulationHistoryExpanded
+                      ? Icons.keyboard_arrow_up
+                      : Icons.keyboard_arrow_down,
+                ),
+              ],
+            ),
+          ),
+          if (_simulationHistoryExpanded) ...[
+            const SizedBox(height: 10),
+            if (_alertSimulationHistory.isEmpty)
+              const Text(
+                'Ingen simuleringer ennå.',
+                style: TextStyle(fontWeight: FontWeight.w700),
+              )
+            else
+              ..._alertSimulationHistory.asMap().entries.map((pair) {
+                final index = pair.key;
+                final entry = pair.value;
+                final offer = entry['offer'] as Map<String, dynamic>?;
+                final evaluation = entry['evaluation'] as Map<String, dynamic>?;
+                final summary = _alertSummary(evaluation);
+                final expanded = _expandedHistoryRows.contains(index);
+                final isBest = index == _bestSimulationIndex();
+                final isPinned = _pinnedSimulationIndex == index;
+
+                return Container(
+                  width: double.infinity,
+                  margin: const EdgeInsets.only(bottom: 10),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(14),
+                    color: Colors.black.withValues(alpha: 0.03),
+                    border: Border.all(color: Colors.black12),
+                  ),
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(14),
+                    onTap: () {
+                      setState(() {
+                        if (expanded) {
+                          _expandedHistoryRows.remove(index);
+                        } else {
+                          _expandedHistoryRows.add(index);
+                        }
+                      });
+                    },
+                    child: Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Wrap(
+                                  spacing: 8,
+                                  runSpacing: 8,
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 10,
+                                        vertical: 8,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        borderRadius: BorderRadius.circular(999),
+                                        color: summary.color.withValues(alpha: 0.10),
+                                        border: Border.all(
+                                          color: summary.color.withValues(alpha: 0.35),
+                                        ),
+                                      ),
+                                      child: Text(
+                                        summary.label,
+                                        style: TextStyle(
+                                          color: summary.color,
+                                          fontWeight: FontWeight.w900,
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                    ),
+                                    if (isBest)
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 10,
+                                          vertical: 8,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          borderRadius: BorderRadius.circular(999),
+                                          color: const Color(0xFFD4AF37).withValues(alpha: 0.12),
+                                          border: Border.all(
+                                            color: const Color(0xFFD4AF37).withValues(alpha: 0.45),
+                                          ),
+                                        ),
+                                        child: const Text(
+                                          'BEST SO FAR',
+                                          style: TextStyle(
+                                            color: Color(0xFF8A6A00),
+                                            fontWeight: FontWeight.w900,
+                                            fontSize: 12,
+                                          ),
+                                        ),
+                                      ),
+                                    if (isPinned)
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 10,
+                                          vertical: 8,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          borderRadius: BorderRadius.circular(999),
+                                          color: Colors.deepPurple.withValues(alpha: 0.12),
+                                          border: Border.all(
+                                            color: Colors.deepPurple.withValues(alpha: 0.35),
+                                          ),
+                                        ),
+                                        child: const Text(
+                                          'PINNED',
+                                          style: TextStyle(
+                                            color: Colors.deepPurple,
+                                            fontWeight: FontWeight.w900,
+                                            fontSize: 12,
+                                          ),
+                                        ),
+                                      ),
+                                    _metricChip('Rate', '${offer?['rateText'] ?? '-'}'),
+                                    _metricChip('Level', '${offer?['level'] ?? '-'}'),
+                                    _metricChip('Campaign', '${offer?['campaign'] ?? '-'}'),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Icon(
+                                expanded
+                                    ? Icons.keyboard_arrow_up
+                                    : Icons.keyboard_arrow_down,
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 10),
+                          _scoreMeter(
+                            label: 'Score',
+                            value: (evaluation?['score'] as num?) ?? 0,
+                            maxValue: 35,
+                          ),
+                          const SizedBox(height: 8),
+                          _scoreMeter(
+                            label: 'Momentum',
+                            value: (evaluation?['momentum'] as num?) ?? 0,
+                            maxValue: 40,
+                          ),
+                          if (expanded) ...[
+                            const SizedBox(height: 8),
+                            Text(
+                              'Reason: ${(evaluation?['reason'] ?? '-').toString()}',
+                              style: TextStyle(
+                                color: Colors.black.withValues(alpha: 0.90),
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            if (evaluation != null) _alertRuleDebugCard(evaluation),
+                            const SizedBox(height: 6),
+                            Text(
+                              'Simulated at: ${entry['simulatedAt'] ?? '-'}',
+                              style: TextStyle(
+                                color: Colors.black.withValues(alpha: 0.82),
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              children: [
+                                OutlinedButton.icon(
+                                  onPressed: () => _loadSimulationFromHistory(entry),
+                                  icon: const Icon(Icons.upload_outlined, size: 16),
+                                  label: const Text('Load'),
+                                ),
+                                OutlinedButton.icon(
+                                  onPressed: () => _runSimulationEntryAgain(entry),
+                                  icon: const Icon(Icons.replay, size: 16),
+                                  label: const Text('Run again'),
+                                ),
+                                OutlinedButton.icon(
+                                  onPressed: () => _copySimulationSummary(entry),
+                                  icon: const Icon(Icons.copy_outlined, size: 16),
+                                  label: const Text('Copy'),
+                                ),
+                                OutlinedButton.icon(
+                                  onPressed: () => _togglePinnedSimulation(index),
+                                  icon: Icon(
+                                    isPinned ? Icons.push_pin : Icons.push_pin_outlined,
+                                    size: 16,
+                                  ),
+                                  label: Text(isPinned ? 'Unpin' : 'Pin'),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              }),
+          ],
+        ],
+      ),
+    );
+  }
+
+
+  Widget _alertRuleDebugCard(Map<String, dynamic> evaluation) {
+    final debug = evaluation['debug'] as Map<String, dynamic>?;
+
+    if (debug == null) {
+      return const SizedBox.shrink();
+    }
+
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(top: 12),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        color: Colors.black.withValues(alpha: 0.03),
+        border: Border.all(color: Colors.black12),
+      ),
+      child: ListView(
+        padding: const EdgeInsets.only(bottom: 48),
+        children: [
+          const Text(
+            'Alert rule debug',
+            style: TextStyle(
+              fontWeight: FontWeight.w900,
+              color: Colors.black,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _metricChip('Base rate', '${debug['baseRate'] ?? '-'}'),
+              _metricChip('Campaign bonus', '${debug['campaignBonus'] ?? '-'}'),
+              _metricChip('Level bonus', '${debug['levelBonus'] ?? '-'}'),
+              _metricChip(
+                'Score pass',
+                '${debug['scoreThresholdPassed'] ?? '-'}',
+              ),
+              _metricChip(
+                'Momentum pass',
+                '${debug['momentumThresholdPassed'] ?? '-'}',
+              ),
+              _metricChip(
+                'Cooldown blocked',
+                '${debug['cooldownBlocked'] ?? '-'}',
+              ),
+              _metricChip(
+                'Final decision',
+                '${debug['finalDecision'] ?? '-'}',
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+
+
+  ({String label, Color color}) _compareSummary({
+    required num scoreDiff,
+    required num momentumDiff,
+    required bool latestDecision,
+    required bool previousDecision,
+  }) {
+    if (latestDecision && !previousDecision) {
+      return (label: 'Improved signal', color: Colors.green);
+    }
+
+    if (!latestDecision && previousDecision) {
+      return (label: 'Weaker than previous', color: Colors.red);
+    }
+
+    final combined = scoreDiff + momentumDiff;
+
+    if (combined >= 3) {
+      return (label: 'Improved signal', color: Colors.green);
+    }
+
+    if (combined <= -3) {
+      return (label: 'Weaker than previous', color: Colors.red);
+    }
+
+    return (label: 'No material change', color: Colors.blueGrey);
+  }
+
+
+
+
+  ({String label, Color color}) _pinnedCompareSummary({
+    required num scoreDiff,
+    required num momentumDiff,
+    required bool latestDecision,
+    required bool pinnedDecision,
+  }) {
+    if (latestDecision && !pinnedDecision) {
+      return (label: 'Better than pinned', color: Colors.green);
+    }
+
+    if (!latestDecision && pinnedDecision) {
+      return (label: 'Worse than pinned', color: Colors.red);
+    }
+
+    final combined = scoreDiff + momentumDiff;
+
+    if (combined >= 3) {
+      return (label: 'Better than pinned', color: Colors.green);
+    }
+
+    if (combined <= -3) {
+      return (label: 'Worse than pinned', color: Colors.red);
+    }
+
+    return (label: 'Matches pinned baseline', color: Colors.blueGrey);
+  }
+
+
+  Widget _compareAgainstPinnedCard() {
+    if (_alertSimulationResult == null || _pinnedSimulationIndex == null) {
+      return const SizedBox.shrink();
+    }
+
+    if (_pinnedSimulationIndex! < 0 ||
+        _pinnedSimulationIndex! >= _alertSimulationHistory.length) {
+      return const SizedBox.shrink();
+    }
+
+    final latest = _alertSimulationResult!;
+    final pinned = _alertSimulationHistory[_pinnedSimulationIndex!];
+
+    final latestEval = latest['evaluation'] as Map<String, dynamic>?;
+    final pinnedEval = pinned['evaluation'] as Map<String, dynamic>?;
+
+    if (latestEval == null || pinnedEval == null) {
+      return const SizedBox.shrink();
+    }
+
+    final latestScore = (latestEval['score'] as num?) ?? 0;
+    final pinnedScore = (pinnedEval['score'] as num?) ?? 0;
+    final latestMomentum = (latestEval['momentum'] as num?) ?? 0;
+    final pinnedMomentum = (pinnedEval['momentum'] as num?) ?? 0;
+    final latestDecision = latestEval['shouldNotify'] == true;
+    final pinnedDecision = pinnedEval['shouldNotify'] == true;
+
+    final scoreDiff = latestScore - pinnedScore;
+    final momentumDiff = latestMomentum - pinnedMomentum;
+    final summary = _pinnedCompareSummary(
+      scoreDiff: scoreDiff,
+      momentumDiff: momentumDiff,
+      latestDecision: latestDecision,
+      pinnedDecision: pinnedDecision,
+    );
+
+    String diffText(num value) {
+      if (value > 0) return '+${value.toString()}';
+      return value.toString();
+    }
+
+    Color diffColor(num value) {
+      if (value > 0) return Colors.green;
+      if (value < 0) return Colors.red;
+      return Colors.blueGrey;
+    }
+
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(top: 12),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        color: Colors.black.withValues(alpha: 0.03),
+        border: Border.all(color: Colors.black12),
+      ),
+      child: ListView(
+        padding: const EdgeInsets.only(bottom: 48),
+        children: [
+          const Text(
+            'Compare against pinned',
+            style: TextStyle(
+              fontWeight: FontWeight.w900,
+              color: Colors.black,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(999),
+              color: summary.color.withValues(alpha: 0.10),
+              border: Border.all(
+                color: summary.color.withValues(alpha: 0.35),
+              ),
+            ),
+            child: Text(
+              summary.label,
+              style: TextStyle(
+                color: summary.color,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _metricChip('Score now', '$latestScore'),
+              _metricChip('Score pinned', '$pinnedScore'),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(999),
+                  color: diffColor(scoreDiff).withValues(alpha: 0.10),
+                  border: Border.all(
+                    color: diffColor(scoreDiff).withValues(alpha: 0.35),
+                  ),
+                ),
+                child: Text(
+                  'Δ Score ${diffText(scoreDiff)}',
+                  style: TextStyle(
+                    color: diffColor(scoreDiff),
+                    fontWeight: FontWeight.w900,
+                    fontSize: 12,
+                  ),
+                ),
+              ),
+              _metricChip('Momentum now', '$latestMomentum'),
+              _metricChip('Momentum pinned', '$pinnedMomentum'),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(999),
+                  color: diffColor(momentumDiff).withValues(alpha: 0.10),
+                  border: Border.all(
+                    color: diffColor(momentumDiff).withValues(alpha: 0.35),
+                  ),
+                ),
+                child: Text(
+                  'Δ Momentum ${diffText(momentumDiff)}',
+                  style: TextStyle(
+                    color: diffColor(momentumDiff),
+                    fontWeight: FontWeight.w900,
+                    fontSize: 12,
+                  ),
+                ),
+              ),
+              _metricChip('Timing now', '${latestEval['timing'] ?? '-'}'),
+              _metricChip('Timing pinned', '${pinnedEval['timing'] ?? '-'}'),
+              _metricChip(
+                'Decision now',
+                '${latestEval['shouldNotify'] ?? '-'}',
+              ),
+              _metricChip(
+                'Decision pinned',
+                '${pinnedEval['shouldNotify'] ?? '-'}',
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+
+  Widget _simulationCompareCard() {
+    if (_alertSimulationHistory.length < 2) {
+      return const SizedBox.shrink();
+    }
+
+    final latest = _alertSimulationHistory[0];
+    final previous = _alertSimulationHistory[1];
+
+    final latestEval = latest['evaluation'] as Map<String, dynamic>?;
+    final previousEval = previous['evaluation'] as Map<String, dynamic>?;
+
+    if (latestEval == null || previousEval == null) {
+      return const SizedBox.shrink();
+    }
+
+    final latestScore = (latestEval['score'] as num?) ?? 0;
+    final previousScore = (previousEval['score'] as num?) ?? 0;
+    final latestMomentum = (latestEval['momentum'] as num?) ?? 0;
+    final previousMomentum = (previousEval['momentum'] as num?) ?? 0;
+    final latestDecision = latestEval['shouldNotify'] == true;
+    final previousDecision = previousEval['shouldNotify'] == true;
+
+    final scoreDiff = latestScore - previousScore;
+    final momentumDiff = latestMomentum - previousMomentum;
+    final summary = _compareSummary(
+      scoreDiff: scoreDiff,
+      momentumDiff: momentumDiff,
+      latestDecision: latestDecision,
+      previousDecision: previousDecision,
+    );
+
+    String diffText(num value) {
+      if (value > 0) return '+${value.toString()}';
+      return value.toString();
+    }
+
+    Color diffColor(num value) {
+      if (value > 0) return Colors.green;
+      if (value < 0) return Colors.red;
+      return Colors.blueGrey;
+    }
+
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(top: 12),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        color: Colors.black.withValues(alpha: 0.03),
+        border: Border.all(color: Colors.black12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Compare vs previous',
+            style: TextStyle(
+              fontWeight: FontWeight.w900,
+              color: Colors.black,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(999),
+              color: summary.color.withValues(alpha: 0.10),
+              border: Border.all(
+                color: summary.color.withValues(alpha: 0.35),
+              ),
+            ),
+            child: Text(
+              summary.label,
+              style: TextStyle(
+                color: summary.color,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _metricChip('Score now', '$latestScore'),
+              _metricChip('Score prev', '$previousScore'),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(999),
+                  color: diffColor(scoreDiff).withValues(alpha: 0.10),
+                  border: Border.all(
+                    color: diffColor(scoreDiff).withValues(alpha: 0.35),
+                  ),
+                ),
+                child: Text(
+                  'Δ Score ${diffText(scoreDiff)}',
+                  style: TextStyle(
+                    color: diffColor(scoreDiff),
+                    fontWeight: FontWeight.w900,
+                    fontSize: 12,
+                  ),
+                ),
+              ),
+              _metricChip('Momentum now', '$latestMomentum'),
+              _metricChip('Momentum prev', '$previousMomentum'),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(999),
+                  color: diffColor(momentumDiff).withValues(alpha: 0.10),
+                  border: Border.all(
+                    color: diffColor(momentumDiff).withValues(alpha: 0.35),
+                  ),
+                ),
+                child: Text(
+                  'Δ Momentum ${diffText(momentumDiff)}',
+                  style: TextStyle(
+                    color: diffColor(momentumDiff),
+                    fontWeight: FontWeight.w900,
+                    fontSize: 12,
+                  ),
+                ),
+              ),
+              _metricChip('Timing now', '${latestEval['timing'] ?? '-'}'),
+              _metricChip('Timing prev', '${previousEval['timing'] ?? '-'}'),
+              _metricChip(
+                'Decision now',
+                '${latestEval['shouldNotify'] ?? '-'}',
+              ),
+              _metricChip(
+                'Decision prev',
+                '${previousEval['shouldNotify'] ?? '-'}',
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+
+  // AI_ANCHOR: DEV_HUB_ALERT_SIM_START
+  Widget _alertSimulationCard() {
+    final result = _alertSimulationResult;
+    final offer = result?['offer'] as Map<String, dynamic>?;
+    final evaluation = result?['evaluation'] as Map<String, dynamic>?;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(18),
+        color: const Color(0xFF111827),
+        border: Border.all(color: const Color(0xFFE5E7EB)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Alert simulation',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w900,
+              color: Colors.white,
+            ),
+          ),
+          const SizedBox(height: 10),
+          
+          const SizedBox(height: 12),
+
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  decoration: const InputDecoration(
+                    labelText: 'Rate',
+                  ),
+                  controller: TextEditingController(text: _simRate.toString()),
+                  keyboardType: TextInputType.number,
+                  onChanged: (v) {
+                    final n = int.tryParse(v);
+                    if (n != null) setState(() => _simRate = n);
+                  },
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: DropdownButton<String>(
+                  value: _simLevel,
+                  isExpanded: true,
+                  items: const [
+                    DropdownMenuItem(value: 'standard', child: Text('standard')),
+                    DropdownMenuItem(value: 'boost', child: Text('boost')),
+                    DropdownMenuItem(value: 'premium', child: Text('premium')),
+                    DropdownMenuItem(value: 'elite', child: Text('elite')),
+                  ],
+                  onChanged: (v) {
+                    if (v != null) setState(() => _simLevel = v);
+                  },
+                ),
+              ),
+              const SizedBox(width: 12),
+              Switch(
+                value: _simCampaign,
+                onChanged: (v) {
+                  setState(() => _simCampaign = v);
+                },
+              ),
+            ],
+          ),
+
+FilledButton.icon(
+            onPressed: _simulatingAlert ? null : _triggerAlertSimulation,
+            icon: const Icon(Icons.bolt_outlined),
+            label: Text(
+              _simulatingAlert
+                  ? 'Simulerer…'
+                  : 'Trigger Alert Simulation',
+            ),
+          ),
+          const SizedBox(height: 12),
+          if (result == null)
+            const Text(
+              'Ingen simulering kjørt ennå.',
+              style: TextStyle(
+                fontWeight: FontWeight.w700,
+                color: Color(0xFFD1D5DB),
+              ),
+            )
+          else ...[
+            _simulationCompareCard(),
+            if (_alertSimulationHistory.length >= 2) const SizedBox(height: 12),
+            _compareAgainstPinnedCard(),
+            if (_pinnedSimulationIndex != null) const SizedBox(height: 12),
+            if (offer != null)
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  _metricChip('Rate', '${offer['rateText'] ?? '-'}'),
+                ],
+              ),
+            if (evaluation != null) ...[
+              const SizedBox(height: 12),
+              Builder(
+                builder: (_) {
+                  final summary = _alertSummary(evaluation);
+                  return Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 10,
+                    ),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(999),
+                      color: summary.color.withValues(alpha: 0.10),
+                      border: Border.all(
+                        color: summary.color.withValues(alpha: 0.35),
+                      ),
+                    ),
+                    child: Text(
+                      summary.label,
+                      style: TextStyle(
+                        color: summary.color,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  );
+                },
+              ),
+              const SizedBox(height: 12),
+              _scoreMeter(
+                label: 'Score',
+                value: (evaluation['score'] as num?) ?? 0,
+                maxValue: 35,
+              ),
+              const SizedBox(height: 10),
+              _scoreMeter(
+                label: 'Momentum',
+                value: (evaluation['momentum'] as num?) ?? 0,
+                maxValue: 40,
+              ),
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  _metricChip('Score', '${evaluation['score'] ?? '-'}'),
+                  _metricChip('Momentum', '${evaluation['momentum'] ?? '-'}'),
+                  _metricChip('Timing', '${evaluation['timing'] ?? '-'}'),
+                  _metricChip('Notify', '${evaluation['shouldNotify'] ?? '-'}'),
+                ],
+              ),
+              const SizedBox(height: 10),
+              Text(
+                'Reason: ${(evaluation['reason'] ?? '-').toString()}',
+                style: const TextStyle(
+                  color: Color(0xFFE5E7EB),
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              if (evaluation['cooldownRemainingSec'] != null) ...[
+                const SizedBox(height: 6),
+                Text(
+                  'Cooldown remaining: ${evaluation['cooldownRemainingSec']} sec',
+                  style: const TextStyle(
+                    color: Color(0xFFD1D5DB),
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+              _alertRuleDebugCard(evaluation),
+              if (evaluation['timeline'] is List) ...[
+                const SizedBox(height: 12),
+                const Text(
+                  'Decision timeline',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w900,
+                    color: Colors.white,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                ...((evaluation['timeline'] as List).map<Widget>((step) {
+                  final item = step as Map<String, dynamic>;
+                  final key = '${item['key'] ?? '-'}';
+                  final value = item['value'];
+                  final tone = _timelineColor(key, value);
+
+                  return Container(
+                    width: double.infinity,
+                    margin: const EdgeInsets.only(bottom: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 10,
+                    ),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(12),
+                      color: tone.withValues(alpha: 0.08),
+                      border: Border.all(
+                        color: tone.withValues(alpha: 0.35),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            key,
+                            style: TextStyle(
+                              fontWeight: FontWeight.w800,
+                              color: tone,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Text(
+                          '$value',
+                          style: TextStyle(
+                            color: tone,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }).toList()),
+              ],
+            ],
+            const SizedBox(height: 8),
+            Text(
+              'Simulated at: ${result['simulatedAt'] ?? '-'}',
+              style: const TextStyle(
+                color: Color(0xFF9CA3AF),
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Future<void> _loadQueueState() async {
+    try {
+      final res = await ApiService.getPushQueue();
+      if (!mounted) return;
+      setState(() => _queueState = res);
+    } catch (_) {}
+  }
+
+  Future<void> _enqueueTestPush() async {
+    setState(() => _queueBusy = true);
+    try {
+      final res = await ApiService.enqueueTestPush();
+      if (!mounted) return;
+      setState(() => _queueState = {
+            'queue': res['queue'],
+            'items': res['items'],
+          });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Queue enqueue ok • queued: ${res['queuedCount'] ?? 0}',
+          ),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Queue enqueue feilet: $e')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _queueBusy = false);
+      }
+    }
+  }
+
+  Future<void> _processQueue() async {
+    setState(() => _queueBusy = true);
+    try {
+      final res = await ApiService.processPushQueue();
+      if (!mounted) return;
+      setState(() => _queueState = {
+            'queue': res['result'],
+            'items': res['items'],
+          });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Queue prosessert')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Process queue feilet: $e')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _queueBusy = false);
+      }
+    }
+  }
+
+  Future<void> _clearQueue() async {
+    setState(() => _queueBusy = true);
+    try {
+      final res = await ApiService.clearPushQueue();
+      if (!mounted) return;
+      setState(() => _queueState = {
+            'queue': res['queue'],
+            'items': const [],
+          });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Queue tømt')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Clear queue feilet: $e')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _queueBusy = false);
+      }
+    }
+  }
+
+  // AI_ANCHOR: DEV_HUB_QUEUE_START
+  Widget _queueActionsCard() {
+    final queue = _queueState?['queue'] as Map<String, dynamic>?;
+    final total = queue?['total'] ?? 0;
+    final queued = queue?['queued'] ?? 0;
+    final processed = queue?['processed'] ?? 0;
+    final items = (_queueState?['items'] as List?) ?? const [];
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(18),
+        color: const Color(0xFF111827),
+        border: Border.all(color: const Color(0xFFE5E7EB)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Queue actions',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w900,
+              color: Colors.white,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _metricChip('Total', '$total'),
+              _metricChip('Queued', '$queued'),
+              _metricChip('Processed', '$processed'),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              FilledButton.icon(
+                onPressed: _queueBusy ? null : _enqueueTestPush,
+                icon: const Icon(Icons.queue),
+                label: const Text('Enqueue test'),
+              ),
+              FilledButton.icon(
+                onPressed: _queueBusy ? null : _loadQueueState,
+                icon: const Icon(Icons.refresh),
+                label: const Text('Refresh queue'),
+              ),
+              OutlinedButton.icon(
+                onPressed: _queueBusy ? null : _processQueue,
+                icon: const Icon(Icons.play_arrow),
+                label: const Text('Process queue'),
+              ),
+              OutlinedButton.icon(
+                onPressed: _queueBusy ? null : _clearQueue,
+                icon: const Icon(Icons.clear_all),
+                label: const Text('Clear queue'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          const Text(
+            'Queue items',
+            style: TextStyle(
+              fontWeight: FontWeight.w900,
+              color: Colors.white,
+            ),
+          ),
+          const SizedBox(height: 10),
+          if (items.isEmpty)
+            const Text(
+              'Ingen queue-items ennå.',
+              style: TextStyle(
+                fontWeight: FontWeight.w700,
+                color: Color(0xFFD1D5DB),
+              ),
+            )
+          else
+            ...items.take(10).map<Widget>((item) {
+              final queueItem = item as Map<String, dynamic>;
+              final payload = queueItem['payload'] as Map<String, dynamic>?;
+              final dispatch = payload?['dispatch'] as Map<String, dynamic>?;
+              final evaluation = payload?['evaluation'] as Map<String, dynamic>?;
+
+              return Container(
+                width: double.infinity,
+                margin: const EdgeInsets.only(bottom: 10),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(14),
+                  color: Colors.black.withValues(alpha: 0.03),
+                  border: Border.all(color: Colors.black12),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '${queueItem['id'] ?? '-'}',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w900,
+                        color: Colors.white,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        _metricChip('Status', '${queueItem['status'] ?? '-'}'),
+                        _metricChip('Created', '${queueItem['createdAt'] ?? '-'}'),
+                        _metricChip(
+                          'Type',
+                          '${payload?['type'] ?? '-'}',
+                        ),
+                      ],
+                    ),
+
+                    if (evaluation != null) ...[
+                      const SizedBox(height: 10),
+                      const Text(
+                        'Evaluation',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w900,
+                          color: Colors.white,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          _metricChip('Rule', '${evaluation['rule'] ?? '-'}'),
+                          _metricChip('Reason', '${evaluation['reason'] ?? '-'}'),
+                          _metricChip('Score', '${evaluation['score'] ?? '-'}'),
+                          _metricChip('Threshold', '${evaluation['threshold'] ?? '-'}'),
+                        ],
+                      ),
+                    ],
+                    if (dispatch != null) ...[
+                      const SizedBox(height: 10),
+                      Text(
+                        '${dispatch['title'] ?? '-'}',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w900,
+                          color: Colors.white,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '${dispatch['body'] ?? '-'}',
+                        style: const TextStyle(
+                          color: Color(0xFFE5E7EB),
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          _metricChip('Platform', '${dispatch['platform'] ?? '-'}'),
+                          _metricChip('Device', '${dispatch['deviceToken'] ?? '-'}'),
+                        ],
+                      ),
+                    ],
+                  ],
+                ),
+              );
+            }),
+        ],
+      ),
+    );
+  }
+
+  // AI_ANCHOR: DEV_HUB_QUICK_ACTIONS_START
+  Widget _quickActionsCard() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(18),
+        color: const Color(0xFF111827),
+        border: Border.all(color: const Color(0xFFE5E7EB)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Quick actions',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w900,
+              color: Colors.white,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              FilledButton.icon(
+                onPressed: _loadingHealth ? null : _loadSystemHealth,
+                icon: const Icon(Icons.refresh),
+                label: const Text('Refresh health'),
+              ),
+              FilledButton.icon(
+                onPressed: _sendingTestPush ? null : _sendTestPush,
+                icon: const Icon(Icons.send),
+                label: Text(_sendingTestPush ? 'Sender…' : 'Send test'),
+              ),
+              OutlinedButton.icon(
+                onPressed: _simulatingAlert ? null : _triggerAlertSimulation,
+                icon: const Icon(Icons.bolt_outlined),
+                label: Text(
+                  _simulatingAlert ? 'Simulerer…' : 'Simulate alert',
+                ),
+              ),
+              OutlinedButton.icon(
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => const BonusvarselDevToolsPage(),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.build_circle_outlined),
+                label: const Text('Open Dev Tools'),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  // AI_ANCHOR: DEV_HUB_SYSTEM_HEALTH_START
+  Widget _systemHealthPanel() {
+    final health = _systemHealth;
+    final apiOk = health?['apiOk'] == true;
+    final apiText = _loadingHealth
+        ? 'Laster...'
+        : apiOk
+            ? 'ok'
+            : 'feil';
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(18),
+        color: const Color(0xFF111827),
+        border: Border.all(color: const Color(0xFFE5E7EB)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          InkWell(
+            borderRadius: BorderRadius.circular(12),
+            onTap: () {
+              setState(() => _systemHealthExpanded = !_systemHealthExpanded);
+            },
+            child: Row(
+              children: [
+                const Expanded(
+                  child: Text(
+                    'System health',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+                IconButton(
+                  onPressed: _loadingHealth ? null : _loadSystemHealth,
+                  icon: const Icon(Icons.refresh),
+                  tooltip: 'Oppdater health',
+                ),
+                Icon(
+                  _systemHealthExpanded
+                      ? Icons.keyboard_arrow_up
+                      : Icons.keyboard_arrow_down,
+                ),
+              ],
+            ),
+          ),
+          if (_systemHealthExpanded) ...[
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                _metricChip('API', apiText),
+                _metricChip('Active offers', '${health?['feedCount'] ?? 0}'),
+                _metricChip('Notifications', '${health?['notificationCount'] ?? 0}'),
+                _metricChip('Sist sjekket', '${health?['checkedAt'] ?? '-'}'),
+              ],
+            ),
+            if (health?['error'] != null) ...[
+              const SizedBox(height: 10),
+              Text(
+                'Feil: ${health!['error']}',
+                style: const TextStyle(
+                  color: Colors.red,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _devHubStats() {
+    final data = _lastSendTestResult;
+    final deviceCount = data?['deviceCount']?.toString() ?? '0';
+    final dispatchCount = data?['dispatchCount']?.toString() ?? '0';
+
+    return Row(
+      children: [
+        Expanded(
+          child: _statusCard(
+            label: 'Devices',
+            value: deviceCount,
+            icon: Icons.devices_outlined,
+            onTap: () => _scrollTo(_devicesKey),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: _statusCard(
+            label: 'Send-test',
+            value: _lastSendTestStatus,
+            icon: Icons.send_outlined,
+            onTap: () => _scrollTo(_pushTestKey),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: _statusCard(
+            label: 'Dispatches',
+            value: dispatchCount,
+            icon: Icons.local_offer_outlined,
+            onTap: () => _scrollTo(_dispatchKey),
+          ),
+        ),
+      ],
+    );
+  }
+
+
+
+
+  Color _meterColor(num value) {
+    if (value >= 25) return Colors.green;
+    if (value >= 18) return Colors.orange;
+    return Colors.red;
+  }
+
+  Widget _scoreMeter({
+    required String label,
+    required num value,
+    required num maxValue,
+  }) {
+    final clamped = value < 0
+        ? 0.0
+        : value > maxValue
+            ? maxValue.toDouble()
+            : value.toDouble();
+    final progress = maxValue <= 0 ? 0.0 : clamped / maxValue;
+    final color = _meterColor(value);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                label,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w800,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+            Text(
+              value.toString(),
+              style: TextStyle(
+                color: color,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 6),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(999),
+          child: LinearProgressIndicator(
+            value: progress,
+            minHeight: 10,
+            backgroundColor: Colors.black.withValues(alpha: 0.08),
+            valueColor: AlwaysStoppedAnimation<Color>(color),
+          ),
+        ),
+      ],
+    );
+  }
+
+
+  ({String label, Color color}) _alertSummary(dynamic evaluation) {
+    if (evaluation is! Map<String, dynamic>) {
+      return (label: 'NO DATA', color: Colors.blueGrey);
+    }
+
+    final shouldNotify = evaluation['shouldNotify'] == true;
+    final cooldown = int.tryParse('${evaluation['cooldownRemainingSec'] ?? 0}') ?? 0;
+    final timing = '${evaluation['timing'] ?? ''}';
+    final momentumRaw = '${evaluation['momentum'] ?? ''}'.toLowerCase();
+    final momentum = momentumRaw == 'high'
+        ? 30
+        : momentumRaw == 'medium'
+            ? 20
+            : momentumRaw == 'low'
+                ? 10
+                : (int.tryParse('${evaluation['momentum'] ?? 0}') ?? 0);
+
+    if (cooldown > 0) {
+      return (label: 'BLOCKED BY COOLDOWN', color: Colors.red);
+    }
+
+    if (shouldNotify || timing == 'buy_now' || momentum >= 25) {
+      return (label: 'STRONG SIGNAL', color: Colors.green);
+    }
+
+    if (timing == 'good_window' || momentum >= 18) {
+      return (label: 'MONITOR', color: Colors.orange);
+    }
+
+    return (label: 'WEAK SIGNAL', color: Colors.blueGrey);
+  }
+
+
+  Color _timelineColor(String key, dynamic value) {
+    if (key == 'final_decision') {
+      return value == true ? Colors.green : Colors.red;
+    }
+
+    if (key == 'cooldown_remaining_sec') {
+      final n = int.tryParse('$value') ?? 0;
+      return n > 0 ? Colors.red : Colors.green;
+    }
+
+    if (key == 'timing') {
+      if (value == 'buy_now' || value == 'good_window') {
+        return Colors.green;
+      }
+      if (value == 'wait_upgrade') {
+        return Colors.orange;
+      }
+      return Colors.red;
+    }
+
+    if (key == 'campaign_bonus') {
+      final n = int.tryParse('$value') ?? 0;
+      return n > 0 ? Colors.green : Colors.orange;
+    }
+
+    if (key == 'level_bonus' || key == 'momentum_bonus') {
+      final n = int.tryParse('$value') ?? 0;
+      return n > 0 ? Colors.green : Colors.orange;
+    }
+
+    if (key == 'score_total' || key == 'momentum_total') {
+      final n = int.tryParse('$value') ?? 0;
+      if (n >= 25) return Colors.green;
+      if (n >= 18) return Colors.orange;
+      return Colors.red;
+    }
+
+    return Colors.blueGrey;
+  }
+
+
+  Widget _metricChip(String label, String value) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(999),
+        color: Colors.black.withValues(alpha: 0.06),
+        border: Border.all(color: const Color(0xFFE5E7EB)),
+      ),
+      child: Text(
+        '$label: $value',
+        style: const TextStyle(
+          fontWeight: FontWeight.w800,
+          fontSize: 12,
+        ),
+      ),
+    );
+  }
+
+  Widget _pushTestCard() {
+    return Container(
+      key: _pushTestKey,
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(18),
+        color: const Color(0xFF111827),
+        border: Border.all(color: const Color(0xFFE5E7EB)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          InkWell(
+            borderRadius: BorderRadius.circular(12),
+            onTap: () {
+              setState(() => _pushTestExpanded = !_pushTestExpanded);
+            },
+            child: Row(
+              children: [
+                const Expanded(
+                  child: Text(
+                    'Push test',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+                Icon(
+                  _pushTestExpanded
+                      ? Icons.keyboard_arrow_up
+                      : Icons.keyboard_arrow_down,
+                ),
+              ],
+            ),
+          ),
+          if (_pushTestExpanded) ...[
+            const SizedBox(height: 8),
+            const Text(
+              'Simuler test-send til registrerte devices.',
+              style: TextStyle(
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 12),
+            FilledButton.icon(
+              onPressed: _sendingTestPush ? null : _sendTestPush,
+              icon: const Icon(Icons.send),
+              label: Text(_sendingTestPush ? 'Sender…' : 'Kjør send-test'),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _lastSendTestCard() {
+    Color statusColor;
+    switch (_lastSendTestStatus) {
+      case 'success':
+        statusColor = Colors.green;
+        break;
+      case 'error':
+        statusColor = Colors.red;
+        break;
+      case 'running':
+        statusColor = Colors.orange;
+        break;
+      default:
+        statusColor = Colors.grey;
+    }
+
+    final data = _lastSendTestResult;
+
+    return Container(
+      key: _dispatchKey,
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(18),
+        color: const Color(0xFF111827),
+        border: Border.all(color: const Color(0xFFE5E7EB)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.history, color: statusColor),
+              const SizedBox(width: 10),
+              const Expanded(
+                child: Text(
+                  'Siste send-test',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+              Text(
+                _lastSendTestStatus,
+                style: TextStyle(
+                  color: statusColor,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          if (data == null)
+            const Text(
+              'Ingen send-test kjørt ennå.',
+              style: TextStyle(fontWeight: FontWeight.w700),
+            )
+          else if (data['error'] != null)
+            Text(
+              'Feil: ${data['error']}',
+              style: const TextStyle(
+                color: Colors.red,
+                fontWeight: FontWeight.w700,
+              ),
+            )
+          else
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    _metricChip('Sent', '${data['sentCount'] ?? 0}'),
+                    _metricChip('Dispatches', '${data['dispatchCount'] ?? 0}'),
+                    _metricChip(
+                      'Notifications',
+                      '${data['notificationCount'] ?? 0}',
+                    ),
+                    _metricChip('Devices', '${data['deviceCount'] ?? 0}'),
+                    _metricChip('Tid', '${data['sentAt'] ?? '-'}'),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                const Text(
+                  'Siste dispatches',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w900,
+                    color: Colors.white,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                ...((data['dispatches'] as List?) ?? const [])
+                    .take(5)
+                    .map<Widget>((item) {
+                  final dispatch = item as Map<String, dynamic>;
+                  final evaluation = dispatch['evaluation'];
+
+                  return Container(
+                    width: double.infinity,
+                    margin: const EdgeInsets.only(bottom: 10),
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(14),
+                      color: Colors.black.withValues(alpha: 0.03),
+                      border: Border.all(color: Colors.black12),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '${dispatch['title'] ?? '-'}',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w900,
+                            color: Colors.white,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          '${dispatch['body'] ?? '-'}',
+                          style: const TextStyle(
+                            color: Color(0xFFE5E7EB),
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            _metricChip(
+                              'Platform',
+                              '${dispatch['platform'] ?? '-'}',
+                            ),
+                            _metricChip(
+                              'Device',
+                              '${dispatch['deviceToken'] ?? '-'}',
+                            ),
+                            _metricChip(
+                              'Status',
+                              '${dispatch['status'] ?? '-'}',
+                            ),
+                          ],
+                        ),
+                        if (evaluation is Map<String, dynamic>) ...[
+                          const SizedBox(height: 10),
+                          const Text(
+                            'Evaluation',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w900,
+                              color: Colors.white,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: [
+                              _metricChip(
+                                'Score',
+                                '${evaluation['score'] ?? '-'}',
+                              ),
+                              _metricChip(
+                                'Momentum',
+                                '${evaluation['momentum'] ?? '-'}',
+                              ),
+                              _metricChip(
+                                'Timing',
+                                '${evaluation['timing'] ?? '-'}',
+                              ),
+                              _metricChip(
+                                'Notify',
+                                '${evaluation['shouldNotify'] ?? '-'}',
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Reason: ${(evaluation['reason'] ?? '-').toString()}',
+                            style: const TextStyle(
+                              color: Color(0xFFE5E7EB),
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          if (evaluation['cooldownRemainingSec'] != null) ...[
+                            const SizedBox(height: 6),
+                            Text(
+                              'Cooldown remaining: ${evaluation['cooldownRemainingSec']} sec',
+                              style: const TextStyle(
+                                color: Color(0xFFD1D5DB),
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ],
+                        ],
+                      ],
+                    ),
+                  );
+                }),
+              ],
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _devHubBuildInfoCard() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(18),
+        color: const Color(0xFF111827),
+        border: Border.all(color: const Color(0xFFE5E7EB)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Dev Hub build info',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w900,
+              color: Colors.white,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: const [
+              _StaticInfoChip(label: 'AI anchors', value: 'active'),
+              _StaticInfoChip(label: 'Alert sim', value: 'mounted'),
+              _StaticInfoChip(label: 'History', value: 'mounted'),
+              _StaticInfoChip(label: 'Queue', value: 'mounted'),
+              _StaticInfoChip(label: 'State', value: 'ready'),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  
+  Widget _devHubVersionChip() {
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: 10,
+        vertical: 6,
+      ),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(999),
+        color: Colors.blueGrey.withValues(alpha: 0.14),
+        border: Border.all(
+          color: Colors.blueGrey.withValues(alpha: 0.45),
+        ),
+      ),
+      child: const Text(
+
+        'DEV HUB v660 • AI anchors active',
+        style: TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w800,
+          color: Colors.blueGrey,
+        ),
+      ),
+    );
+  }
+
+
+
+
+<<<<<<< Updated upstream
+  Color _diagnosticColor(String label, String value) {
+    final normalized = value.toLowerCase().trim();
+
+    if (label == 'API') {
+      if (normalized == 'ok') return Colors.green;
+      if (normalized == 'unknown') return Colors.orange;
+      return Colors.red;
+    }
+
+    if (label == 'Pinned baseline') {
+      return normalized == 'yes' ? Colors.green : Colors.orange;
+    }
+
+    if (label == 'History size') {
+      final n = int.tryParse(value) ?? 0;
+      return n > 0 ? Colors.green : Colors.orange;
+    }
+
+    if (label == 'Queue total' ||
+        label == 'Queue queued' ||
+        label == 'Queue processed' ||
+        label == 'Feed items' ||
+        label == 'Notifications') {
+      final n = int.tryParse(value) ?? 0;
+      if (n > 0) return Colors.green;
+      return Colors.orange;
+    }
+
+    return Colors.blueGrey;
+  }
+
+  Widget _diagnosticChip(String label, String value) {
+    final tone = _diagnosticColor(label, value);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(999),
+        color: tone.withValues(alpha: 0.10),
+        border: Border.all(
+          color: tone.withValues(alpha: 0.55),
+        ),
+      ),
+      child: Text(
+        '$label: $value',
+        style: TextStyle(
+          fontWeight: FontWeight.w800,
+          fontSize: 12,
+          color: tone,
+        ),
+      ),
+    );
+  }
+
+
+  Widget _devHubDiagnosticsCard() {
+    final health = _systemHealth;
+    final queue = _queueState?['queue'] as Map<String, dynamic>?;
+
+    final apiText = health?['apiOk'] == true ? 'ok' : 'unknown';
+    final feedCount = '${health?['feedCount'] ?? 0}';
+    final notificationCount = '${health?['notificationCount'] ?? 0}';
+    final queueTotal = '${queue?['total'] ?? 0}';
+    final queueQueued = '${queue?['queued'] ?? 0}';
+    final queueProcessed = '${queue?['processed'] ?? 0}';
+    final pinned = _pinnedSimulationIndex == null ? 'no' : 'yes';
+    final historySize = '${_alertSimulationHistory.length}';
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(18),
+        color: const Color(0xFF111827),
+        border: Border.all(color: const Color(0xFFE5E7EB)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Dev Hub diagnostics',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w900,
+              color: Colors.black,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _diagnosticChip('API', apiText),
+              _diagnosticChip('Feed items', feedCount),
+              _diagnosticChip('Notifications', notificationCount),
+              _diagnosticChip('Queue total', queueTotal),
+              _diagnosticChip('Queue queued', queueQueued),
+              _diagnosticChip('Queue processed', queueProcessed),
+              _diagnosticChip('Pinned baseline', pinned),
+              _diagnosticChip('History size', historySize),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+=======
+  
+>>>>>>> Stashed changes
+
+// AI_ANCHOR: DEV_HUB_BUILD_START
+  @override
+  Widget build(BuildContext context) {
+    if (!_devHubEnabled) {
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text('Dev Hub'),
+        ),
+        body: const Center(
+          child: Padding(
+            padding: EdgeInsets.all(24),
+            child: Text(
+              'Dev Hub er deaktivert i denne byggen.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Dev Hub'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.notifications),
+            tooltip: 'Varsler',
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => const BonusvarselAlertsPage(),
+                ),
+              );
+            },
+          ),
+        ],
+      ),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          Container(
+            padding: const EdgeInsets.all(18),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(24),
+              gradient: const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Color(0xFF0B1F4D),
+                  Color(0xFF2F80ED),
+                ],
+              ),
+            ),
+            child: const Text(
+
+              'Minimal Dev Hub',
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.w900,
+                color: Colors.white,
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.all(18),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(18),
+              color: Colors.white,
+              border: Border.all(color: Colors.black12),
+            ),
+            child: const Text(
+
+              'Vi legger dev-verktøy på ett sted for trygg testing av feed, notifications og push.',
+              style: TextStyle(
+                fontWeight: FontWeight.w700,
+                height: 1.5,
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              color: const Color(0xFFECFDF5),
+              border: Border.all(color: const Color(0xFF34D399)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Varsler (sluttbruker-visning)',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                ElevatedButton(
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const BonusvarselAlertsPage(),
+                      ),
+                    );
+                  },
+                  child: const Text('Åpne alerts-side'),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          _devHubBuildInfoCard(),
+          const SizedBox(height: 16),
+          
+          const SizedBox(height: 6),
+          _devHubVersionChip(),
+          const SizedBox(height: 12),
+// AI_ANCHOR: DEV_HUB_BUILD_QUICK_ACTIONS
+          _quickActionsCard(),
+          const SizedBox(height: 16),
+<<<<<<< Updated upstream
+                    _devHubDiagnosticsCard(),
+=======
+                    Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              color: const Color(0xFF111827),
+              border: Border.all(color: Colors.white24),
+            ),
+            child: const Text(
+
+              'Diagnostics midlertidig skjult lokalt.',
+              style: TextStyle(
+                color: Color(0xFFD1D5DB),
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+>>>>>>> Stashed changes
+          const SizedBox(height: 16),
+// AI_ANCHOR: DEV_HUB_BUILD_QUEUE
+          _queueActionsCard(),
+          const SizedBox(height: 16),
+
+          const DevPipelinePanel(),
+
+          const SizedBox(height: 16),
+          // AI_ANCHOR: DEV_HUB_BUILD_ALERT_SIM
+          _alertSimulationCard(),
+          const SizedBox(height: 16),
+          const SizedBox(height: 16),
+          _decisionInsightCard(),
+          const SizedBox(height: 16),
+          // AI_ANCHOR: DEV_HUB_BUILD_ALERT_HISTORY
+          _alertSimulationHistoryCard(),
+          const SizedBox(height: 16),
+<<<<<<< Updated upstream
+          // AI_ANCHOR: DEV_HUB_BUILD_SYSTEM_HEALTH
+          _systemHealthPanel(),
+          const SizedBox(height: 16),
+          _devHubStats(),
+          const SizedBox(height: 16),
+          _pushTestCard(),
+=======
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              color: Colors.white,
+              border: Border.all(color: Colors.black12),
+            ),
+            child: const Text(
+'Alert history midlertidig skjult lokalt.'),
+          ),
+          const SizedBox(height: 16),
+          // AI_ANCHOR: DEV_HUB_BUILD_SYSTEM_HEALTH
+          _systemHealthPanel(),
+          const SizedBox(height: 16),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              color: const Color(0xFF111827),
+              border: Border.all(color: Colors.white24),
+            ),
+            child: const Text(
+
+              'System health midlertidig skjult lokalt.',
+              style: TextStyle(
+                color: Color(0xFFD1D5DB),
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              color: const Color(0xFF111827),
+              border: Border.all(color: Colors.white24),
+            ),
+            child: const Text(
+
+              'Stats midlertidig skjult lokalt.',
+              style: TextStyle(
+                color: Color(0xFFD1D5DB),
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              color: const Color(0xFF111827),
+              border: Border.all(color: Colors.white24),
+            ),
+            child: const Text(
+
+              'Push test midlertidig skjult lokalt.',
+              style: TextStyle(
+                color: Color(0xFFD1D5DB),
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+>>>>>>> Stashed changes
+          if (_pushTestExpanded) ...[
+            const SizedBox(height: 16),
+            _lastSendTestCard(),
+            const SizedBox(height: 16),
+          ],
+          _entry(
+            context,
+            icon: Icons.devices_outlined,
+            title: 'Device Monitor',
+            subtitle: 'Se registrerte devices',
+            page: const BonusvarselDeviceMonitorPage(),
+            containerKey: _devicesKey,
+          ),
+          _entry(
+            context,
+            icon: Icons.notifications_active_outlined,
+            title: 'Notifications',
+            subtitle: 'Se aktiverte kampanjevarsler',
+            page: const BonusvarselNotificationsPage(),
+          ),
+          _entry(
+            context,
+            icon: Icons.send_outlined,
+            title: 'Push Preview',
+            subtitle: 'Se dispatch preview per device',
+            page: const BonusvarselPushPreviewPage(),
+          ),
+          _entry(
+            context,
+            icon: Icons.build_circle_outlined,
+            title: 'Dev Tools',
+            subtitle: 'Seed offer, reset state og test API-flyt',
+            page: const BonusvarselDevToolsPage(),
+          ),
+          const SizedBox(height: 24),
+        ],
+      ),
+    );
+  }
+<<<<<<< Updated upstream
+}
+=======
+
+
+
+  Widget _systemHealthPanel() {
+    final health = _systemHealth?['health'] as Map<String, dynamic>?;
+    final feed = _systemHealth?['feed'];
+    final notifications = _systemHealth?['notifications'];
+    final rawPipeline = health?['pipeline'];
+    final Map<String, dynamic>? pipeline =
+        rawPipeline is Map ? Map<String, dynamic>.from(rawPipeline) : null;
+
+    final apiUp = health?['ok'] == true || health?['api'] == 'up';
+    final version = health?['version']?.toString() ?? '-';
+    final devRoutesEnabled = health?['devRoutesEnabled']?.toString() ?? '-';
+    final source = pipeline?['source']?.toString() ?? '-';
+    final lastSimulationId = pipeline?['lastSimulationId']?.toString() ?? '-';
+
+    int notificationCount = 0;
+    if (notifications is List) {
+      notificationCount = notifications.length;
+    } else if (notifications is Map && notifications['count'] is num) {
+      notificationCount = (notifications['count'] as num).toInt();
+    }
+
+    int feedCount = 0;
+    if (feed is List) {
+      feedCount = feed.length;
+    } else if (feed is Map && feed['count'] is num) {
+      feedCount = (feed['count'] as num).toInt();
+    }
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(18),
+        color: const Color(0xFF111827),
+        border: Border.all(color: Colors.white24),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'System health',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 18,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 12),
+          if (_loadingHealth) ...[
+            const Text(
+              'Laster system health...',
+              style: TextStyle(
+                color: Color(0xFFD1D5DB),
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ] else ...[
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                _metricChip('API', apiUp ? 'up' : 'down'),
+                _metricChip('Version', version),
+                _metricChip('Dev routes', devRoutesEnabled),
+                _metricChip('Pipeline source', source),
+                _metricChip('Feed count', '$feedCount'),
+                _metricChip('Notifications', '$notificationCount'),
+                _metricChip('Last sim', lastSimulationId),
+                _metricChip(
+                  'Loaded at',
+                  _systemHealth?['loadedAt']?.toString() ?? '-',
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+
+  Widget _decisionInsightCard() {
+    final result = _alertSimulationResult;
+    final offer = result?['offer'] is Map
+        ? Map<String, dynamic>.from(result?['offer'] as Map)
+        : <String, dynamic>{};
+    final evaluation = result?['evaluation'] is Map
+        ? Map<String, dynamic>.from(result?['evaluation'] as Map)
+        : <String, dynamic>{};
+
+    final score = evaluation['score']?.toString() ?? '-';
+    final threshold = evaluation['threshold']?.toString() ?? '-';
+    final momentum = evaluation['momentum']?.toString() ?? '-';
+    final timing = evaluation['timing']?.toString() ?? '-';
+    final shouldNotify = evaluation['shouldNotify'];
+    final reason = evaluation['reason']?.toString() ?? '-';
+    final rateText = offer['rateText']?.toString() ??
+        (offer['rate'] != null ? '${offer['rate']}x' : '-');
+    final level = offer['level']?.toString() ?? '-';
+    final campaign = offer['campaign']?.toString() ?? '-';
+
+    final decisionText = shouldNotify == true
+        ? 'SEND'
+        : shouldNotify == false
+            ? 'SKIP'
+            : '-';
+
+    final decisionColor = shouldNotify == true
+        ? const Color(0xFF047857)
+        : shouldNotify == false
+            ? const Color(0xFFB91C1C)
+            : const Color(0xFF6B7280);
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(18),
+        color: const Color(0xFF111827),
+        border: Border.all(color: Colors.white24),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Decision insight',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 18,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 12),
+          if (result == null)
+            const Text(
+              'Ingen alert simulation kjørt ennå.',
+              style: TextStyle(
+                color: Color(0xFFD1D5DB),
+                fontWeight: FontWeight.w700,
+              ),
+            )
+          else ...[
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                _metricChip('Rate', rateText),
+                _metricChip('Level', level),
+                _metricChip('Campaign', campaign),
+                _metricChip(
+                  'Score',
+                  threshold != '-' ? '$score / $threshold' : score,
+                ),
+                _metricChip('Momentum', momentum),
+                _metricChip('Timing', timing),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(999),
+                    color: decisionColor.withValues(alpha: 0.12),
+                    border: Border.all(
+                      color: decisionColor.withValues(alpha: 0.38),
+                    ),
+                  ),
+                  child: Text(
+                    'Decision: $decisionText',
+                    style: TextStyle(
+                      color: decisionColor,
+                      fontWeight: FontWeight.w900,
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(14),
+                color: const Color(0xFF1F2937),
+                border: Border.all(color: Colors.white24),
+              ),
+              child: Text(
+                'Reason: $reason',
+                style: const TextStyle(
+                  color: Color(0xFFE5E7EB),
+                  fontWeight: FontWeight.w700,
+                  height: 1.4,
+                ),
+              ),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              'Simulated at: ${result['simulatedAt'] ?? '-'}',
+              style: const TextStyle(
+                color: Color(0xFF9CA3AF),
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _alertSimulationHistoryCard() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(18),
+        color: const Color(0xFF111827),
+        border: Border.all(color: Colors.white24),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Alert simulation history',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w900,
+              color: Colors.white,
+            ),
+          ),
+          const SizedBox(height: 12),
+          if (_alertSimulationHistory.isEmpty)
+            const Text(
+              'Ingen simuleringer ennå.',
+              style: TextStyle(
+                fontWeight: FontWeight.w700,
+                color: Color(0xFFD1D5DB),
+              ),
+            )
+          else
+            Column(
+              children: List.generate(_alertSimulationHistory.length, (index) {
+                final entry = _alertSimulationHistory[index];
+                final offer = entry['offer'] as Map<String, dynamic>?;
+                final evaluation = entry['evaluation'] as Map<String, dynamic>?;
+
+                return Container(
+                  width: double.infinity,
+                  margin: EdgeInsets.only(
+                    bottom: index == _alertSimulationHistory.length - 1 ? 0 : 10,
+                  ),
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(14),
+                    color: const Color(0xFF1F2937),
+                    border: Border.all(color: Colors.white24),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Simulering #${index + 1}',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          _metricChip('Rate', '${offer?['rateText'] ?? offer?['rate'] ?? '-'}'),
+                          _metricChip('Level', '${offer?['level'] ?? '-'}'),
+                          _metricChip('Campaign', '${offer?['campaign'] ?? '-'}'),
+                          _metricChip('Score', '${evaluation?['score'] ?? '-'}'),
+                          _metricChip('Momentum', '${evaluation?['momentum'] ?? '-'}'),
+                          _metricChip('Timing', '${evaluation?['timing'] ?? '-'}'),
+                          _metricChip('Notify', '${evaluation?['shouldNotify'] ?? '-'}'),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Reason: ${(evaluation?['reason'] ?? '-').toString()}',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w700,
+                          height: 1.4,
+                          color: Color(0xFFE5E7EB),
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        'Simulated at: ${entry['simulatedAt'] ?? '-'}',
+                        style: const TextStyle(
+                          color: Color(0xFF9CA3AF),
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }),
+            ),
+        ],
+      ),
+    );
+  }
+
+}
+>>>>>>> Stashed changes

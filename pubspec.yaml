@@ -2,7 +2,7 @@ name: bonusvarsel
 description: Bonusvarsel – SAS EuroBonus companion app
 publish_to: "none"
 
-version: 1.0.0+2
+version: 1.0.0+6
 
 environment:
   sdk: ">=3.2.0 <4.0.0"
@@ -16,6 +16,11 @@ dependencies:
   url_launcher: ^6.3.0
   intl: ^0.19.0
   http: ^1.2.2
+  in_app_purchase: ^3.2.3
+  firebase_core: ^3.6.0
+  firebase_auth: ^5.3.1
+  google_sign_in: ^6.2.1
+  sign_in_with_apple: ^6.1.1
 
 dev_dependencies:
   flutter_test:
@@ -25,6 +30,11 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   assets:
+    - assets/images/travel/
+    - assets/brands/
+
+    - assets/images/travel/
+
     - assets/eb.shopping.min.json
     - assets/eb.shopping.pretty.json
     - assets/mam.offers.json

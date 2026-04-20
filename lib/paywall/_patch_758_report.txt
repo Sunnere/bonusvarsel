@@ -1,0 +1,5 @@
+la til field: onOpenPremiumPaywall
+ADVARSEL: fant ikke constructor-mønster for _PremiumHeader
+erstattet _openPremiumPaywall inne i filen (2 treff)
+ADVARSEL: fant ikke _PremiumHeader(...) for callback-wiring
+normaliserte onPressed: onOpenPremiumPaywall

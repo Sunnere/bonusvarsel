@@ -1,3 +1,4 @@
+import 'ai_chat_page.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'eb_shopping_page.dart';
@@ -76,6 +77,15 @@ class _HomePageState extends State<HomePage> {
     return Scaffold(
       appBar: _buildAppBar(),
       body: IndexedStack(index: _index, children: _pages),
+      floatingActionButton: FloatingActionButton(
+        backgroundColor: const Color(0xFF1A1A2E),
+        tooltip: 'Spør Bonusvarsel',
+        onPressed: () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const AiChatPage()),
+        ),
+        child: const Icon(Icons.chat_bubble_outline, color: Colors.white),
+      ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _index,
         onDestinationSelected: (i) => setState(() => _index = i),

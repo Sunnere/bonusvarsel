@@ -6,7 +6,7 @@ import '../models/card_catalog.dart';
 
 class AiService {
   static const String _apiUrl = 'https://api.anthropic.com/v1/messages';
-  static const String _apiKey = 'REMOVED_API_KEY';
+  static const String _apiKey = String.fromEnvironment('ANTHROPIC_API_KEY', defaultValue: '');
   static const String _supportEmail = 'support@bonusvarsel.no';
   static const String _historyKey = 'ai_chat_history';
   static const int _maxHistoryMessages = 20;

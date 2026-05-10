@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'eb_shopping_page.dart';
 import 'travel_page.dart';
 import 'cards_page.dart';
+import 'trumf_kalkulator_page.dart';
 import 'bonusvarsel_alerts_page.dart';
 import '../services/onboarding_service.dart';
 import '../widgets/paywall_scroll_wrapper.dart';
@@ -23,9 +24,10 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   late int _index;
 
-  final _pages = const [
+  final _pages = [
     PaywallScrollWrapper(child: EbShoppingPage()),
     TravelPage(),
+    TrumfKalkulatorPage(),
     CardsPage(),
     BonusvarselAlertsPage(),
   ];
@@ -99,6 +101,11 @@ class _HomePageState extends State<HomePage> {
             icon: Icon(Icons.flight_outlined),
             selectedIcon: Icon(Icons.flight),
             label: 'Reis',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.calculate_outlined),
+            selectedIcon: Icon(Icons.calculate),
+            label: 'Spar',
           ),
           NavigationDestination(
             icon: Icon(Icons.credit_card_outlined),

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
 import 'package:in_app_purchase_storekit/in_app_purchase_storekit.dart';
@@ -34,15 +35,7 @@ class PromoOfferService {
       timestamp: timestamp,
     );
 
-    final storeKitPlugin = InAppPurchaseStoreKitPlatformAddition();
-    final payment = SKMutablePaymentWrapper(
-      productIdentifier: product.id,
-      quantity: 1,
-      applicationUsername: null,
-      simulatesAskToBuyInSandbox: false,
-      paymentDiscount: discount,
-    );
-
-    await storeKitPlugin.addPayment(payment);
+    // Promo offer payment disabled - SKMutablePaymentWrapper not available
+    // promo offer payment not implemented
   }
 }

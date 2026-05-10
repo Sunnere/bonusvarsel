@@ -1,6 +1,7 @@
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-class EntitlementService {
+class EntitlementService extends ChangeNotifier {
   EntitlementService._();
   static final EntitlementService instance = EntitlementService._();
 
@@ -20,6 +21,7 @@ class EntitlementService {
     final prefs = await SharedPreferences.getInstance();
     _plan = prefs.getString(_keyPlan) ?? 'free';
     _productId = prefs.getString(_keyProductId) ?? '';
+    notifyListeners();
   }
 
   Future<void> unlock(String productId) async {
@@ -36,6 +38,20 @@ class EntitlementService {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_keyPlan, _plan);
     await prefs.setString(_keyProductId, _productId);
+
+    // Sync PremiumService og SubscriptionService så hele appen oppdateres
+    await _syncOtherServices();
+
+    notifyListeners();
+    debugPrint('EntitlementService.unlock: plan=$_plan productId=$_productId');
+  }
+
+  Future<void> _syncOtherServices() async {
+    final prefs = await SharedPreferences.getInstance();
+    // PremiumService nøkkel
+    await prefs.setBool('premium.is_premium', isPremium);
+    // SubscriptionService nøkkel
+    await prefs.setString('bv.subs.tier', _plan);
   }
 
   Future<void> clear() async {
@@ -45,5 +61,9 @@ class EntitlementService {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_keyPlan);
     await prefs.remove(_keyProductId);
+    await prefs.remove('premium.is_premium');
+    await prefs.setString('bv.subs.tier', 'free');
+
+    notifyListeners();
   }
 }

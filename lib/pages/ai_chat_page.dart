@@ -90,7 +90,7 @@ class _AiChatPageState extends State<AiChatPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Spør Bonusvarsel'),
-        backgroundColor: const Color(0xFF1A1A2E),
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         foregroundColor: Colors.white,
         actions: [
           if (_history.isNotEmpty)
@@ -239,7 +239,7 @@ class _AiChatPageState extends State<AiChatPage> {
                         ),
                         const SizedBox(width: 8),
                         CircleAvatar(
-                          backgroundColor: const Color(0xFF1A1A2E),
+                          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
                           child: IconButton(
                             icon: const Icon(Icons.send,
                                 color: Colors.white, size: 18),

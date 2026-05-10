@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import '../services/api_service.dart';
+import '../services/entitlement_service.dart';
+import '../services/subscription_service.dart';
+import '../app/theme_controller.dart';
+import '../models/subscription_tier.dart';
 import '../pages/bonusvarsel_paywall_page.dart';
 
 class BonusvarselDevDashboardPage extends StatefulWidget {
@@ -74,24 +78,33 @@ class _BonusvarselDevDashboardPageState
                 child: const Text('Register device'),
               ),
               FilledButton.tonal(
-                onPressed: () => _run(
-                  'SET tier -> free',
-                  () => ApiService.setDevTier('free'),
-                ),
+                onPressed: () async {
+                  await ApiService.setDevTier('free');
+                  await EntitlementService.instance.clear();
+                  await SubscriptionService.instance.setTier(SubscriptionTier.free);
+                  await ThemeController.instance.setTier(SubscriptionTier.free);
+                  setState(() => _log = 'Tier satt til FREE');
+                },
                 child: const Text('Tier free'),
               ),
               FilledButton.tonal(
-                onPressed: () => _run(
-                  'SET tier -> premium',
-                  () => ApiService.setDevTier('premium'),
-                ),
+                onPressed: () async {
+                  await ApiService.setDevTier('premium');
+                  await EntitlementService.instance.unlock('premium_monthly');
+                  await SubscriptionService.instance.setTier(SubscriptionTier.pro);
+                  await ThemeController.instance.setTier(SubscriptionTier.pro);
+                  setState(() => _log = 'Tier satt til PREMIUM');
+                },
                 child: const Text('Tier premium'),
               ),
               FilledButton.tonal(
-                onPressed: () => _run(
-                  'SET tier -> elite',
-                  () => ApiService.setDevTier('elite'),
-                ),
+                onPressed: () async {
+                  await ApiService.setDevTier('elite');
+                  await EntitlementService.instance.unlock('elite_monthly');
+                  await SubscriptionService.instance.setTier(SubscriptionTier.elite);
+                  await ThemeController.instance.setTier(SubscriptionTier.elite);
+                  setState(() => _log = 'Tier satt til ELITE');
+                },
                 child: const Text('Tier elite'),
               ),
               OutlinedButton(

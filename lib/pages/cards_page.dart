@@ -143,7 +143,7 @@ class _CardsPageState extends State<CardsPage> {
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(20),
               gradient: const LinearGradient(
-                colors: [Color(0xFF0F172A), Color(0xFF1E293B)],
+                colors: [Color(0xFF2F80ED), Color(0xFF0B4AA2)],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
@@ -182,12 +182,15 @@ class _CardsPageState extends State<CardsPage> {
                         const Icon(Icons.check_circle,
                             color: Colors.white, size: 16),
                         const SizedBox(width: 8),
-                        Text(
-                          'Aktivt: ${selected.name}  •  ${selected.ratePer100} p/100 kr',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w800,
-                            fontSize: 13,
+                        Flexible(
+                          child: Text(
+                            '✓ ${selected.name}',
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w800,
+                              fontSize: 13,
+                            ),
                           ),
                         ),
                       ],
@@ -217,7 +220,7 @@ class _CardsPageState extends State<CardsPage> {
           Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: const Color(0xFF0F172A),
+              color: const Color(0xFF1A3A6E),
               borderRadius: BorderRadius.circular(14),
               border: Border.all(color: const Color(0xFF1E293B)),
             ),
@@ -279,7 +282,7 @@ class _CardTile extends StatelessWidget {
         ),
         color: isSelected
             ? card.color.withValues(alpha: 0.12)
-            : const Color(0xFF0F172A),
+            : const Color(0xFF1A3A6E),
       ),
       child: InkWell(
         borderRadius: BorderRadius.circular(18),
@@ -378,7 +381,7 @@ class _CardTile extends StatelessWidget {
                       style: FilledButton.styleFrom(
                         backgroundColor: isSelected
                             ? card.color
-                            : const Color(0xFF1E293B),
+                            : const Color(0xFF1A3A6E),
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 10),
                         shape: RoundedRectangleBorder(
@@ -396,7 +399,7 @@ class _CardTile extends StatelessWidget {
                   OutlinedButton(
                     style: OutlinedButton.styleFrom(
                       foregroundColor: Colors.white70,
-                      side: const BorderSide(color: Color(0xFF334155)),
+                      side: const BorderSide(color: Color(0xFF2F80ED)),
                       padding: const EdgeInsets.symmetric(
                           vertical: 10, horizontal: 14),
                       shape: RoundedRectangleBorder(

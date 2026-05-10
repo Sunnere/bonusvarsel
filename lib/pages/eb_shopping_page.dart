@@ -14,6 +14,7 @@ import '../services/ad_metrics_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:bonusvarsel/models/subscription_tier.dart';
+import '../services/entitlement_service.dart';
 import 'package:bonusvarsel/widgets/ad_slot.dart';
 import 'package:bonusvarsel/widgets/elite_header_widget.dart';
 import 'package:bonusvarsel/widgets/elite_badge_chip.dart';
@@ -201,6 +202,24 @@ children: [
   String _source = 'Alle'; // Alle / SAS / Trumf
 
   bool _onlyCampaigns = false;
+  List<String> _favoritesCache = [];
+
+  Widget _filterChip(String label, bool selected, Color color, Function(bool) onSelected) {
+    return FilterChip(
+      label: Text(label,
+        style: TextStyle(
+          color: selected ? Colors.black : Colors.white,
+          fontWeight: FontWeight.w700,
+          fontSize: 13,
+        )),
+      selected: selected,
+      selectedColor: color,
+      backgroundColor: const Color(0xFF1E293B),
+      checkmarkColor: Colors.black,
+      side: BorderSide(color: selected ? color : Colors.white24),
+      onSelected: (v) => onSelected(v),
+    );
+  }
   bool _favFirst = false;
   bool _sortByRate = false;
 
@@ -229,11 +248,13 @@ _futureShops = _repo.fetchShops(forceRefresh: false);
   }
 
   Future<void> _loadPremiumPrefs() async {
-    final isPrem = await _premiumSvc.getIsPremium();
+    // Bruk EntitlementService som kilde til sannhet
+    await EntitlementService.instance.load();
+    final isPrem = EntitlementService.instance.isPremium;
     if (!mounted) return;
     final showBadges = await _premiumSvc.getShowBadges(fallback: true);
     if (!mounted) return;
-    final freeLimit = await _premiumSvc.getFreeLimit(fallback: 30);
+    final freeLimit = isPrem ? 9999 : await _premiumSvc.getFreeLimit(fallback: 30);
     if (!mounted) return;
 
     setState(() {
@@ -378,12 +399,32 @@ _futureShops = _repo.fetchShops(forceRefresh: false);
       list = list.where((it) => _isCampaignOf(it)).toList();
     }
 
+    // Favoritter-filter: vis favoritter øverst eller kun favoritter
+    if (_favFirst) {
+      // Hent favoritter fra prefs-cache (bruker tom liste som fallback)
+      final favs = _favoritesCache;
+      if (favs.isNotEmpty) {
+        final favList = list.where((it) => favs.contains(_nameOf(it))).toList();
+        final restList = list.where((it) => !favs.contains(_nameOf(it))).toList();
+        list = [...favList, ...restList];
+      }
+    }
+
+    // Høy rate: sorter alltid på rate når valgt
     if (_sortByRate) {
       list.sort((a, b) {
         final r = _rateOf(b).compareTo(_rateOf(a));
         if (r != 0) return r;
         return _nameOf(a).toLowerCase().compareTo(_nameOf(b).toLowerCase());
       });
+    }
+
+    // Ved høy rate eller favoritter: vis alle (ikke kutt på freeLimit)
+    if (_sortByRate || _favFirst) {
+      _filterCacheKey = key;
+      _filterCacheSourceLen = data.length;
+      _filterCache = list;
+      return list;
     }
 
     _filterCacheKey = key;
@@ -923,32 +964,9 @@ Widget chip(String label, String value) {
                       ),
                     ),
                   ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: SizedBox(
-                      height: 44,
-                      child: DropdownButtonFormField<String>(
-                        initialValue: _category,
-                        isExpanded: true,
-                        items: categories
-                            .map((c) => DropdownMenuItem<String>(
-                                  value: c,
-                                  child: Text(c),
-                                ))
-                            .toList(),
-                        onChanged: (v) => setState(() {
-                          _category = v ?? 'Alle';
-                          _filterCacheKey = '';
-                        }),
-                        decoration: const InputDecoration(
-                          isDense: true,
-                          contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                          labelText: 'Kategori',
-                          border: OutlineInputBorder(),
-                        ),
-                      ),
-                    ),
-                  ),
+                  // KATEGORI-DROPDOWN MIDLERTIDIG SKJULT - aktiveres når API returnerer kategori-data
+                  // const SizedBox(width: 10),
+                  // Expanded(child: SizedBox(height: 44, child: DropdownButtonFormField(...))),
                 ],
               ),
               const SizedBox(height: 4),
@@ -959,30 +977,12 @@ Widget chip(String label, String value) {
                 runSpacing: 10,
                 crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
-                  FilterChip(
-                    label: Text('Kampanjer'),
-                    selected: _onlyCampaigns,
-                    onSelected: (v) => setState(() {
-                      _onlyCampaigns = v;
-                      _filterCacheKey = '';
-                    }),
-                  ),
-                  FilterChip(
-                    label: Text('Favoritter'),
-                    selected: _favFirst,
-                    onSelected: (v) => setState(() {
-                      _favFirst = v;
-                      _filterCacheKey = '';
-                    }),
-                  ),
-                  FilterChip(
-                    label: Text('Høy rate'),
-                    selected: _sortByRate,
-                    onSelected: (v) => setState(() {
-                      _sortByRate = v;
-                      _filterCacheKey = '';
-                    }),
-                  ),
+                  _filterChip('🎯 Kampanjer', _onlyCampaigns, const Color(0xFFFF6B35),
+                    (v) => setState(() { _onlyCampaigns = v; _filterCacheKey = ''; })),
+                  _filterChip('⭐ Favoritter', _favFirst, const Color(0xFFFFD700),
+                    (v) => setState(() { _favFirst = v; _filterCacheKey = ''; })),
+                  _filterChip('🔥 Høy rate', _sortByRate, const Color(0xFF22C55E),
+                    (v) => setState(() { _sortByRate = v; _filterCacheKey = ''; })),
                 ],
               ),
 
@@ -1003,6 +1003,7 @@ Widget chip(String label, String value) {
 
                 return Card(
                   child: ListTile(
+                    onTap: url.isEmpty ? null : () => _openUrl(url),
                     leading: Icon(isCamp ? Icons.local_offer : Icons.store),
                     title: Text(name),
                     

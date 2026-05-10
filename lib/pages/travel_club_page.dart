@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/subscription_tier.dart';
 import '../services/subscription_service.dart';
-import 'paywall_page.dart';
+import '../paywall/paywall_preview_page.dart';
 
 class TravelClubPage extends StatelessWidget {
   final SubscriptionService subs;
@@ -43,7 +43,7 @@ class TravelClubPage extends StatelessWidget {
                       onPressed: () {
                         Navigator.of(context).push(
                           MaterialPageRoute(
-                            builder: (_) => PaywallPage(subs: subs),
+                            builder: (_) => const PaywallPreviewPage(),
                           ),
                         );
                       },

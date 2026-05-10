@@ -3,7 +3,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../models/card_catalog.dart';
 import '../services/user_state.dart';
-import '../widgets/travel_value_card.dart';
+import '../services/entitlement_service.dart';
 
 class TravelPage extends StatefulWidget {
   const TravelPage({super.key});
@@ -13,39 +13,31 @@ class TravelPage extends StatefulWidget {
 }
 
 class _TravelPageState extends State<TravelPage> {
-  String _selectedTravelUse = 'Fly';
-  static const List<String> _travelUseOptions = <String>[
-    'Fly',
-    'Hotell',
-    'Leiebil',
-  ];
-
-
-  final TextEditingController _amountCtrl = TextEditingController(text: '5000');
-  final TextEditingController _sasPointsCtrl = TextEditingController(text: '36797');
-
-  final List<String> _programs = const [
-    'SAS EuroBonus',
-    'CashPoints',
-    'Flying Blue',
-  ];
-
-  String _selectedProgram = 'SAS EuroBonus';
-
-  final TextEditingController _destinationCtrl = TextEditingController(text: 'Bangkok');
-  static const List<String> _tripThemes = <String>[
-    'Strand',
-    'Vinter',
-    'By',
-    'Familie',
-  ];
-  String _selectedTripTheme = 'Strand';
+  // Reiseprofil
+  final _destinationCtrl = TextEditingController(text: 'Bangkok');
   int _adults = 2;
   int _children = 2;
-  int _days = 14;
 
+  // Valg av reiseelementer
+  bool _includeFlight = true;
+  bool _includeHotel = false;
+  bool _includeCar = false;
+
+  // Priser
+  final _flightCtrl = TextEditingController(text: '');
+  final _hotelCtrl = TextEditingController(text: '');
+  final _carCtrl = TextEditingController(text: '');
+  int _hotelNights = 7;
+  int _carDays = 7;
+
+  // Bonusprogram og kort
+  String _selectedProgram = 'SAS EuroBonus';
+  final List<String> _programs = const ['SAS EuroBonus', 'CashPoints', 'Flying Blue'];
   String? _selectedCardId;
-  int _cardRatePer100 = 0; // poeng per 100 NOK
+  int _cardRatePer100 = 0;
+
+  // Poengstatus
+  final _sasPointsCtrl = TextEditingController(text: '0');
 
   @override
   void initState() {
@@ -56,1465 +48,580 @@ class _TravelPageState extends State<TravelPage> {
   @override
   void dispose() {
     _destinationCtrl.dispose();
+    _flightCtrl.dispose();
+    _hotelCtrl.dispose();
+    _carCtrl.dispose();
     _sasPointsCtrl.dispose();
-    _amountCtrl.dispose();
     super.dispose();
   }
 
   Future<void> _loadSelectedCard() async {
-    // Henter det brukeren har valgt i "Kort"-siden
     final id = await UserState.getSelectedCardId();
-    final savedRate = await UserState.getSelectedCardRatePer100(); // double?
-
+    final savedRate = await UserState.getSelectedCardRatePer100();
     if (!mounted) return;
-
-    // Prioritet:
-    // 1) CardCatalog (hvis id finnes der)
-    // 2) lagret rate fra prefs
-    // 3) 0
     final catalogRate = CardCatalog.rateFor(id);
-    final rateInt = (catalogRate != 0)
-        ? catalogRate
-        : ((savedRate ?? 0).round()); // <-- fikser num/int-greia
-
+    final rateInt = catalogRate != 0 ? catalogRate : ((savedRate ?? 0).round());
     setState(() {
       _selectedCardId = id;
       _cardRatePer100 = rateInt;
     });
   }
 
-  
-  Widget _buildTravelUseModule(BuildContext context) {
-    final theme = Theme.of(context);
-    final destination = 'Bangkok';
-    final premiumLike = true;
-    final eliteLike = false;
-
-    final statusLabel = eliteLike
-        ? 'Elite aktiv'
-        : premiumLike
-            ? 'Premium aktiv • bedre forslag'
-            : 'Gratis';
-
-    final statusAccent = eliteLike
-        ? const Color(0xFFE8C36A)
-        : premiumLike
-            ? const Color(0xFF8FB7FF)
-            : const Color(0xFF7FA6B8);
-
-    final headline = switch (_selectedTravelUse) {
-      'Fly' => 'Bruk poeng på fly til $destination',
-      'Hotell' => 'Bruk poeng på hotell i $destination',
-      'Leiebil' => 'Bruk poeng på leiebil i $destination',
-      _ => 'Bruk poeng smart i $destination',
-    };
-
-    final detail = switch (_selectedTravelUse) {
-      'Fly' =>
-        eliteLike
-            ? 'Elite gir bedre grunnlag for multi-stop, partnerverdi og mer avanserte rutevalg.'
-            : premiumLike
-                ? 'Premium gir bedre flyforslag, tydeligere verdi og raskere vei videre til bookingflyt.'
-                : 'Se direktefly eller reiser med flere stopp.',
-      'Hotell' =>
-        eliteLike
-            ? 'Elite løfter partnerhotell, verdi per natt og smartere prioritering for lengre opphold.'
-            : premiumLike
-                ? 'Premium viser hotellvalg, poengbruk per natt og hvilke partnere som gir best verdi.'
-                : 'Vis hotellvalg og verdi per natt.',
-      'Leiebil' =>
-        eliteLike
-            ? 'Elite gir tydeligere partnerprioritet, pris per dag og sterkere forslag for lengre leie.'
-            : premiumLike
-                ? 'Premium viser leiebil-partnere, pris per dag og om det er bedre å betale med kort eller bruke poeng.'
-                : 'Vis leiebil-partnere og pris per dag.',
-      _ => 'Velg hva poengene skal brukes på.',
-    };
-
-    final unlockedLine = switch (_selectedTravelUse) {
-      'Fly' => eliteLike
-          ? 'Elite: multi-stop og partnerprioritet aktivert'
-          : 'Premium: bedre forslag og sterkere poengverdi aktivert',
-      'Hotell' => eliteLike
-          ? 'Elite: partnerhotell og verdi per natt løftet'
-          : 'Premium: hotellverdi og oppholdsvalg aktivert',
-      'Leiebil' => eliteLike
-          ? 'Elite: partnerpriser og lengre leieflyt aktivert'
-          : 'Premium: leiebilpartnere og prisinnsikt aktivert',
-      _ => 'Premium-fordeler aktivert',
-    };
-
-    IconData iconFor(String option) {
-      switch (option) {
-        case 'Fly':
-          return Icons.flight_takeoff_rounded;
-        case 'Hotell':
-          return Icons.hotel_rounded;
-        case 'Leiebil':
-          return Icons.directions_car_filled_rounded;
-        default:
-          return Icons.star_rounded;
-      }
-    }
-
-    Color accentFor(String option) {
-      switch (option) {
-        case 'Fly':
-          return const Color(0xFF5ED0E0);
-        case 'Hotell':
-          return const Color(0xFFFFD76A);
-        case 'Leiebil':
-          return const Color(0xFF7ED957);
-        default:
-          return const Color(0xFF5ED0E0);
-      }
-    }
-
-    return Container(
-      margin: const EdgeInsets.only(top: 14, bottom: 14),
-      padding: const EdgeInsets.fromLTRB(18, 18, 18, 16),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: eliteLike
-              ? const [
-                  Color(0xFF0A1522),
-                  Color(0xFF16293A),
-                ]
-              : const [
-                  Color(0xFF081B2E),
-                  Color(0xFF0E2A3E),
-                ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(
-          color: eliteLike
-              ? const Color(0xFF8B6A2F)
-              : const Color(0xFF284764),
-          width: 1.1,
-        ),
-        boxShadow: [
-          const BoxShadow(
-            color: Color(0x22000000),
-            blurRadius: 18,
-            offset: Offset(0, 8),
-          ),
-          BoxShadow(
-            color: statusAccent.withValues(alpha: 0.12),
-            blurRadius: 24,
-            offset: const Offset(0, 6),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  'Hva vil du bruke poengene på?',
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    color: const Color(0xFFF2F8F9),
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                decoration: BoxDecoration(
-                  color: statusAccent.withValues(alpha: 0.16),
-                  borderRadius: BorderRadius.circular(999),
-                  border: Border.all(
-                    color: statusAccent.withValues(alpha: 0.55),
-                  ),
-                ),
-                child: Text(
-                  statusLabel,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: statusAccent,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            eliteLike
-                ? 'Elite gir mer avanserte forslag og tydeligere partnerprioritet i reisen.'
-                : 'Premium gir bedre forslag, raskere vei videre og tydeligere verdi i valg av fly, hotell og leiebil.',
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: const Color(0xFFD7E6EF),
-              height: 1.35,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: 16),
-          Wrap(
-            spacing: 10,
-            runSpacing: 10,
-            children: _travelUseOptions.map((option) {
-              final selected = option == _selectedTravelUse;
-              final accent = accentFor(option);
-
-              return InkWell(
-                borderRadius: BorderRadius.circular(999),
-                onTap: () {
-                  if (_selectedTravelUse == option) return;
-                  setState(() => _selectedTravelUse = option);
-                },
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 180),
-                  curve: Curves.easeOut,
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
-                  decoration: BoxDecoration(
-                    gradient: selected
-                        ? LinearGradient(
-                            colors: [
-                              accent.withValues(alpha: 0.96),
-                              accent.withValues(alpha: 0.72),
-                            ],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          )
-                        : const LinearGradient(
-                            colors: [
-                              Color(0xFF143145),
-                              Color(0xFF17384D),
-                            ],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                    borderRadius: BorderRadius.circular(999),
-                    border: Border.all(
-                      color: selected
-                          ? Colors.white
-                          : const Color(0xFF315264),
-                      width: selected ? 1.2 : 1.0,
-                    ),
-                    boxShadow: selected
-                        ? [
-                            BoxShadow(
-                              color: accent.withValues(alpha: 0.28),
-                              blurRadius: 14,
-                              offset: const Offset(0, 4),
-                            ),
-                          ]
-                        : const [],
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        iconFor(option),
-                        size: 18,
-                        color: const Color(0xFFF2F8F9),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        option,
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: const Color(0xFFF2F8F9),
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            }).toList(),
-          ),
-          const SizedBox(height: 16),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: eliteLike
-                    ? const [
-                        Color(0xFF1A2732),
-                        Color(0xFF213744),
-                      ]
-                    : const [
-                        Color(0xFF122B39),
-                        Color(0xFF173444),
-                      ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(18),
-              border: Border.all(
-                color: eliteLike
-                    ? const Color(0xFF6B562A)
-                    : const Color(0xFF27495A),
-              ),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  headline,
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    color: const Color(0xFFF2F8F9),
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-                const SizedBox(height: 7),
-                Text(
-                  detail,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: const Color(0xFFD8E6ED),
-                    height: 1.35,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-                  decoration: BoxDecoration(
-                    color: statusAccent.withValues(alpha: 0.14),
-                    borderRadius: BorderRadius.circular(999),
-                    border: Border.all(
-                      color: statusAccent.withValues(alpha: 0.45),
-                    ),
-                  ),
-                  child: Text(
-                    unlockedLine,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: statusAccent,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
+  int get _totalAmount {
+    int total = 0;
+    if (_includeFlight) total += int.tryParse(_flightCtrl.text.replaceAll(' ', '')) ?? 0;
+    if (_includeHotel) total += int.tryParse(_hotelCtrl.text.replaceAll(' ', '')) ?? 0;
+    if (_includeCar) total += int.tryParse(_carCtrl.text.replaceAll(' ', '')) ?? 0;
+    return total;
   }
 
-
-
-  Widget _buildBangkokBookUseFlow(BuildContext context) {
-    final theme = Theme.of(context);
-    final destination = _destinationCtrl.text.trim().isEmpty
-        ? 'Bangkok'
-        : _destinationCtrl.text.trim();
-
-    final partyText = _children > 0
-        ? '$_adults voksne og $_children barn'
-        : '$_adults voksne';
-
-    final stayText = '$_days dager';
-    final isBangkok =
-        destination.toLowerCase().contains('bangkok') ||
-        destination.toLowerCase().contains('bkk') ||
-        destination.toLowerCase().contains('thailand');
-
-    String flowTitle;
-    String flowBody;
-    String primaryCta;
-    String secondaryCta;
-    String partnerLine;
-
-    switch (_selectedTravelUse) {
-      case 'Fly':
-        flowTitle = isBangkok
-            ? 'Beste valg: Book flyreisen til $destination'
-            : 'Book flyreisen smart';
-        flowBody = 'Basert på valgene dine:\n' +
-            'Beste strategi: start med fly for $partyText i $stayText. Vurder direkte eller 1 stopp ut fra poengsaldo, pris og hva som gir best totalverdi.';
-        primaryCta = '🔥 Start booking med SAS nå';
-        secondaryCta = 'Se alternativer';
-        partnerLine = _selectedProgram == 'SAS EuroBonus'
-            ? 'Anbefalt logikk: Start med SAS. Bytt til SkyTeam-partner kun hvis tilgjengelighet eller poengverdi er bedre.'
-            : 'Anbefalt logikk: sammenlign SAS og relevante partnere før du bruker poeng.';
-        break;
-      case 'Hotell':
-        flowTitle = isBangkok
-            ? 'Velg hotellopphold i $destination'
-            : 'Velg hotellopphold smart';
-        flowBody =
-            'For $partyText i $stayText bør du sammenligne poengbruk mot kontantpris. Hotell gir ofte best verdi når du kombinerer opphold med god kortopptjening.';
-        primaryCta = 'Se hotellvalg';
-        secondaryCta = 'Vurder kortbetaling';
-        partnerLine =
-            'Anbefalt logikk: bruk poeng bare når verdi per natt er god, ellers betal med beste kort for opptjening.';
-        break;
-      case 'Leiebil':
-        flowTitle = isBangkok
-            ? 'Planlegg leiebil rundt $destination'
-            : 'Planlegg leiebil smart';
-        flowBody =
-            'For $partyText i $stayText er det ofte smartest å sammenligne leiebilpris, fleksibilitet og om poeng bør brukes på fly i stedet.';
-        primaryCta = 'Se leiebilvalg';
-        secondaryCta = 'Sammenlign med kortbetaling';
-        partnerLine =
-            'Anbefalt logikk: bruk poeng der verdien er høyest, og la leiebil gå på kort dersom opptjening og fleksibilitet er bedre.';
-        break;
-      default:
-        flowTitle = 'Planlegg bruk av poengene';
-        flowBody =
-            'Start med det som gir størst verdi for reisen, og bygg videre med partnere og kortbruk.';
-        primaryCta = 'Se alternativer';
-        secondaryCta = 'Sammenlign partnere';
-        partnerLine = 'Sammenlign poengbruk og kortopptjening før du bestemmer deg.';
-        break;
-    }
-
-    final badgeText = _selectedProgram == 'SAS EuroBonus'
-        ? 'SAS EuroBonus + partnerlogikk'
-        : 'Partnerlogikk aktiv';
-
-    return Container(
-      width: double.infinity,
-      margin: const EdgeInsets.only(top: 14, bottom: 14),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [
-            Color(0xFFE7F4F7),
-            Color(0xFFF9FCFC),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFD4E1E5)),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x10000000),
-            blurRadius: 10,
-            offset: Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            flowTitle,
-            style: theme.textTheme.titleLarge?.copyWith(
-              color: const Color(0xFF162E35),
-              fontWeight: FontWeight.w900,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-            decoration: BoxDecoration(
-              color: const Color(0xFFDDF0F3),
-              borderRadius: BorderRadius.circular(999),
-              border: Border.all(color: const Color(0xFFB9D8DE)),
-            ),
-            child: Text(
-              badgeText,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: const Color(0xFF23444C),
-                fontWeight: FontWeight.w900,
-              ),
-            ),
-          ),
-          const SizedBox(height: 12),
-          Text(
-            flowBody,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: const Color(0xFF486169),
-              fontWeight: FontWeight.w700,
-              height: 1.35,
-            ),
-          ),
-          const SizedBox(height: 12),
-          Text(
-            partnerLine,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: const Color(0xFF2C4A53),
-              fontWeight: FontWeight.w800,
-              height: 1.35,
-            ),
-          ),
-          const SizedBox(height: 14),
-          Wrap(
-            spacing: 10,
-            runSpacing: 10,
-            children: [
-              InkWell(
-                borderRadius: BorderRadius.circular(999),
-                onTap: () => _openExternalBookingUrl(_primaryBookingUrl()),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF0F3A4A),
-                    borderRadius: BorderRadius.circular(999),
-                    boxShadow: const [
-                      BoxShadow(
-                        color: Color(0x18000000),
-                        blurRadius: 8,
-                        offset: Offset(0, 3),
-                      ),
-                    ],
-                  ),
-                  child: Text(
-                    primaryCta,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                ),
-              ),
-              InkWell(
-                borderRadius: BorderRadius.circular(999),
-                onTap: () => _openExternalBookingUrl(_secondaryBookingUrl()),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFFFFFFF),
-                    borderRadius: BorderRadius.circular(999),
-                    border: Border.all(color: const Color(0xFFD4E1E5)),
-                  ),
-                  child: Text(
-                    secondaryCta,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: const Color(0xFF162E35),
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
+  int get _estimatedPoints {
+    if (_cardRatePer100 == 0) return 0;
+    return (_totalAmount * _cardRatePer100 / 100).round();
   }
 
+  int get _currentPoints => int.tryParse(_sasPointsCtrl.text.replaceAll(' ', '')) ?? 0;
+  int get _pointsAfter => _currentPoints + _estimatedPoints;
 
-  String _primaryBookingUrl() {
-    switch (_selectedTravelUse) {
-      case 'Fly':
-        return 'https://www.sas.no/eurobonus/offers-and-news/award-tickets/';
-      case 'Hotell':
-        return 'https://www.sas.no/eurobonus/hotels/';
-      case 'Leiebil':
-        return 'https://www.sas.no/eurobonus/partnere/bakketransport/hertz';
-      default:
-        return 'https://www.sas.no/eurobonus';
-    }
-  }
+  bool get _isPremium => EntitlementService.instance.isPremium;
+  bool get _isElite => EntitlementService.instance.isElite;
 
-  String _secondaryBookingUrl() {
-    switch (_selectedTravelUse) {
-      case 'Fly':
-        return 'https://www.sas.no/eurobonus/partnere';
-      case 'Hotell':
-        return 'https://www.sas.no/eurobonus/partnere/hoteller';
-      case 'Leiebil':
-        return 'https://www.sas.no/reservere/bilutleie/';
-      default:
-        return 'https://www.sas.no/eurobonus/partnere';
-    }
-  }
+  String get _destination => _destinationCtrl.text.trim().isEmpty ? 'reisemålet' : _destinationCtrl.text.trim();
 
-  Future<void> _openExternalBookingUrl(String url) async {
-    final uri = Uri.parse(url);
-    final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
-    if (!ok && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Kunne ikke åpne lenken akkurat nå.'),
-        ),
-      );
-    }
-  }
-
-  List<Map<String, dynamic>> _travelStoreCardsForUse() {
-    switch (_selectedTravelUse) {
-      case 'Fly':
-        return <Map<String, dynamic>>[
-          {
-            'icon': Icons.luggage_rounded,
-            'title': 'Bagasje og kofferter',
-            'subtitle': 'Bra før flyreise når familien trenger mer plass, bedre pakking og smartere organisering.',
-            'tags': <String>['Fly', 'Bagasje', 'Familie'],
-          },
-          {
-            'icon': Icons.power_rounded,
-            'title': 'Elektronikk og lading',
-            'subtitle': 'Powerbank, adapter, hodetelefoner og ladere er typiske kjøp som gir høy nytte og ofte god poengverdi før avreise.',
-            'tags': <String>['Fly', 'Elektronikk', 'Lading'],
-          },
-          {
-            'icon': Icons.health_and_safety_outlined,
-            'title': 'Apotek og reisehelse',
-            'subtitle': 'Solkrem, hygiene, reiseapotek og småting som ofte glemmes, men som er smarte å samle i ett bonuskjøp før avreise.',
-            'tags': <String>['Apotek', 'Helse', 'Praktisk'],
-          },
-        ];
-      case 'Hotell':
-        return <Map<String, dynamic>>[
-          {
-            'icon': Icons.checkroom_rounded,
-            'title': 'Klær og sommerutstyr',
-            'subtitle': 'Badetøy, lette klær og ting som passer hotellopphold og familieferie.',
-            'tags': <String>['Hotell', 'Klær', 'Sommer'],
-          },
-          {
-            'icon': Icons.bed_rounded,
-            'title': 'Komfort og opphold',
-            'subtitle': 'Nyttig for hotellnætter, familiebehov og små oppgraderinger før reisen.',
-            'tags': <String>['Hotell', 'Komfort', 'Familie'],
-          },
-          {
-            'icon': Icons.face_retouching_natural,
-            'title': 'Hudpleie og toiletries',
-            'subtitle': 'Smart før hotellopphold når du vil samle praktiske kjøp på ett sted.',
-            'tags': <String>['Hudpleie', 'Toalettartikler', 'Reise'],
-          },
-        ];
-      case 'Leiebil':
-        return <Map<String, dynamic>>[
-          {
-            'icon': Icons.directions_car_filled_rounded,
-            'title': 'Biltilbehør og komfort',
-            'subtitle': 'Praktiske kjøp for lengre kjøreturer, barn i bilen og bedre komfort på veien.',
-            'tags': <String>['Leiebil', 'Komfort', 'Bil'],
-          },
-          {
-            'icon': Icons.devices_other_rounded,
-            'title': 'Elektronikk til reisen',
-            'subtitle': 'Mobilholder, ladere, kabler og småting som gjør leiebilferien enklere.',
-            'tags': <String>['Elektronikk', 'Bil', 'Lading'],
-          },
-          {
-            'icon': Icons.child_care_rounded,
-            'title': 'Familie og barn på tur',
-            'subtitle': 'Smart når turen trenger mer fleksibilitet, snacks, organisering og praktiske ting.',
-            'tags': <String>['Familie', 'Barn', 'Praktisk'],
-          },
-        ];
-      default:
-        return <Map<String, dynamic>>[];
-    }
-  }
-
-  Widget _travelStoreCard(
-    BuildContext context, {
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required List<String> tags,
-  }) {
-    final theme = Theme.of(context);
-
-    return Container(
-      width: double.infinity,
-      margin: const EdgeInsets.only(bottom: 14),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [
-            Color(0xFFF9FCFC),
-            Color(0xFFF1F8F9),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: const Color(0xFFD5E4E7),
-          width: 1,
-        ),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x10000000),
-            blurRadius: 14,
-            offset: Offset(0, 6),
-          ),
-        ],
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 46,
-            height: 46,
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [
-                  Color(0xFF0F3A4A),
-                  Color(0xFF1FA6B6),
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(14),
-              boxShadow: const [
-                BoxShadow(
-                  color: Color(0x220F4C5C),
-                  blurRadius: 10,
-                  offset: Offset(0, 4),
-                ),
-              ],
-            ),
-            child: Icon(icon, color: const Color(0xFFF2F8F9), size: 22),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    color: const Color(0xFF183038),
-                    fontWeight: FontWeight.w900,
-                    height: 1.15,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  subtitle,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: const Color(0xFF597079),
-                    fontWeight: FontWeight.w600,
-                    height: 1.34,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: tags
-                      .map(
-                        (tag) => Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFEAF5F7),
-                            borderRadius: BorderRadius.circular(999),
-                            border: Border.all(
-                              color: const Color(0xFFD7E7EA),
-                            ),
-                          ),
-                          child: Text(
-                            tag,
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: const Color(0xFF2C525B),
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                        ),
-                      )
-                      .toList(),
-                ),
-                const SizedBox(height: 14),
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [
-                            Color(0xFF123A69),
-                            Color(0xFF0E7B8B),
-                          ],
-                        ),
-                        borderRadius: BorderRadius.circular(999),
-                        boxShadow: const [
-                          BoxShadow(
-                            color: Color(0x220D5C72),
-                            blurRadius: 8,
-                            offset: Offset(0, 3),
-                          ),
-                        ],
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(Icons.open_in_new_rounded, size: 15, color: Colors.white),
-                          const SizedBox(width: 6),
-                          Text(
-                            'Se beste tilbud',
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: const Color(0xFFF2F8F9),
-                              fontWeight: FontWeight.w900,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Text(
-                      'Best for $_selectedTravelUse',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: const Color(0xFF6D848B),
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTravelStoreModule(BuildContext context) {
-    final cards = _travelStoreCardsForUse();
-
-    final moduleTitle = switch (_selectedTravelUse) {
-      'Fly' => 'Butikker som passer best før flyreisen',
-      'Hotell' => 'Butikker som passer før hotellopphold',
-      'Leiebil' => 'Butikker som passer før leiebilturen',
-      _ => 'Relevante butikker før reisen',
-    };
-
-    final moduleIntro = switch (_selectedTravelUse) {
-      'Fly' => 'Utvalgte kategorier med høy relevans før avreise, bedre poengfangst og smartere kjøp før flyreisen.',
-      'Hotell' => 'Fokus på opphold, klær og ting som gir mer verdi rundt hotellferien.',
-      'Leiebil' => 'Fokus på komfort, elektronikk og familiebehov for en enklere kjøretur.',
-      _ => 'Velg bruk for å få riktigere butikkforslag.',
-    };
-
-    return Container(
-      margin: const EdgeInsets.only(top: 8, bottom: 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFCFDFC),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: const Color(0xFFE4ECEE),
-          width: 1,
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            moduleTitle,
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: const Color(0xFF173038),
-                  fontWeight: FontWeight.w900,
-                ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            moduleIntro,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: const Color(0xFF5C7178),
-                  fontWeight: FontWeight.w600,
-                  height: 1.35,
-                ),
-          ),
-          const SizedBox(height: 14),
-          ...cards.map(
-            (card) => _travelStoreCard(
-              context,
-              icon: card['icon'] as IconData,
-              title: card['title'] as String,
-              subtitle: card['subtitle'] as String,
-              tags: (card['tags'] as List<String>),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-
-
-  String _formatInt(int value) {
-    final s = value.toString();
+  String _formatNum(int v) {
+    final s = v.toString();
     final chunks = <String>[];
     for (int i = s.length; i > 0; i -= 3) {
-      final start = (i - 3 < 0) ? 0 : i - 3;
-      chunks.insert(0, s.substring(start, i));
+      chunks.insert(0, s.substring(i - 3 < 0 ? 0 : i - 3, i));
     }
     return chunks.join(' ');
   }
 
-  int _suggestedTargetPoints() {
-    switch (_selectedTravelUse) {
-      case 'Fly':
-        return 177500;
-      case 'Hotell':
-        return 95000;
-      case 'Leiebil':
-        return 65000;
-      default:
-        return 120000;
-    }
-  }
-
-double _amount() {
-    final raw =
-        _amountCtrl.text.trim().replaceAll(' ', '').replaceAll(',', '.');
-    return double.tryParse(raw) ?? 0.0;
-  }
-
-  int _estimatePoints(double amountNok) {
-    if (amountNok <= 0) return 0;
-
-    // Foreløpig trygt estimat:
-    // Vi bruker valgt korts sats når kort faktisk er valgt.
-    // Bonusprogram-valget brukes ennå ikke til en fullverdig, programspesifikk beregning.
-    if (_cardRatePer100 <= 0) return 0;
-
-    final card = (amountNok / 100.0) * _cardRatePer100;
-    return card.round();
-  }
-
   @override
   Widget build(BuildContext context) {
-    final amount = _amount();
-    final estPoints = _estimatePoints(amount);
-    final currentSasPoints =
-        int.tryParse(_sasPointsCtrl.text.trim().replaceAll(' ', '')) ?? 0;
-    final projectedSasPoints = currentSasPoints + estPoints;
-    final targetPoints = _suggestedTargetPoints();
-    final int pointsGap = (targetPoints - projectedSasPoints).clamp(0, 1 << 31).toInt();
-
-    final cardName = CardCatalog.nameFor(_selectedCardId);
-    final cardLabel = (_selectedCardId == null)
-        ? 'Gå til "Kort" og velg et kort'
-        : 'Valgt kort: $cardName • $_cardRatePer100 poeng per 100 kr';
+    final theme = Theme.of(context);
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Reise'),
         actions: [
           IconButton(
-            tooltip: 'Oppdater valgt kort',
-            onPressed: _loadSelectedCard,
             icon: const Icon(Icons.refresh),
+            onPressed: () => setState(() {}),
           ),
         ],
       ),
-      body: SafeArea(
-        child: SingleChildScrollView(
+      body: GestureDetector(
+        onTap: () => FocusScope.of(context).unfocus(),
+        child: ListView(
           padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-          // 🔥 HERO
-          Container(
-            height: 180,
-            margin: const EdgeInsets.only(bottom: 18),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(22),
-              image: const DecorationImage(
-                image: AssetImage('assets/images/travel/hero_beach.jpg'),
-                fit: BoxFit.cover,
+          children: [
+            // ── Hero ──
+            _heroCard(theme),
+            const SizedBox(height: 16),
+
+            // ── Bonusprogram ──
+            _sectionCard(
+              theme,
+              title: 'Bonusprogram',
+              child: DropdownButtonFormField<String>(
+                value: _selectedProgram,
+                decoration: const InputDecoration(border: OutlineInputBorder()),
+                items: _programs.map((p) => DropdownMenuItem(value: p, child: Text(p))).toList(),
+                onChanged: (v) => setState(() => _selectedProgram = v ?? _selectedProgram),
               ),
             ),
-            child: Container(
-              padding: const EdgeInsets.all(18),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(22),
-                gradient: const LinearGradient(
-                  colors: [
-                    Color(0x550D1B2A),
-                    Color(0x180D1B2A),
-                  ],
-                  begin: Alignment.bottomLeft,
-                  end: Alignment.topRight,
-                ),
-              ),
+            const SizedBox(height: 12),
+
+            // ── Reiseprofil ──
+            _sectionCard(
+              theme,
+              title: 'Reiseprofil',
+              subtitle: 'Velg reisemål og antall personer',
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  Text(
-                    'Planlegg reisen smartere ✈️',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          color: const Color(0xFFF2F8F9),
-                          fontWeight: FontWeight.w900,
-                        ),
+                  TextField(
+                    controller: _destinationCtrl,
+                    textInputAction: TextInputAction.done,
+                    onSubmitted: (_) => FocusScope.of(context).unfocus(),
+                    decoration: const InputDecoration(
+                      labelText: 'Reisemål',
+                      border: OutlineInputBorder(),
+                      prefixIcon: Icon(Icons.flight_takeoff),
+                    ),
+                    onChanged: (_) => setState(() {}),
                   ),
-                  const SizedBox(height: 6),
-                  Text(
-                    'Se hva du mangler av poeng før du bestiller',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Colors.white70,
-                          fontWeight: FontWeight.w600,
-                        ),
+                  const SizedBox(height: 16),
+                  Column(
+                    children: [
+                      _counterWidget('Voksne', _adults,
+                        onMinus: _adults > 1 ? () => setState(() => _adults--) : null,
+                        onPlus: () => setState(() => _adults++)),
+                      const SizedBox(height: 8),
+                      _counterWidget('Barn (under 12)', _children,
+                        onMinus: _children > 0 ? () => setState(() => _children--) : null,
+                        onPlus: () => setState(() => _children++)),
+                    ],
                   ),
                 ],
               ),
             ),
-          ),
+            const SizedBox(height: 12),
 
-              DropdownButtonFormField<String>(
-                initialValue: _selectedProgram,
-                decoration: const InputDecoration(
-                  labelText: 'Bonusprogram',
-                  border: OutlineInputBorder(),
-                ),
-                items: _programs
-                    .map(
-                      (p) => DropdownMenuItem<String>(
-                        value: p,
-                        child: Text(p),
-                      ),
-                    )
-                    .toList(),
-                onChanged: (v) {
-                  if (v == null) return;
-                  setState(() => _selectedProgram = v);
-                },
-              ),
-              const SizedBox(height: 14),
-              TextField(
-                controller: _amountCtrl,
-                keyboardType:
-                    const TextInputType.numberWithOptions(decimal: true),
-                decoration: const InputDecoration(
-                  labelText: 'Reisebeløp (NOK)',
-                  hintText: 'f.eks 5000',
-                  border: OutlineInputBorder(),
-                ),
-                onChanged: (_) => setState(() {}),
-              ),
-              const SizedBox(height: 14),
-              Text(
-                cardLabel,
-                style: Theme.of(context).textTheme.bodyMedium,
-              ),
-              const SizedBox(height: 20),
-              Text(
-                'Foreløpig estimat',
-                style: Theme.of(context).textTheme.labelMedium,
-              ),
-              const SizedBox(height: 8),
-              Text(
-                '$estPoints poeng',
-                style: Theme.of(context)
-                    .textTheme
-                    .headlineSmall
-                    ?.copyWith(fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 10),
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFEDF6F7),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: const Color(0xFFCFE1E5)),
-                ),
-                child: Theme(
-                  data: Theme.of(context).copyWith(
-                    canvasColor: const Color(0xFFF3F8F9),
-                    splashColor: Colors.transparent,
-                    highlightColor: const Color(0x140F3A4A),
-                    hoverColor: const Color(0x100F3A4A),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                    Text(
-                      'Reiseprofil',
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                            color: const Color(0xFF162E35),
-                            fontWeight: FontWeight.w900,
-                          ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Velg type tur, reisemål og antall personer før du ser poengstatus og forslag.',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: const Color(0xFF3E5961),
-                            fontWeight: FontWeight.w700,
-                            height: 1.35,
-                          ),
-                    ),
-                    const SizedBox(height: 14),
-                    TextField(
-                      controller: _destinationCtrl,
-                      style: const TextStyle(
-                        color: Color(0xFF162E35),
-                        fontWeight: FontWeight.w700,
-                      ),
-                      decoration: InputDecoration(
-                        labelText: 'Reisemål',
-                        hintText: 'f.eks Bangkok',
-                        filled: true,
-                        fillColor: const Color(0xFFF3F8F9),
-                        labelStyle: const TextStyle(
-                          color: Color(0xFF27414A),
-                          fontWeight: FontWeight.w700,
-                        ),
-                        hintStyle: const TextStyle(
-                          color: Color(0xFF6E848C),
-                          fontWeight: FontWeight.w600,
-                        ),
-                        contentPadding: const EdgeInsets.fromLTRB(16, 20, 16, 14),
-                        border: const OutlineInputBorder(
-                          borderSide: BorderSide(color: Color(0xFFD4E1E5)),
-                        ),
-                      ),
-                      onChanged: (_) => setState(() {}),
-                    ),
-                    const SizedBox(height: 12),
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF3F8F9),
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: const Color(0xFFD4E1E5)),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Type tur',
-                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                  color: const Color(0xFF27414A),
-                                  fontWeight: FontWeight.w800,
-                                ),
-                          ),
-                          const SizedBox(height: 10),
-                          Wrap(
-                            spacing: 8,
-                            runSpacing: 8,
-                            children: _tripThemes.map((t) {
-                              final selected = t == _selectedTripTheme;
-                              return ChoiceChip(
-                                label: Text(
-                                  t,
-                                  style: TextStyle(
-                                    color: const Color(0xFF162E35),
-                                    fontWeight: selected ? FontWeight.w800 : FontWeight.w700,
-                                  ),
-                                ),
-                                selected: selected,
-                                selectedColor: const Color(0xFFD9EEF1),
-                                backgroundColor: Colors.white,
-                                side: BorderSide(
-                                  color: selected
-                                      ? const Color(0xFF6CBCCA)
-                                      : const Color(0xFFD4E1E5),
-                                ),
-                                onSelected: (_) => setState(() => _selectedTripTheme = t),
-                              );
-                            }).toList(),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
+            // ── Reiseelementer ──
+            _sectionCard(
+              theme,
+              title: 'Hva trenger du?',
+              subtitle: 'Velg ett eller flere – vi regner ut totalen',
+              child: Column(
+                children: [
+                  _travelElementToggle(
+                    icon: Icons.flight,
+                    label: 'Fly',
+                    selected: _includeFlight,
+                    onToggle: (v) => setState(() => _includeFlight = v),
+                    child: _includeFlight ? Column(
                       children: [
-                        Expanded(
-                          child: Container(
-                            padding: const EdgeInsets.all(14),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFF3F8F9),
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(color: const Color(0xFFD4E1E5)),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Voksne',
-                                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                        color: const Color(0xFF27414A),
-                                        fontWeight: FontWeight.w800,
-                                      ),
-                                ),
-                                const SizedBox(height: 10),
-                                Wrap(
-                                  spacing: 8,
-                                  runSpacing: 8,
-                                  children: List<int>.generate(6, (i) => i + 1).map((v) {
-                                    final selected = v == _adults;
-                                    return ChoiceChip(
-                                      label: Text(
-                                        '$v',
-                                        style: TextStyle(
-                                          color: const Color(0xFF162E35),
-                                          fontWeight: selected ? FontWeight.w800 : FontWeight.w700,
-                                        ),
-                                      ),
-                                      selected: selected,
-                                      selectedColor: const Color(0xFFD9EEF1),
-                                      backgroundColor: Colors.white,
-                                      side: BorderSide(
-                                        color: selected
-                                            ? const Color(0xFF6CBCCA)
-                                            : const Color(0xFFD4E1E5),
-                                      ),
-                                      onSelected: (_) => setState(() => _adults = v),
-                                    );
-                                  }).toList(),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Container(
-                            padding: const EdgeInsets.all(14),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFF3F8F9),
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(color: const Color(0xFFD4E1E5)),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Barn',
-                                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                        color: const Color(0xFF27414A),
-                                        fontWeight: FontWeight.w800,
-                                      ),
-                                ),
-                                const SizedBox(height: 10),
-                                Wrap(
-                                  spacing: 8,
-                                  runSpacing: 8,
-                                  children: List<int>.generate(6, (i) => i).map((v) {
-                                    final selected = v == _children;
-                                    return ChoiceChip(
-                                      label: Text(
-                                        '$v',
-                                        style: TextStyle(
-                                          color: const Color(0xFF162E35),
-                                          fontWeight: selected ? FontWeight.w800 : FontWeight.w700,
-                                        ),
-                                      ),
-                                      selected: selected,
-                                      selectedColor: const Color(0xFFD9EEF1),
-                                      backgroundColor: Colors.white,
-                                      side: BorderSide(
-                                        color: selected
-                                            ? const Color(0xFF6CBCCA)
-                                            : const Color(0xFFD4E1E5),
-                                      ),
-                                      onSelected: (_) => setState(() => _children = v),
-                                    );
-                                  }).toList(),
-                                ),
-                              ],
-                            ),
+                        const SizedBox(height: 12),
+                        TextField(
+                          controller: _flightCtrl,
+                          keyboardType: TextInputType.number,
+                          textInputAction: TextInputAction.done,
+                          onSubmitted: (_) => FocusScope.of(context).unfocus(),
+                          onChanged: (_) => setState(() {}),
+                          decoration: InputDecoration(
+                            labelText: 'Flypris totalt (NOK)',
+                            hintText: 'f.eks. ${_formatNum(35000 * (_adults + _children))}',
+                            border: const OutlineInputBorder(),
+                            prefixText: 'kr ',
                           ),
                         ),
                       ],
-                    ),
-                    const SizedBox(height: 12),
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF3F8F9),
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: const Color(0xFFD4E1E5)),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Antall dager',
-                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                  color: const Color(0xFF27414A),
-                                  fontWeight: FontWeight.w800,
-                                ),
-                          ),
-                          const SizedBox(height: 10),
-                          Wrap(
-                            spacing: 8,
-                            runSpacing: 8,
-                            children: [3, 5, 7, 10, 14, 21].map((d) {
-                              final selected = d == _days;
-                              return ChoiceChip(
-                                label: Text(
-                                  '$d dager',
-                                  style: TextStyle(
-                                    color: Color(0xFF162E35),
-                                    fontWeight: selected ? FontWeight.w800 : FontWeight.w700,
-                                  ),
-                                ),
-                                selected: selected,
-                                selectedColor: Color(0xFFD9EEF1),
-                                backgroundColor: Colors.white,
-                                side: BorderSide(
-                                  color: selected
-                                      ? Color(0xFF6CBCCA)
-                                      : Color(0xFFD4E1E5),
-                                ),
-                                onSelected: (_) => setState(() => _days = d),
-                              );
-                            }).toList(),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
+                    ) : null,
                   ),
-                ),
-              ),
-              const SizedBox(height: 14),
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF9F4E8),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: const Color(0xFFE5D4AE)),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Din poengstatus',
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                            color: const Color(0xFF162E35),
-                            fontWeight: FontWeight.w900,
-                          ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Legg inn poengene du har nå. Resten av planen regnes ut fortløpende.',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: const Color(0xFF536C73),
-                            fontWeight: FontWeight.w600,
-                            height: 1.35,
-                          ),
-                    ),
-                    const SizedBox(height: 14),
-                    TextField(
-                      controller: _sasPointsCtrl,
-                      keyboardType: TextInputType.number,
-                      style: const TextStyle(
-                        color: Color(0xFF162E35),
-                        fontWeight: FontWeight.w800,
-                      ),
-                      decoration: InputDecoration(
-                        labelText: 'Nåværende SAS EuroBonus-poeng',
-                        hintText: 'f.eks 36797',
-                        filled: true,
-                        fillColor: const Color(0xFFFCF7EA),
-                        labelStyle: const TextStyle(
-                          color: Color(0xFF27414A),
-                          fontWeight: FontWeight.w800,
-                        ),
-                        hintStyle: const TextStyle(
-                          color: Color(0xFF6E848C),
-                          fontWeight: FontWeight.w600,
-                        ),
-                        contentPadding: const EdgeInsets.fromLTRB(16, 26, 16, 14),
-                        border: const OutlineInputBorder(
-                          borderSide: BorderSide(color: Color(0xFFD4E1E5)),
-                        ),
-                      ),
-                      onChanged: (_) => setState(() {}),
-                    ),
-                    const SizedBox(height: 14),
-                    Wrap(
-                      spacing: 10,
-                      runSpacing: 10,
+                  const SizedBox(height: 8),
+                  _travelElementToggle(
+                    icon: Icons.hotel,
+                    label: 'Hotell',
+                    selected: _includeHotel,
+                    onToggle: (v) => setState(() => _includeHotel = v),
+                    child: _includeHotel ? Column(
                       children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFEAF4FF),
-                            borderRadius: BorderRadius.circular(999),
-                          ),
-                          child: Text(
-                            'Premium: bedre forslag',
-                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                  color: const Color(0xFF2957A4),
-                                  fontWeight: FontWeight.w900,
-                                ),
-                          ),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFFFF1CC),
-                            borderRadius: BorderRadius.circular(999),
-                            border: Border.all(color: const Color(0xFFE7C66B)),
-                          ),
-                          child: Text(
-                            'Elite: luksusnivå + beste prioritering',
-                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                  color: const Color(0xFF7A5600),
-                                  fontWeight: FontWeight.w900,
-                                ),
+                        const SizedBox(height: 12),
+                        TextField(
+                          controller: _hotelCtrl,
+                          keyboardType: TextInputType.number,
+                          textInputAction: TextInputAction.done,
+                          onSubmitted: (_) => FocusScope.of(context).unfocus(),
+                          onChanged: (_) => setState(() {}),
+                          decoration: const InputDecoration(
+                            labelText: 'Hotellpris totalt (NOK)',
+                            hintText: 'f.eks. 10 000',
+                            border: OutlineInputBorder(),
+                            prefixText: 'kr ',
                           ),
                         ),
+                        const SizedBox(height: 12),
+                        Row(children: [
+                          const Text('Antall netter:'),
+                          const SizedBox(width: 12),
+                          _counterWidget('', _hotelNights,
+                            onMinus: _hotelNights > 1 ? () => setState(() => _hotelNights--) : null,
+                            onPlus: () => setState(() => _hotelNights++)),
+                        ]),
                       ],
-                    ),
-                    const SizedBox(height: 14),
-                    Text(
-                      'Nåværende saldo: ${_formatInt(currentSasPoints)} poeng',
-                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                            color: const Color(0xFF4E6168),
-                            fontWeight: FontWeight.w700,
+                    ) : null,
+                  ),
+                  const SizedBox(height: 8),
+                  _travelElementToggle(
+                    icon: Icons.directions_car,
+                    label: 'Leiebil',
+                    selected: _includeCar,
+                    onToggle: (v) => setState(() => _includeCar = v),
+                    child: _includeCar ? Column(
+                      children: [
+                        const SizedBox(height: 12),
+                        TextField(
+                          controller: _carCtrl,
+                          keyboardType: TextInputType.number,
+                          textInputAction: TextInputAction.done,
+                          onSubmitted: (_) => FocusScope.of(context).unfocus(),
+                          onChanged: (_) => setState(() {}),
+                          decoration: const InputDecoration(
+                            labelText: 'Leiebilpris totalt (NOK)',
+                            hintText: 'f.eks. 5 000',
+                            border: OutlineInputBorder(),
+                            prefixText: 'kr ',
                           ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Estimert opptjening: +${_formatInt(estPoints)} poeng',
-                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                            color: const Color(0xFF4E6168),
-                            fontWeight: FontWeight.w700,
-                          ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Mulig saldo etter kjøpet: ${_formatInt(projectedSasPoints)} poeng',
-                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                            color: const Color(0xFF162E35),
-                            fontWeight: FontWeight.w900,
-                          ),
-                    ),
-                    const SizedBox(height: 10),
-                    Text(
-                      'Forsiktig familie-estimat for mål: ${_formatInt(targetPoints)} poeng',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: const Color(0xFF596E75),
-                            fontWeight: FontWeight.w700,
-                          ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      pointsGap > 0
-                          ? 'Manglende poeng til målet: ${_formatInt(pointsGap)}'
-                          : 'Du er på eller over målpoeng for denne planen.',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            color: const Color(0xFF162E35),
-                            fontWeight: FontWeight.w900,
-                          ),
-                    ),
-                  ],
-                ),
+                        ),
+                        const SizedBox(height: 12),
+                        Row(children: [
+                          const Text('Antall dager:'),
+                          const SizedBox(width: 12),
+                          _counterWidget('', _carDays,
+                            onMinus: _carDays > 1 ? () => setState(() => _carDays--) : null,
+                            onPlus: () => setState(() => _carDays++)),
+                        ]),
+                      ],
+                    ) : null,
+                  ),
+                ],
               ),
-              const SizedBox(height: 14),
-              TravelValueCard(
-                amountNok: amount,
-                selectedProgram: _selectedProgram,
-              ),
-              _buildTravelUseModule(context),
-              _buildBangkokBookUseFlow(context),
-              _buildTravelStoreModule(context),
-              if (_selectedCardId == null) ...[
-                const SizedBox(height: 10),
-                Text(
-                  'Velg et kort i "Kort"-siden for mer presis beregning.',
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
-              ],
+            ),
+            const SizedBox(height: 12),
+
+            // ── Totalsum ──
+            if (_totalAmount > 0) ...[
+              _totalSummaryCard(theme),
+              const SizedBox(height: 12),
             ],
-          ),
+
+            // ── Poengstatus ──
+            _sectionCard(
+              theme,
+              title: 'Din poengstatus',
+              subtitle: 'Legg inn poengene du har nå',
+              child: Column(
+                children: [
+                  TextField(
+                    controller: _sasPointsCtrl,
+                    keyboardType: TextInputType.number,
+                    textInputAction: TextInputAction.done,
+                    onSubmitted: (_) => FocusScope.of(context).unfocus(),
+                    onChanged: (_) => setState(() {}),
+                    decoration: const InputDecoration(
+                      labelText: 'Nåværende SAS EuroBonus-poeng',
+                      hintText: 'Skriv inn dine poeng',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  if (_currentPoints > 0 && _estimatedPoints > 0) ...[
+                    const SizedBox(height: 12),
+                    _pointsSummaryRow('Nåværende saldo', _currentPoints),
+                    _pointsSummaryRow('Estimert opptjening', _estimatedPoints, color: Colors.green),
+                    const Divider(),
+                    Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Flexible(child: Text('Mulig saldo etter kjøp',
+                          style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16))),
+                        const SizedBox(width: 8),
+                        Text(_formatNum(_pointsAfter),
+                          style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
+                      ],
+                    ),
+                  ),
+                  ],
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            // ── Smarte butikker ──
+            if (_includeFlight || _includeHotel || _includeCar) ...[
+              _smartStoresSection(theme),
+              const SizedBox(height: 12),
+            ],
+
+            // ── AI-hjelp ──
+            _aiHelpCard(theme),
+            const SizedBox(height: 32),
+          ],
         ),
+      ),
+    );
+  }
+
+  Widget _heroCard(ThemeData theme) {
+    final totalPeople = _adults + _children;
+    final childText = _children > 0 ? ', $_children barn' : '';
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [theme.colorScheme.primary, theme.colorScheme.secondary],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('✈️ Reise til $_destination',
+            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 22)),
+          const SizedBox(height: 6),
+          Text('$totalPeople personer ($_adults voksne$childText)',
+            style: const TextStyle(color: Colors.white70, fontSize: 14)),
+          if (_totalAmount > 0) ...[
+            const SizedBox(height: 8),
+            Text('Total reisekostnad: kr ${_formatNum(_totalAmount)}',
+              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 16)),
+            Text('Estimert poengopptjening: ${_formatNum(_estimatedPoints)} poeng',
+              style: const TextStyle(color: Colors.white70, fontSize: 14)),
+          ] else
+            const Text('Legg inn priser for å se poengopptjening',
+              style: TextStyle(color: Colors.white60, fontSize: 13)),
+        ],
+      ),
+    );
+  }
+
+  Widget _sectionCard(ThemeData theme, {required String title, String? subtitle, required Widget child}) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: theme.cardTheme.color ?? Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: theme.dividerColor),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
+          if (subtitle != null) ...[
+            const SizedBox(height: 4),
+            Text(subtitle, style: TextStyle(color: Colors.grey[600], fontSize: 13)),
+          ],
+          const SizedBox(height: 12),
+          child,
+        ],
+      ),
+    );
+  }
+
+  Widget _travelElementToggle({
+    required IconData icon,
+    required String label,
+    required bool selected,
+    required Function(bool) onToggle,
+    Widget? child,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        border: Border.all(color: selected ? Colors.blue : Colors.grey.shade300),
+        borderRadius: BorderRadius.circular(12),
+        color: selected ? Colors.blue.withValues(alpha: 0.05) : null,
+      ),
+      child: Column(
+        children: [
+          CheckboxListTile(
+            value: selected,
+            onChanged: (v) => onToggle(v ?? false),
+            title: Row(children: [
+              Icon(icon, size: 20),
+              const SizedBox(width: 8),
+              Text(label, style: const TextStyle(fontWeight: FontWeight.w700)),
+            ]),
+            controlAffinity: ListTileControlAffinity.trailing,
+            contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+          ),
+          if (child != null)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+              child: child,
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _counterWidget(String label, int value, {VoidCallback? onMinus, VoidCallback? onPlus}) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        if (label.isNotEmpty) ...[
+          Text(label, style: const TextStyle(fontWeight: FontWeight.w600)),
+          const SizedBox(width: 8),
+        ],
+        IconButton(
+          icon: const Icon(Icons.remove_circle_outline),
+          onPressed: onMinus,
+          color: onMinus != null ? Colors.blue : Colors.grey,
+        ),
+        Text('$value', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900)),
+        IconButton(
+          icon: const Icon(Icons.add_circle_outline),
+          onPressed: onPlus,
+          color: Colors.blue,
+        ),
+      ],
+    );
+  }
+
+  Widget _totalSummaryCard(ThemeData theme) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.green.shade50,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.green.shade200),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('💰 Reiseoversikt', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
+          const SizedBox(height: 12),
+          if (_includeFlight && _flightCtrl.text.isNotEmpty)
+            _summaryRow('✈️ Fly', 'kr ${_formatNum(int.tryParse(_flightCtrl.text.replaceAll(" ", "")) ?? 0)}'),
+          if (_includeHotel && _hotelCtrl.text.isNotEmpty)
+            _summaryRow('🏨 Hotell ($_hotelNights netter)', 'kr ${_formatNum(int.tryParse(_hotelCtrl.text.replaceAll(" ", "")) ?? 0)}'),
+          if (_includeCar && _carCtrl.text.isNotEmpty)
+            _summaryRow('🚗 Leiebil ($_carDays dager)', 'kr ${_formatNum(int.tryParse(_carCtrl.text.replaceAll(" ", "")) ?? 0)}'),
+          const Divider(),
+          _summaryRow('Total', 'kr ${_formatNum(_totalAmount)}',
+            style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
+          _summaryRow('Estimert poeng', '${_formatNum(_estimatedPoints)} poeng',
+            style: TextStyle(fontWeight: FontWeight.w900, color: Colors.green.shade700)),
+          const SizedBox(height: 8),
+          Text('Basert på: $_selectedProgram • $_cardRatePer100 poeng/100 kr • ${_adults + _children} personer',
+            style: TextStyle(color: Colors.grey[600], fontSize: 12)),
+        ],
+      ),
+    );
+  }
+
+  Widget _summaryRow(String label, String value, {TextStyle? style}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: style ?? const TextStyle(fontWeight: FontWeight.w600)),
+          Text(value, style: style ?? const TextStyle(fontWeight: FontWeight.w600)),
+        ],
+      ),
+    );
+  }
+
+  Widget _pointsSummaryRow(String label, int value, {Color? color, TextStyle? style}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: style ?? const TextStyle(fontWeight: FontWeight.w600)),
+          Text(_formatNum(value),
+            style: style ?? TextStyle(fontWeight: FontWeight.w700, color: color)),
+        ],
+      ),
+    );
+  }
+
+  Widget _smartStoresSection(ThemeData theme) {
+    final stores = <Map<String, dynamic>>[];
+    if (_includeFlight) {
+      stores.addAll([
+        {'icon': Icons.luggage, 'title': 'Bagasje og kofferter', 'url': 'https://onlineshopping.flysas.com/nb-NO/forslag'},
+        {'icon': Icons.power, 'title': 'Elektronikk og lading', 'url': 'https://onlineshopping.flysas.com/nb-NO/forslag'},
+        {'icon': Icons.health_and_safety, 'title': 'Apotek og reisehelse', 'url': 'https://www.trumf.no/fordeler?filter=Netthandel'},
+      ]);
+    }
+    if (_includeHotel) {
+      stores.addAll([
+        {'icon': Icons.bed, 'title': 'Komfort og opphold', 'url': 'https://www.trumf.no/fordeler?filter=Hotell+og+reise'},
+        {'icon': Icons.checkroom, 'title': 'Klær og sommerutstyr', 'url': 'https://onlineshopping.flysas.com/nb-NO/forslag'},
+      ]);
+    }
+    if (_includeCar) {
+      stores.addAll([
+        {'icon': Icons.directions_car, 'title': 'Biltilbehør og komfort', 'url': 'https://www.trumf.no/fordeler?filter=Bil+og+drivstoff'},
+        {'icon': Icons.child_care, 'title': 'Familie og barn på tur', 'url': 'https://www.trumf.no/fordeler?filter=Netthandel'},
+      ]);
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: theme.cardTheme.color ?? Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: theme.dividerColor),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('🛍️ Smarte kjøp før $_destination-reisen',
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
+          const SizedBox(height: 4),
+          Text('Tjen poeng på disse kjøpene før du reiser',
+            style: TextStyle(color: Colors.grey[600], fontSize: 13)),
+          const SizedBox(height: 12),
+          ...stores.map((s) => _storeRow(s, theme)),
+        ],
+      ),
+    );
+  }
+
+  Widget _storeRow(Map<String, dynamic> store, ThemeData theme) {
+    return InkWell(
+      onTap: () async {
+        final uri = Uri.tryParse(store['url'] as String);
+        if (uri != null) await launchUrl(uri, mode: LaunchMode.externalApplication);
+      },
+      borderRadius: BorderRadius.circular(12),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: Row(
+          children: [
+            Container(
+              width: 40, height: 40,
+              decoration: BoxDecoration(
+                color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(store['icon'] as IconData, color: theme.colorScheme.primary, size: 20),
+            ),
+            const SizedBox(width: 12),
+            Expanded(child: Text(store['title'] as String,
+              style: const TextStyle(fontWeight: FontWeight.w700))),
+            const Icon(Icons.open_in_new, size: 16, color: Colors.grey),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _aiHelpCard(ThemeData theme) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [theme.colorScheme.primary.withValues(alpha: 0.1),
+                   theme.colorScheme.secondary.withValues(alpha: 0.1)],
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('🤖 Spør AI om reisen din',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900)),
+          const SizedBox(height: 6),
+          Text('Få personlig råd om hvordan du maksimerer poengene til $_destination for ${_adults + _children} personer.',
+            style: TextStyle(color: Colors.grey[700], fontSize: 13, height: 1.4)),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              icon: const Icon(Icons.chat_bubble_outline),
+              label: const Text('Åpne AI-rådgiver'),
+              onPressed: () {
+                // Naviger til AI-chat
+                Navigator.of(context).pop();
+              },
+            ),
+          ),
+          if (!_isPremium) ...[
+            const SizedBox(height: 8),
+            Text('💡 Med Premium får du enda bedre reiseforslag og prioriterte tips',
+              style: TextStyle(color: Colors.orange[700], fontSize: 12)),
+          ],
+        ],
       ),
     );
   }

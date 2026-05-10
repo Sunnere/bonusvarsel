@@ -26,6 +26,9 @@ class CheckoutService {
   String _billing = 'monthly';
   bool _isPartner = false;
 
+  /// Kall denne fra CheckoutPage for å få beskjed når kjøp er fullført
+  VoidCallback? onPurchaseSuccess;
+
   String get plan => _plan;
   String get billing => _billing;
   bool get isPartner => _isPartner;
@@ -51,7 +54,7 @@ class CheckoutService {
     _initialized = true;
 
     await EntitlementService.instance.load();
-    debugPrint('CheckoutService.init: entitlement plan=$EntitlementService.instance.plan productId=$EntitlementService.instance.productId');
+    debugPrint('CheckoutService.init: plan=${EntitlementService.instance.plan} productId=${EntitlementService.instance.productId}');
 
     final available = await _iap.isAvailable();
     if (!available) {
@@ -80,17 +83,17 @@ class CheckoutService {
     final response = await _iap.queryProductDetails(_productIds);
 
     if (response.error != null) {
-      debugPrint('IAP query error: $response.error');
+      debugPrint('IAP query error: ${response.error}');
     }
 
     if (response.notFoundIDs.isNotEmpty) {
-      debugPrint('IAP not found: $response.notFoundIDs');
+      debugPrint('IAP not found: ${response.notFoundIDs}');
     }
 
     products = response.productDetails;
-    debugPrint('IAP loaded products count=$products.length');
+    debugPrint('IAP loaded products count=${products.length}');
     for (final p in products) {
-      debugPrint('IAP product loaded: id=$p.id title=$p.title price=$p.price');
+      debugPrint('IAP product loaded: id=${p.id} title=${p.title} price=${p.price}');
     }
   }
 
@@ -108,7 +111,7 @@ class CheckoutService {
   }) async {
     _plan = plan;
     _billing = billing;
-    debugPrint('CheckoutService.setSelection: plan=$_plan billing=$_billing partner=$_isPartner effectivePlan=$effectivePlan productId=${selectedProductId()}');
+    debugPrint('CheckoutService.setSelection: plan=$_plan billing=$_billing effectivePlan=$effectivePlan productId=${selectedProductId()}');
   }
 
   Future<void> setBilling(String value) async {
@@ -126,7 +129,6 @@ class CheckoutService {
     final billingPart = _billing == 'yearly' ? 'yearly' : 'monthly';
     return '${planPart}_$billingPart';
   }
-
 
   Future<String> buySelectedVerbose() async {
     final productId = selectedProductId();
@@ -147,7 +149,7 @@ class CheckoutService {
     try {
       debugPrint('buySelectedVerbose: calling buy for $productId');
       await buy(productId);
-      return 'Apple-kjøpsdialog skal vises nå.';
+      return '';
     } catch (e) {
       debugPrint('buySelectedVerbose: exception=$e');
       return 'Kjøp feilet: $e';
@@ -173,10 +175,9 @@ class CheckoutService {
       return;
     }
 
-    debugPrint('buy: found product id=$product.id title=$product.title price=$product.price');
+    debugPrint('buy: found product id=${product.id} title=${product.title} price=${product.price}');
     final purchaseParam = PurchaseParam(productDetails: product);
 
-    // Subscriptions håndteres som non-consumable-kjøp i in_app_purchase-flowen.
     debugPrint('buy: calling buyNonConsumable...');
     await _iap.buyNonConsumable(purchaseParam: purchaseParam);
     debugPrint('buy: buyNonConsumable returned without throw');
@@ -197,11 +198,11 @@ class CheckoutService {
     for (final purchase in purchases) {
       switch (purchase.status) {
         case PurchaseStatus.pending:
-          debugPrint('Purchase pending: $purchase.productID');
+          debugPrint('Purchase pending: ${purchase.productID}');
           break;
 
         case PurchaseStatus.error:
-          debugPrint('Purchase error: $purchase.error');
+          debugPrint('Purchase error: ${purchase.error}');
           if (purchase.pendingCompletePurchase) {
             await _iap.completePurchase(purchase);
           }
@@ -211,15 +212,17 @@ class CheckoutService {
         case PurchaseStatus.restored:
           await EntitlementService.instance.unlock(purchase.productID);
           debugPrint(
-            'Unlocked plan=$EntitlementService.instance.plan via $purchase.productID ($purchase.status.name)',
+            'Unlocked plan=${EntitlementService.instance.plan} via ${purchase.productID} (${purchase.status.name})',
           );
           if (purchase.pendingCompletePurchase) {
             await _iap.completePurchase(purchase);
           }
+          // Varsle UI om vellykket kjøp
+          onPurchaseSuccess?.call();
           break;
 
         case PurchaseStatus.canceled:
-          debugPrint('Purchase canceled: $purchase.productID');
+          debugPrint('Purchase canceled: ${purchase.productID}');
           if (purchase.pendingCompletePurchase) {
             await _iap.completePurchase(purchase);
           }

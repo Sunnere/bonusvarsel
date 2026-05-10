@@ -78,7 +78,7 @@ class _HomePageState extends State<HomePage> {
       appBar: _buildAppBar(),
       body: IndexedStack(index: _index, children: _pages),
       floatingActionButton: FloatingActionButton(
-        backgroundColor: const Color(0xFF1A1A2E),
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         tooltip: 'Spør Bonusvarsel',
         onPressed: () => Navigator.push(
           context,

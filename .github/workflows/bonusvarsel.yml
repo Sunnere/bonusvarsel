@@ -28,4 +28,14 @@ jobs:
         env:
           TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
           TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
-        run: node scripts/notify-telegram.mjs
+          PROGRAM: sas
+          CHANNEL: SAS
+          COUNTRY: no
+          DISPLAY_NAME: "Trumf Netthandel"
+          DATA_DIR: data
+        run: |
+          if [ ! -f "data/changes.json" ]; then
+            echo "No changes.json – skipping notify"
+            exit 0
+          fi
+          node scripts/notify-from-changes.mjs

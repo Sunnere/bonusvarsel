@@ -29,7 +29,7 @@ jobs:
           LANGUAGE: nb
           COUNTRY: no
           PER_PAGE: "100"
-        run: node scripts/collect-loyaltykey.mjs
+        run: CHANNEL=SAS LANGUAGE=nb COUNTRY=no PER_PAGE=100 node scripts/collect-loyaltykey.mjs
 
       - name: Notify Telegram
         env:

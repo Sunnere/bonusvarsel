@@ -1,4 +1,9 @@
-import 'package:flutter/material.dart';
+#!/usr/bin/env python3
+import os
+
+path = os.path.expanduser('~/bonusvarsel/lib/pages/eb_shopping_page.dart')
+
+dart = '''import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/entitlement_service.dart';
@@ -60,24 +65,19 @@ class _EbShoppingPageState extends State<EbShoppingPage> {
 
   static const _steps = [
     {
-      "title": "Bli SAS EuroBonus-medlem",
-      "short": "Gratis å melde seg inn – ta 2 minutter nå",
-      "detail": "Gå til sas.no og opprett en gratis EuroBonus-konto. Du får et unikt EuroBonus-nummer som du bruker til å samle poeng.\n\nHar du allerede SAS-konto? Hopp til steg 2!\n\n💡 Tips: Last ned SAS-appen og logg inn – da har du alltid poengsaldoen tilgjengelig.",
-    },
-    {
       "title": "Registrer kortet ditt i Trumf-appen",
       "short": "Gjøres én gang – bonus registreres automatisk",
-      "detail": "Last ned Trumf-appen og registrer bankkortet ditt én gang. Deretter får du 1% Trumf-bonus automatisk hver gang du betaler med det kortet hos NorgesGruppen-butikkene: KIWI, MENY, SPAR, Joker, Jacob\u2019s og Nærbutikken.\n\nDu trenger ikke gjøre noe i kassen – bonusen registreres bare!\n\n💡 Tips: Har du SAS EuroBonus Mastercard eller Amex? Registrer det – da får du Trumf-bonus OG EuroBonus-poeng på samme handletur.",
+      "detail": "Last ned Trumf-appen og registrer bankkortet ditt én gang. Deretter får du 1% Trumf-bonus automatisk hver gang du betaler med det kortet hos NorgesGruppen-butikkene: KIWI, MENY, SPAR, Joker, Jacob\\u2019s og Nærbutikken.\\n\\nDu trenger ikke gjøre noe i kassen – bonusen registreres bare!\\n\\n💡 Tips: Har du SAS EuroBonus Mastercard eller Amex? Registrer det – da får du Trumf-bonus OG EuroBonus-poeng på samme handletur.",
     },
     {
       "title": "Scan QR-koden i kassen",
       "short": "Dobler bonusen til 2% – gratis og enkelt",
-      "detail": "Åpne Trumf-appen og trykk på QR-ikonet. Vis koden til kassapersonalet før du betaler – da dobles bonusen fra 1% til 2%.\n\nBetaler du med SAS EuroBonus Amex-kortet etterpå? Da tjener du 20 EuroBonus-poeng per 100 kr i tillegg. Det kalles dobbel dip.\n\n💡 På Trippel-Torsdag tredobles grunnbonusen. Har du Trumf Kredittkort kan du få hele 5% på én handletur!",
+      "detail": "Åpne Trumf-appen og trykk på QR-ikonet. Vis koden til kassapersonalet før du betaler – da dobles bonusen fra 1% til 2%.\\n\\nBetaler du med SAS EuroBonus Amex-kortet etterpå? Da tjener du 20 EuroBonus-poeng per 100 kr i tillegg. Det kalles dobbel dip.\\n\\n💡 På Trippel-Torsdag tredobles grunnbonusen. Har du Trumf Kredittkort kan du få hele 5% på én handletur!",
     },
     {
       "title": "Sjekk Varsler og handle smart",
       "short": "Vi varsler deg når favorittbutikkene har bonus",
-      "detail": "Gå til Varsler-siden og velg butikkene du handler i. Vi sender deg melding på e-post eller Telegram når de har ekstra bonus.\n\nEksempel: Outnorth har normalt 25 poeng/100kr. Ved kampanje stiger det til 50 – da varsler vi deg!\n\n💡 Premium og Elite gir personlige varsler på opptil 5 eller 10 favorittbutikker.",
+      "detail": "Gå til Varsler-siden og velg butikkene du handler i. Vi sender deg melding på e-post eller Telegram når de har ekstra bonus.\\n\\nEksempel: Outnorth har normalt 25 poeng/100kr. Ved kampanje stiger det til 50 – da varsler vi deg!\\n\\n💡 Premium og Elite gir personlige varsler på opptil 5 eller 10 favorittbutikker.",
     },
   ];
 
@@ -126,7 +126,7 @@ class _EbShoppingPageState extends State<EbShoppingPage> {
                   letterSpacing: .1,
                   color: Colors.white60)),
           const SizedBox(height: 8),
-          const Text("Spar til ferien –\nuten å spare penger",
+          const Text("Spar til ferien –\\nuten å spare penger",
               style: TextStyle(
                   fontSize: 26,
                   fontWeight: FontWeight.w900,
@@ -242,7 +242,7 @@ class _EbShoppingPageState extends State<EbShoppingPage> {
                 ),
               ),
               child: Text(
-                (step["detail"] as String).replaceAll("\\n", "\n"),
+                (step["detail"] as String).replaceAll("\\\\n", "\\n"),
                 style: const TextStyle(
                     fontSize: 13,
                     color: Color(0xFF166534),
@@ -295,7 +295,7 @@ class _EbShoppingPageState extends State<EbShoppingPage> {
                           color: Color(0xFF166534))),
                   const SizedBox(height: 10),
                   Row(children: [
-                    Expanded(child: _dipItem("📱", "Scan QR i\nTrumf-appen")),
+                    Expanded(child: _dipItem("📱", "Scan QR i\\nTrumf-appen")),
                     const Padding(
                       padding: EdgeInsets.symmetric(horizontal: 8),
                       child: Text("+",
@@ -305,7 +305,7 @@ class _EbShoppingPageState extends State<EbShoppingPage> {
                               color: Colors.grey)),
                     ),
                     Expanded(
-                        child: _dipItem("💳", "Betal med\nvanlig kort")),
+                        child: _dipItem("💳", "Betal med\\nvanlig kort")),
                   ]),
                   const SizedBox(height: 10),
                   Container(
@@ -333,7 +333,7 @@ class _EbShoppingPageState extends State<EbShoppingPage> {
                   ),
                   const SizedBox(height: 8),
                   const Text(
-                    "200 kr Trumf = 2 700 EuroBonus-poeng\nved automatisk overføring ✨",
+                    "200 kr Trumf = 2 700 EuroBonus-poeng\\nved automatisk overføring ✨",
                     style: TextStyle(
                         fontSize: 11,
                         color: Color(0xFF16a34a),
@@ -357,7 +357,7 @@ class _EbShoppingPageState extends State<EbShoppingPage> {
         child: Column(children: [
           Text(icon, style: const TextStyle(fontSize: 22)),
           const SizedBox(height: 4),
-          Text(label.replaceAll("\\n", "\n"),
+          Text(label.replaceAll("\\\\n", "\\n"),
               style: const TextStyle(
                   fontSize: 10,
                   fontWeight: FontWeight.w600,
@@ -563,7 +563,7 @@ class _EbShoppingPageState extends State<EbShoppingPage> {
                     color: Color(0xFFfbbf24))),
             const SizedBox(height: 8),
             Text(
-              "EuroBonus-poeng kan brukes på flyreiser med SAS, Widerøe og SkyTeam-partnere (Air France, KLM, Delta m.fl.), hotellopphold, leiebil og oppgraderinger.\n\nEksempel: En tur Oslo–London kan koste ned mot 15 000 poeng. Poengene er gyldige i opptil 5 år fra opptjening.",
+              "EuroBonus-poeng kan brukes på flyreiser med SAS, Widerøe og SkyTeam-partnere (Air France, KLM, Delta m.fl.), hotellopphold, leiebil og oppgraderinger.\\n\\nEksempel: En tur Oslo–London kan koste ned mot 15 000 poeng. Poengene er gyldige i opptil 5 år fra opptjening.",
               style: TextStyle(
                   fontSize: 12,
                   color: Colors.grey[300],
@@ -724,3 +724,8 @@ class _HeroChip extends StatelessWidget {
                 color: Colors.white)),
       );
 }
+'''
+
+with open(path, 'w') as f:
+    f.write(dart)
+print(f'✅ eb_shopping_page.dart skrevet på nytt ({len(dart)} tegn)')

@@ -35,7 +35,9 @@ const outPath = (...parts) => path.resolve(DATA_DIR, ...parts);
 const API_BASE = process.env.API_BASE || "https://onlineshopping.loyaltykey.com";
 
 
-const CHANNEL = (process.env.CHANNEL || "SAS").trim() || "SAS";
+const _CHANNEL_RAW = process.env.CHANNEL;
+console.log(`DEBUG CHANNEL env: "${_CHANNEL_RAW}" (type: ${typeof _CHANNEL_RAW})`);
+const CHANNEL = (_CHANNEL_RAW && _CHANNEL_RAW.trim()) ? _CHANNEL_RAW.trim() : "SAS";
 const LANGUAGE = process.env.LANGUAGE || "nb";
 const COUNTRY = process.env.COUNTRY || "no";
 const PER_PAGE = Number(process.env.PER_PAGE || 100);

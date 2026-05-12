@@ -95,6 +95,20 @@ function formatSummary(summary, changes) {
     if (Array.isArray(summary.lines) && summary.lines.length) return summary.lines.join("\n");
   }
 
+  // Fallback: les fra summary-objekt med campaigns/shops-struktur
+  if (summary && typeof summary === "object") {
+    const ca = summary.campaigns || {};
+    const sh = summary.shops || {};
+    const lines = [];
+    if ((ca.added || 0) > 0) lines.push(`📦 ${ca.added} nye kampanjer`);
+    if ((ca.updated || 0) > 0) lines.push(`🔄 ${ca.updated} oppdaterte kampanjer`);
+    if ((ca.removed || 0) > 0) lines.push(`🗑️ ${ca.removed} fjernede kampanjer`);
+    if ((sh.added || 0) > 0) lines.push(`🛍️ ${sh.added} nye butikker`);
+    if ((sh.updated || 0) > 0) lines.push(`🔄 ${sh.updated} oppdaterte butikker`);
+    if ((sh.removed || 0) > 0) lines.push(`🗑️ ${sh.removed} fjernede butikker`);
+    if (lines.length) return lines.join("\n");
+  }
+
   // Fallback: build a tiny readable message from changes.json
   const adds = (changes?.campaigns?.added?.length || 0) + (changes?.shops?.added?.length || 0);
   const upd = (changes?.campaigns?.updated?.length || 0) + (changes?.shops?.updated?.length || 0);

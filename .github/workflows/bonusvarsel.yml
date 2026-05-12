@@ -22,6 +22,11 @@ jobs:
         run: echo "No deps"
 
       - name: Run collector
+        env:
+          CHANNEL: SAS
+          LANGUAGE: nb
+          COUNTRY: no
+          PER_PAGE: "100"
         run: node scripts/collect-loyaltykey.mjs
 
       - name: Notify Telegram

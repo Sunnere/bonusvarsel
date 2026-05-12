@@ -94,13 +94,13 @@ jobs:
           PROGRAM: ${{ matrix.program }}
           CHANNEL: ${{ matrix.channel }}
           COUNTRY: ${{ matrix.country }}
-        run: node scripts/notify-from-changes.mjs
-
+          DISPLAY_NAME: ${{ matrix.display_name }}
+          DATA_DIR: data/${{ matrix.program }}
+        run: |
           if [ ! -f "data/${{ matrix.program }}/changes.json" ]; then
-            echo "No changes.json found for program=${{ matrix.program }} (skipping notify)"
+            echo "No changes.json – skipping notify"
             exit 0
           fi
-
           FORCE="${{ github.event_name == 'workflow_dispatch' && github.event.inputs.force_notify == 'true' }}"
           if [ "$FORCE" = "true" ]; then
             node scripts/notify-from-changes.mjs --force

@@ -158,10 +158,7 @@ async function main() {
   const token = process.env.TG_BOT_TOKEN;
   const chatId = process.env.TG_CHAT_ID;
 
-  await sendTelegram({
-    token,
-    chatId,
-    text: messageText,
+  await sendTelegram(messageText, {
   });
 
   markSent(sent, messageHash);

@@ -233,6 +233,7 @@ class _TrumfKalkulatorPageState extends State<TrumfKalkulatorPage> {
               (v) => setState(() => _strom = v)),
       ]),
 
+      const SizedBox(height: 14),
       // ── Betalingsmåte ─────────────────────────────────────
       _card([
         _secLabel('Hvordan betaler du i butikken?'),
@@ -259,7 +260,7 @@ class _TrumfKalkulatorPageState extends State<TrumfKalkulatorPage> {
       Container(
         decoration: BoxDecoration(
           gradient: const LinearGradient(
-            colors: [Color(0xFF0D6E44), Color(0xFF0A5236)],
+            colors: [Color(0xFF0A4FD4), Color(0xFF0D6E44)],
             begin: Alignment.topLeft, end: Alignment.bottomRight,
           ),
           borderRadius: BorderRadius.circular(20),

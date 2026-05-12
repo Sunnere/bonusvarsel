@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../services/api_service.dart';
+import 'bonusvarsel_alerts_page.dart';
 import 'bonusvarsel_device_monitor_page.dart';
 import 'bonusvarsel_dev_tools_page.dart';
 import 'bonusvarsel_notifications_page.dart';
@@ -1672,6 +1673,19 @@ FilledButton.icon(
     return Scaffold(
       appBar: AppBar(
         title: const Text('Dev Hub'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.notifications),
+            tooltip: 'Varsler',
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => const BonusvarselAlertsPage(),
+                ),
+              );
+            },
+          ),
+        ],
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),
@@ -1714,6 +1728,38 @@ FilledButton.icon(
                 fontWeight: FontWeight.w700,
                 height: 1.5,
               ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              color: const Color(0xFFECFDF5),
+              border: Border.all(color: const Color(0xFF34D399)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Varsler (sluttbruker-visning)',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                ElevatedButton(
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const BonusvarselAlertsPage(),
+                      ),
+                    );
+                  },
+                  child: const Text('Åpne alerts-side'),
+                ),
+              ],
             ),
           ),
           const SizedBox(height: 16),

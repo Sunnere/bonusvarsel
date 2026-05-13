@@ -120,13 +120,17 @@ class _TravelPageState extends State<TravelPage> {
             _heroCard(theme),
             const SizedBox(height: 16),
 
+            // ── Destinasjoner ──
+            _destinationsSection(),
+            const SizedBox(height: 12),
+
             // ── Bonusprogram ──
             _sectionCard(
               theme,
               title: 'Bonusprogram',
               child: DropdownButtonFormField<String>(
                 value: _selectedProgram,
-                decoration: const InputDecoration(border: OutlineInputBorder()),
+                decoration: const InputDecoration(border: OutlineInputBorder(), filled: true, fillColor: Colors.white),
                 items: _programs.map((p) => DropdownMenuItem(value: p, child: Text(p))).toList(),
                 onChanged: (v) => setState(() => _selectedProgram = v ?? _selectedProgram),
               ),
@@ -146,6 +150,8 @@ class _TravelPageState extends State<TravelPage> {
                     onSubmitted: (_) => FocusScope.of(context).unfocus(),
                     decoration: const InputDecoration(
                       labelText: 'Reisemål',
+                      filled: true,
+                      fillColor: Colors.white,
                       border: OutlineInputBorder(),
                       prefixIcon: Icon(Icons.flight_takeoff),
                     ),
@@ -191,6 +197,8 @@ class _TravelPageState extends State<TravelPage> {
                           onChanged: (_) => setState(() {}),
                           decoration: InputDecoration(
                             labelText: 'Flypris totalt (NOK)',
+                            filled: true,
+                            fillColor: Colors.white,
                             hintText: 'f.eks. ${_formatNum(35000 * (_adults + _children))}',
                             border: const OutlineInputBorder(),
                             prefixText: 'kr ',
@@ -216,6 +224,8 @@ class _TravelPageState extends State<TravelPage> {
                           onChanged: (_) => setState(() {}),
                           decoration: const InputDecoration(
                             labelText: 'Hotellpris totalt (NOK)',
+                            filled: true,
+                            fillColor: Colors.white,
                             hintText: 'f.eks. 10 000',
                             border: OutlineInputBorder(),
                             prefixText: 'kr ',
@@ -249,6 +259,8 @@ class _TravelPageState extends State<TravelPage> {
                           onChanged: (_) => setState(() {}),
                           decoration: const InputDecoration(
                             labelText: 'Leiebilpris totalt (NOK)',
+                            filled: true,
+                            fillColor: Colors.white,
                             hintText: 'f.eks. 5 000',
                             border: OutlineInputBorder(),
                             prefixText: 'kr ',
@@ -291,6 +303,8 @@ class _TravelPageState extends State<TravelPage> {
                     onChanged: (_) => setState(() {}),
                     decoration: const InputDecoration(
                       labelText: 'Nåværende SAS EuroBonus-poeng',
+                      filled: true,
+                      fillColor: Colors.white,
                       hintText: 'Skriv inn dine poeng',
                       border: OutlineInputBorder(),
                     ),
@@ -334,6 +348,60 @@ class _TravelPageState extends State<TravelPage> {
     );
   }
 
+
+  Widget _destinationsSection() {
+    final dests = [
+      {'flag':'🇳🇴','name':'Oslo → Tromsø',  'pts':'5 000', 'type':'Innenlands'},
+      {'flag':'🇬🇧','name':'Oslo → London',   'pts':'15 000','type':'Europa'},
+      {'flag':'🇹🇭','name':'Oslo → Bangkok',  'pts':'60 000','type':'Asia'},
+      {'flag':'🇺🇸','name':'Oslo → New York', 'pts':'70 000','type':'USA'},
+    ];
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      const Text('✈️ Populære bonusreiser',
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
+      const SizedBox(height: 4),
+      Text('Poeng fra SAS EuroBonus – én vei, Economy',
+          style: TextStyle(fontSize: 13, color: Colors.grey[500])),
+      const SizedBox(height: 10),
+      ...dests.map((d) => GestureDetector(
+        onTap: () => _launchUrl('https://www.sas.no/eurobonus/bonusreiser'),
+        child: Container(
+          margin: const EdgeInsets.only(bottom: 8),
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 14),
+          decoration: BoxDecoration(
+            color: const Color(0xFFeff6ff),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: const Color(0xFF93c5fd), width: 1.5),
+          ),
+          child: Row(children: [
+            Text(d['flag']!, style: const TextStyle(fontSize: 24)),
+            const SizedBox(width: 12),
+            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(d['name']!, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Colors.black87)),
+              Text(d['type']!, style: TextStyle(fontSize: 11, color: Colors.grey[500])),
+            ])),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: const Color(0xFF2563eb),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text('fra ${d['pts']} p',
+                  style: const TextStyle(fontSize: 12, color: Colors.white, fontWeight: FontWeight.w700)),
+            ),
+          ]),
+        ),
+      )),
+      GestureDetector(
+        onTap: () => _launchUrl('https://www.sas.no/eurobonus/bonusreiser'),
+        child: Center(child: Text('Søk alle bonusreiser på sas.no →',
+            style: TextStyle(fontSize: 12, color: const Color(0xFF2563eb), fontWeight: FontWeight.w600))),
+      ),
+    ]);
+  }
+
+  void _launchUrl(String url) => launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+
   Widget _heroCard(ThemeData theme) {
     final totalPeople = _adults + _children;
     final childText = _children > 0 ? ', $_children barn' : '';
@@ -341,8 +409,8 @@ class _TravelPageState extends State<TravelPage> {
       width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [theme.colorScheme.primary, theme.colorScheme.secondary],
+        gradient: const LinearGradient(
+          colors: [Color(0xFF0A4FD4), Color(0xFF0D6E44)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -375,21 +443,33 @@ class _TravelPageState extends State<TravelPage> {
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: theme.cardTheme.color ?? Colors.white,
+        color: const Color(0xFFf0fdf4),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: theme.dividerColor),
+        border: Border.all(color: const Color(0xFF86efac), width: 2),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
-          if (subtitle != null) ...[
-            const SizedBox(height: 4),
-            Text(subtitle, style: TextStyle(color: Colors.grey[600], fontSize: 13)),
+      child: Theme(
+        data: theme.copyWith(
+          textTheme: theme.textTheme.apply(
+            bodyColor: Colors.black87,
+            displayColor: Colors.black87,
+          ),
+          inputDecorationTheme: theme.inputDecorationTheme.copyWith(
+            labelStyle: const TextStyle(color: Colors.black54),
+            hintStyle: const TextStyle(color: Colors.black38),
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF166534))),
+            if (subtitle != null) ...[
+              const SizedBox(height: 4),
+              Text(subtitle, style: const TextStyle(color: Color(0xFF16a34a), fontSize: 13)),
+            ],
+            const SizedBox(height: 12),
+            child,
           ],
-          const SizedBox(height: 12),
-          child,
-        ],
+        ),
       ),
     );
   }
@@ -413,9 +493,9 @@ class _TravelPageState extends State<TravelPage> {
             value: selected,
             onChanged: (v) => onToggle(v ?? false),
             title: Row(children: [
-              Icon(icon, size: 20),
+              Icon(icon, size: 20, color: Colors.black54),
               const SizedBox(width: 8),
-              Text(label, style: const TextStyle(fontWeight: FontWeight.w700)),
+              Text(label, style: const TextStyle(fontWeight: FontWeight.w700, color: Colors.black87)),
             ]),
             controlAffinity: ListTileControlAffinity.trailing,
             contentPadding: const EdgeInsets.symmetric(horizontal: 12),
@@ -435,7 +515,7 @@ class _TravelPageState extends State<TravelPage> {
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         if (label.isNotEmpty) ...[
-          Text(label, style: const TextStyle(fontWeight: FontWeight.w600)),
+          Text(label, style: const TextStyle(fontWeight: FontWeight.w600, color: Colors.black87)),
           const SizedBox(width: 8),
         ],
         IconButton(
@@ -443,7 +523,7 @@ class _TravelPageState extends State<TravelPage> {
           onPressed: onMinus,
           color: onMinus != null ? Colors.blue : Colors.grey,
         ),
-        Text('$value', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900)),
+        Text('$value', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Colors.black87)),
         IconButton(
           icon: const Icon(Icons.add_circle_outline),
           onPressed: onPlus,
@@ -479,7 +559,7 @@ class _TravelPageState extends State<TravelPage> {
             style: TextStyle(fontWeight: FontWeight.w900, color: Colors.green.shade700)),
           const SizedBox(height: 8),
           Text('Basert på: $_selectedProgram • $_cardRatePer100 poeng/100 kr • ${_adults + _children} personer',
-            style: TextStyle(color: Colors.grey[600], fontSize: 12)),
+            style: const TextStyle(color: Colors.black87, fontSize: 12)),
         ],
       ),
     );
@@ -537,18 +617,18 @@ class _TravelPageState extends State<TravelPage> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: theme.cardTheme.color ?? Colors.white,
+        color: const Color(0xFFf0fdf4),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: theme.dividerColor),
+        border: Border.all(color: const Color(0xFF86efac), width: 2),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text('🛍️ Smarte kjøp før $_destination-reisen',
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF166534))),
           const SizedBox(height: 4),
           Text('Tjen poeng på disse kjøpene før du reiser',
-            style: TextStyle(color: Colors.grey[600], fontSize: 13)),
+            style: const TextStyle(color: Colors.black87, fontSize: 13)),
           const SizedBox(height: 12),
           ...stores.map((s) => _storeRow(s, theme)),
         ],
@@ -570,15 +650,15 @@ class _TravelPageState extends State<TravelPage> {
             Container(
               width: 40, height: 40,
               decoration: BoxDecoration(
-                color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                color: const Color(0xFFeff6ff),
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: Icon(store['icon'] as IconData, color: theme.colorScheme.primary, size: 20),
+              child: Icon(store['icon'] as IconData, color: const Color(0xFF2563eb), size: 20),
             ),
             const SizedBox(width: 12),
             Expanded(child: Text(store['title'] as String,
-              style: const TextStyle(fontWeight: FontWeight.w700))),
-            const Icon(Icons.open_in_new, size: 16, color: Colors.grey),
+              style: const TextStyle(fontWeight: FontWeight.w700, color: Colors.black87))),
+            const Icon(Icons.open_in_new, size: 16, color: Colors.black54),
           ],
         ),
       ),
@@ -590,20 +670,19 @@ class _TravelPageState extends State<TravelPage> {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [theme.colorScheme.primary.withValues(alpha: 0.1),
-                   theme.colorScheme.secondary.withValues(alpha: 0.1)],
+          colors: [const Color(0xFFeff6ff), const Color(0xFFf0fdf4)],
         ),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.3)),
+        border: Border.all(color: const Color(0xFF93c5fd), width: 1.5),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text('🤖 Spør AI om reisen din',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900)),
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: Color(0xFF1e40af))),
           const SizedBox(height: 6),
           Text('Få personlig råd om hvordan du maksimerer poengene til $_destination for ${_adults + _children} personer.',
-            style: TextStyle(color: Colors.grey[700], fontSize: 13, height: 1.4)),
+            style: const TextStyle(color: Colors.black87, fontSize: 13, height: 1.4)),
           const SizedBox(height: 12),
           SizedBox(
             width: double.infinity,

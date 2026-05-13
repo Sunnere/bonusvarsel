@@ -26,10 +26,10 @@ class _HomePageState extends State<HomePage> {
 
   final _pages = [
     PaywallScrollWrapper(child: EbShoppingPage()),
-    TravelPage(),
     TrumfKalkulatorPage(),
     CardsPage(),
     BonusvarselAlertsPage(),
+    TravelPage(),
   ];
 
   @override
@@ -93,14 +93,9 @@ class _HomePageState extends State<HomePage> {
         onDestinationSelected: (i) => setState(() => _index = i),
         destinations: const [
           NavigationDestination(
-            icon: Icon(Icons.shopping_bag_outlined),
-            selectedIcon: Icon(Icons.shopping_bag),
-            label: 'Shopping',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.flight_outlined),
-            selectedIcon: Icon(Icons.flight),
-            label: 'Reis',
+            icon: Icon(Icons.stars_outlined),
+            selectedIcon: Icon(Icons.stars),
+            label: 'Poeng',
           ),
           NavigationDestination(
             icon: Icon(Icons.calculate_outlined),
@@ -116,6 +111,11 @@ class _HomePageState extends State<HomePage> {
             icon: Icon(Icons.notifications_outlined),
             selectedIcon: Icon(Icons.notifications),
             label: 'Varsler',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.flight_outlined),
+            selectedIcon: Icon(Icons.flight),
+            label: 'Reis',
           ),
         ],
       ),

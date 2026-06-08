@@ -85,6 +85,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
     VoidCallback? onSecondary,
     Color? accent,
     String? highlight,
+    Widget? extraWidget,
   }) {
     final scheme = Theme.of(context).colorScheme;
     final a = accent ?? _gold;
@@ -244,6 +245,10 @@ class _OnboardingPageState extends State<OnboardingPage> {
                       ),
                     ),
                   ),
+                  if (extraWidget != null) ...[
+                    const SizedBox(height: 12),
+                    extraWidget,
+                  ],
                   if (secondaryLabel != null && onSecondary != null) ...[
                     const SizedBox(height: 10),
                     SizedBox(
@@ -340,7 +345,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
       context: context,
       icon: Icons.trending_up,
       title: 'Hvor mange bonuspoeng går du glipp av hver måned?',
-      subtitle: 'De fleste mister 1 000–8 000 poeng uten å vite det.',
+      subtitle: 'De fleste mister 1 000–8 000 poeng uten å vite det.\nHow many bonus points are you missing each month?',
       accent: _gold,
       highlight: 'Bonusvarsel viser deg hvor det faktisk lønner seg',
       children: [
@@ -365,7 +370,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
       context: context,
       icon: Icons.insights_outlined,
       title: 'Vi viser deg hvor du tjener mest',
-      subtitle: 'Bonusvarsel samler relevante muligheter på ett sted.',
+      subtitle: 'Bonusvarsel samler relevante muligheter på ett sted.\nWe show you where to earn the most — all in one place.',
       accent: _blue,
       highlight: 'SAS + Trumf + kort + kampanjer',
       children: [
@@ -398,7 +403,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
       context: context,
       icon: Icons.local_grocery_store,
       title: 'Start med Trumf',
-      subtitle: 'Tjen bonus på dagligvarer og kjøp – helt gratis.',
+      subtitle: 'Tjen bonus på dagligvarer og kjøp – helt gratis.\nEarn bonus on groceries and everyday purchases — free.',
       accent: _green,
       highlight: 'Anbefalt start for alle brukere',
       children: [
@@ -431,7 +436,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
       context: context,
       icon: Icons.flight_takeoff,
       title: 'Koble til SAS EuroBonus',
-      subtitle: 'Gjør bonus til reiser, status og mer verdi over tid.',
+      subtitle: 'Gjør bonus til reiser, status og mer verdi over tid.\nTurn your bonus into flights, status and more value.',
       accent: _blue,
       highlight: 'Neste naturlige steg etter Trumf',
       children: [
@@ -464,7 +469,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
       context: context,
       icon: Icons.celebration_outlined,
       title: 'Du er i gang',
-      subtitle: 'Nå kan du begynne å samle poeng smartere med bedre oversikt og timing.',
+      subtitle: 'Nå kan du begynne å samle poeng smartere med bedre oversikt og timing.\nYou\'re ready to collect points smarter — with better overview and timing.',
       accent: _gold,
       highlight: 'Små valg kan gi stor forskjell over tid',
       children: [
@@ -489,7 +494,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
       context: context,
       icon: Icons.workspace_premium,
       title: 'Vil du få enda mer ut av dette?',
-      subtitle: 'Premium viser deg hvor det faktisk lønner seg å handle, klikke og prioritere.',
+      subtitle: 'Premium viser deg hvor det faktisk lønner seg å handle, klikke og prioritere.\nWant even more? Premium shows you exactly where to shop, click and prioritise.',
       accent: _gold,
       highlight: 'Typisk +1 500–4 000 ekstra poeng per måned',
       children: [
@@ -509,6 +514,28 @@ class _OnboardingPageState extends State<OnboardingPage> {
           subtitle: 'Du slipper å lete manuelt etter hvilke butikker og tilbud som er best akkurat nå.',
         ),
       ],
+      extraWidget: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: const Color(0xFF1C3860),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFF3D6490)),
+        ),
+        child: const Row(children: [
+          Text('🤖', style: TextStyle(fontSize: 20)),
+          SizedBox(width: 10),
+          Expanded(child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Spørsmål? Spør AI-assistenten!',
+                style: TextStyle(color: Color(0xFFF8F6F0),
+                  fontSize: 13, fontWeight: FontWeight.w700)),
+              Text('Questions? Ask our AI assistant!',
+                style: TextStyle(color: Color(0xFFC8D8E8), fontSize: 11)),
+            ],
+          )),
+        ]),
+      ),
       primaryLabel: 'Prøv Premium',
       onPrimary: () async {
         await OnboardingService.markCompleted();

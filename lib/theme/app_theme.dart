@@ -1,21 +1,63 @@
 import 'package:flutter/material.dart';
+import 'package:bonusvarsel/services/entitlement_service.dart';
 
 class AppTheme {
-  static const Color bg = Color(0xFF06111F);
-  static const Color surface = Color(0xFF0B1728);
-  static const Color surface2 = Color(0xFF122033);
-  static const Color surface3 = Color(0xFF18263A);
-  static const Color border = Color(0xFF2F435C);
+  // ── Gratis tema (navy blå) ────────────────────────────────────────────────
+  static const Color bg = Color(0xFF0F2340);
+  static const Color surface = Color(0xFF152B4A);
+  static const Color surface2 = Color(0xFF1C3860);
+  static const Color surface3 = Color(0xFF243F6E);
+  static const Color border = Color(0xFF3D6490);
+
+  // ── Premium tema (luksus grønn) ───────────────────────────────────────────
+  static const Color bgPremium = Color(0xFF0A1F14);
+  static const Color surfacePremium = Color(0xFF0F3020);
+  static const Color surface2Premium = Color(0xFF164028);
+  static const Color borderPremium = Color(0xFF2D6E45);
+  static const Color accentPremium = Color(0xFF34D399);
+
+  // ── Elite tema (luksus lilla/indigo med gull) ─────────────────────────────
+  static const Color bgElite = Color(0xFF110A28);
+  static const Color surfaceElite = Color(0xFF1A1040);
+  static const Color surface2Elite = Color(0xFF241852);
+  static const Color borderElite = Color(0xFF4A2D8A);
+  static const Color accentElite = Color(0xFFD4AF37);
 
   static const Color text = Color(0xFFF8FAFC);
   static const Color textSoft = Color(0xFFE2E8F0);
-  static const Color textMuted = Color(0xFFCBD5E1);
+  static const Color textMuted = Color(0xFFC8D8E8);
 
   static const Color primary = Color(0xFF60A5FA);
-  static const Color primaryDark = Color(0xFF1D4ED8);
+  static const Color primaryDark = Color(0xFF2563EB);
+  static const Color gold = Color(0xFFD4AF37);
   static const Color success = Color(0xFF34D399);
   static const Color warning = Color(0xFFFBBF24);
   static const Color danger = Color(0xFFF87171);
+
+
+  /// Returnerer border-farge basert på abonnement
+  static Color borderColor(bool isElite, bool isPremium) {
+    if (isElite) return const Color(0xFFD4AF37).withOpacity(0.5);
+    if (isPremium) return const Color(0xFF34D399).withOpacity(0.4);
+    return border;
+  }
+
+  /// Returnerer bakgrunnsfarge for bokser basert på abonnement
+  static Color boxColor(bool isElite, bool isPremium) {
+    if (isElite) return surfaceElite;
+    if (isPremium) return surfacePremium;
+    return surface;
+  }
+
+
+  /// Returnerer Border basert på abonnement
+  static Border activeBorder({bool? forceElite, bool? forcePremium}) {
+    final isElite = forceElite ?? EntitlementService.instance.isElite;
+    final isPremium = forcePremium ?? EntitlementService.instance.isPremium;
+    if (isElite) return Border.all(color: const Color(0xFFD4AF37), width: 1.0);
+    if (isPremium) return Border.all(color: const Color(0xFF34D399), width: 0.8);
+    return Border.all(color: border, width: 0.8);
+  }
 
   static ThemeData dark() {
     final base = ThemeData.dark(useMaterial3: true);
@@ -191,14 +233,15 @@ class AppTheme {
         ),
       ),
       snackBarTheme: SnackBarThemeData(
-        backgroundColor: surface3,
+        backgroundColor: const Color(0xFF0F2340),
         contentTextStyle: const TextStyle(
           color: text,
           fontWeight: FontWeight.w700,
         ),
+        actionTextColor: const Color(0xFFD4AF37),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
-          side: const BorderSide(color: border),
+          side: const BorderSide(color: Color(0xFFD4AF37), width: 1),
         ),
         behavior: SnackBarBehavior.floating,
       ),
@@ -290,4 +333,28 @@ class AppTheme {
       ),
     );
   }
+
+  static ThemeData premium() {
+    final base = dark();
+    return base.copyWith(
+      scaffoldBackgroundColor: bgPremium,
+    );
+  }
+
+  static ThemeData elite() {
+    final base = dark();
+    return base.copyWith(
+      scaffoldBackgroundColor: bgElite,
+      dividerColor: const Color(0xFFD4AF37).withOpacity(0.3),
+      cardTheme: base.cardTheme.copyWith(
+        color: surfaceElite,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: const BorderSide(color: Color(0xFFD4AF37), width: 0.5),
+        ),
+      ),
+    );
+  }
+
+
 }

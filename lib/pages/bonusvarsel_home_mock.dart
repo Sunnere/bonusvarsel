@@ -68,7 +68,7 @@ class _BonusvarselHomeMockState extends State<BonusvarselHomeMock> {
     final cs = Theme.of(context).colorScheme;
 
     return Scaffold(
-      backgroundColor: _bg,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: CustomScrollView(
         slivers: [
           _buildHeaderSliver(context),

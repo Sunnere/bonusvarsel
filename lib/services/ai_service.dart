@@ -1,24 +1,51 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:cloud_functions/cloud_functions.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'user_state.dart';
 import '../models/card_catalog.dart';
 
 class AiService {
   static const String _apiUrl = 'https://api.anthropic.com/v1/messages';
-  static const String _apiKey = String.fromEnvironment('ANTHROPIC_API_KEY', defaultValue: '');
+  static const String _compiledKey =
+      String.fromEnvironment('ANTHROPIC_API_KEY', defaultValue: '');
   static const String _supportEmail = 'support@bonusvarsel.no';
   static const String _historyKey = 'ai_chat_history';
   static const int _maxHistoryMessages = 20;
 
-  // Lagre chathistorikk lokalt
-  static Future<void> saveHistory(List<Map<String, String>> history) async {
+  static Future<String> _getApiKey() async {
+    if (_compiledKey.isNotEmpty) return _compiledKey;
     final prefs = await SharedPreferences.getInstance();
-    final encoded = jsonEncode(history);
-    await prefs.setString(_historyKey, encoded);
+    return prefs.getString('anthropic_api_key') ?? '';
   }
 
-  // Hent lagret chathistorikk
+  // Kall via Firebase Function (sikker proxy)
+  static Future<String> _callViaFunction(List<Map<String, dynamic>> messages) async {
+    try {
+      // Sjekk om bruker er innlogget
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        // Logg inn anonymt hvis ikke innlogget
+        await FirebaseAuth.instance.signInAnonymously();
+      }
+      final callable = FirebaseFunctions.instance.httpsCallable('callClaude');
+      final result = await callable.call({
+        'messages': messages,
+        'model': 'claude-sonnet-4-5',
+        'maxTokens': 1000,
+      });
+      return result.data['content'] as String;
+    } catch (e) {
+      return '❌ Feil: $e';
+    }
+  }
+
+  static Future<void> saveHistory(List<Map<String, String>> history) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_historyKey, jsonEncode(history));
+  }
+
   static Future<List<Map<String, String>>> loadHistory() async {
     final prefs = await SharedPreferences.getInstance();
     final raw = prefs.getString(_historyKey);
@@ -27,162 +54,249 @@ class AiService {
     return decoded.map((e) => Map<String, String>.from(e)).toList();
   }
 
-  // Slett historikk
   static Future<void> clearHistory() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_historyKey);
   }
 
+  // ── Reise-slagplan ───────────────────────────────────────────────────────
+  static Future<String> getTravelPlan({
+    required String destination,
+    required int adults,
+    required int children,
+    required List<String> cardIds,
+    required bool isTrumfMember,
+    required int currentPoints,
+    required int estimatedPoints,
+    required int totalAmount,
+    required bool includeFlight,
+    required bool includeHotel,
+    required bool includeCar,
+    bool norwegianMode = true,
+  }) async {
+    // Les favoritter fra Spar-siden
+    final prefs = await SharedPreferences.getInstance();
+    final favButikk = prefs.getString('trumf_fav_dag') ?? 'kiwi';
+    final favMobil  = prefs.getString('trumf_fav_mob');
+    final favStrom  = prefs.getString('trumf_fav_strom');
+    const butikkNavn = {
+      'kiwi':'KIWI','meny':'MENY','spar':'SPAR','joker':'Joker','naer':'Nærbutikken'
+    };
+    final dagligvare = butikkNavn[favButikk] ?? 'KIWI';
+    final harTalkmore   = favMobil  == 'talkmore';
+    final harFjordkraft = favStrom  == 'fjordkraft';
+
+    // Beste rate
+    const rateMap = {
+      'sas_amex':20,'sas_mc':15,'sas_visa':10,'trumf_visa':10,'trumf_mc':8
+    };
+    final bestRate = cardIds.isEmpty ? 15
+        : cardIds.map((id) => rateMap[id] ?? 10).reduce((a, b) => a > b ? a : b);
+
+    final cardDetails = _buildCardDetails(cardIds);
+    final totalPts = currentPoints + estimatedPoints;
+
+    String fmt(int v) {
+      final s = v.toString();
+      final chunks = <String>[];
+      for (int i = s.length; i > 0; i -= 3) {
+        chunks.insert(0, s.substring(i - 3 < 0 ? 0 : i - 3, i));
+      }
+      return chunks.join(' ');
+    }
+
+    final destCost = _destPointsCost(destination, adults, children);
+    final missing = destCost != null
+        ? (destCost - totalPts).clamp(0, 9999999)
+        : null;
+
+    final prompt = '''
+Du er ekspert på norske bonusprogram. LANG_PLACEHOLDER Vær konkret med tall. Ingen markdown-tabeller.
+
+BRUKERENS SITUASJON:
+- Reisemål: $destination
+- ${adults + children} personer ($adults voksne${children > 0 ? ', $children barn (75% poeng)' : ''})
+- Valgte kort: ${cardDetails.map((c) => c['name']).join(', ')}
+- Trumf-medlem: ${isTrumfMember ? 'Ja' : 'Nei'}
+- Dagligvarebutikk: $dagligvare
+${harTalkmore ? '- Har Talkmore: 4% Trumf på mobil' : ''}
+${harFjordkraft ? '- Har Fjordkraft: 1% Trumf på strøm' : ''}
+- Nåværende EuroBonus-poeng: ${fmt(currentPoints)}
+- Estimert opptjening neste 12 mnd: ${fmt(estimatedPoints)} poeng
+- Mulig saldo: ${fmt(totalPts)} poeng
+- Beste kortrate: $bestRate poeng/100 kr
+${destCost != null ? '- Poengbehov t/r for hele familien: ${fmt(destCost)} poeng\n- ${missing! > 0 ? 'Mangler: ${fmt(missing)} poeng' : '✅ Nok poeng for turen!'}' : ''}
+
+KORTENES FORDELER:
+${cardDetails.map((c) => '- ${c['name']}: ${c['benefits']}').join('\n')}
+${isTrumfMember ? '\n- Trumf QR + kort i $dagligvare = DOBBEL opptjening' : ''}
+${isTrumfMember ? '- 200 kr Trumf-bonus → 2 700 EuroBonus ved automatisk overføring' : ''}
+
+LAG EN KONKRET SLAGPLAN (maks 220 ord):
+1. 🎯 Status: nok poeng eller ikke? Hva mangler?
+2. 💳 Beste kort for DENNE turen + hvorfor
+3. 📈 Topp 3 tips for å samle poeng raskt (med tall)
+4. ✈️ Anbefalt strategi (companion ticket, bruk poeng på fly vs hotell osv.)
+${isTrumfMember ? '5. 🟢 Trumf QR-strategi for å akselerere' : ''}
+
+Vær spesifikk med tall og kronbeløp.''';
+
+    final travelLang = norwegianMode 
+      ? 'Svar ALLTID på norsk.' 
+      : 'IMPORTANT: You MUST respond in English only. Do not use Norwegian.';
+    final finalPrompt = prompt.replaceFirst('LANG_PLACEHOLDER', travelLang);
+    return _callViaFunction([{'role': 'user', 'content': finalPrompt}]);
+  }
+
+  // ── Chat-melding ─────────────────────────────────────────────────────────
   static Future<String> sendMessage(
     List<Map<String, String>> history,
-    String plan,
-  ) async {
-    final cardId = await UserState.getSelectedCardId();
+    String plan, {
+    bool norwegianMode = true,
+  }) async {
+    final cardId   = await UserState.getSelectedCardId();
     final cardName = CardCatalog.nameFor(cardId);
-    final rate = await UserState.getSelectedCardRatePer100() ?? 0.0;
-
-    // Hent alle kort brukeren har registrert
-    final prefs = await SharedPreferences.getInstance();
-    final allCards = prefs.getStringList('user_cards') ?? [cardId ?? 'ingen'];
-    final cardList = allCards.map((id) => CardCatalog.nameFor(id)).join(', ');
+    final rate     = await UserState.getSelectedCardRatePer100() ?? 0.0;
+    final allIds   = await UserState.getSelectedCardIds();
+    final isTrumf  = await UserState.isTrumfMember();
+    final cardList = allIds.isNotEmpty
+        ? allIds.map((id) => CardCatalog.nameFor(id)).join(', ')
+        : cardName;
 
     final isPremium = plan == 'pro' || plan == 'elite';
-    final isElite = plan == 'elite';
+    final isElite   = plan == 'elite';
+    final langStr = norwegianMode ? 'Svar på norsk.' : 'Answer in English.';
+    final systemPrompt = _buildSystemPrompt(
+      cardName: cardName, rate: rate, cardList: cardList,
+      allCardIds: allIds, isTrumfMember: isTrumf,
+      plan: plan, isPremium: isPremium, isElite: isElite,
+    ).replaceFirst('Svar på norsk.', langStr);
 
-    final premiumUpsell = isPremium ? '' : '''
-VIKTIG – GRATIS BRUKER:
-Brukeren er på gratisplanen. Når de spør om avanserte funksjoner som:
-- Personlige varsler og tilbud
-- Favorittbutikker og -kategorier
-- Detaljerte poengrapporter
-- Eksklusive partnertilbud
-- Automatisk kortanbefaling per kjøp
-...skal du alltid nevne at dette er tilgjengelig i Premium (Pro) eller Elite.
-
-Eksempel: "Dette er en Premium-funksjon – oppgrader i appen for å få personlige varsler og mye mer! 🚀"
-''';
-
-    final eliteFeatures = isElite ? '''
-Brukeren er Elite-medlem og har tilgang til:
-- Alle Premium-funksjoner
-- Eksklusiv concierge-support
-- Tidlig tilgang til nye funksjoner
-- Dedikerte partneravtaler
-- Avansert poengoptimalisering på tvers av alle program
-''' : '';
-
-    final systemPrompt = '''
-You are a helpful assistant for Bonusvarsel – a Norwegian app for tracking bonus points and maximizing rewards from SAS EuroBonus, Trumf, and credit cards.
-
-USER PROFILE:
-- Selected main card: $cardName (${rate.toStringAsFixed(1)} points / 100 NOK)
-- All registered cards: $cardList
-- Subscription plan: $plan
-
-SUPPORTED CARDS:
-- SAS Amex: 20 points / 100 NOK – best rate, not accepted everywhere, CANNOT pay bills directly
-- SAS Mastercard: 15 points / 100 NOK – can pay bills via AvtaleGiro
-- SAS Visa: 10 points / 100 NOK – can pay bills via AvtaleGiro
-- Trumf Visa: 10 points / 100 NOK + extra Trumf points at NorgesGruppen (Meny, Kiwi, Spar, Joker)
-- Trumf Mastercard: 8 points / 100 NOK + extra Trumf points at NorgesGruppen
-
-SMART COMBINATION STRATEGY:
-- Use SAS Amex everywhere Amex is accepted (groceries, clothes, travel, shopping)
-- Use SAS Mastercard/Visa for bills (electricity, insurance, subscriptions)
-- At NorgesGruppen stores: scan Trumf card AND pay with Amex = double earning
-- Goal: Reach 150,000 NOK on Amex for bonus point offer
-
-TRUMF TO EUROBONUS TRANSFER (always mention this!):
-- Grocery shopping with Trumf Visa at Kiwi, Spar, Meny, Joker earns Trumf points
-- Trumf Netthandel (online shopping portal) also earns Trumf points
-- Transfer Trumf points to EuroBonus:
-  1. Open Trumf app
-  2. Go to Kort og kontoer (Cards and accounts)
-  3. Go back and select Bruk bonus (Use bonus)
-  4. Choose Opprett overføring til EuroBonus (Create transfer to EuroBonus)
-
-PAYING BILLS AND EARNING POINTS:
-- SAS Mastercard/Visa: Set up AvtaleGiro in your bank to earn points on all fixed bills
-- Billkill (billkill.no): Pay invoices with card and earn points. ALWAYS mention Billkill when user asks about bills or fixed expenses.
-
-APP NAVIGATION – ALWAYS REFER TO APP SECTIONS, NEVER TO GOOGLE:
-- Cards: Go to the Kort tab in the app
-- Shopping: Go to the Shopping tab
-- Travel: Go to the Reise tab
-- Alerts: Go to the Varsler tab
-- Upgrade: Go to Premium and Elite section in the app
-- Never tell users to Google or search externally for info available in the app
-
-PREMIUM FEATURES (Pro plan):
-- Personal alerts for bonus offers
-- Favorite stores with tailored offers via email or Telegram
-- Detailed point reports
-- Automatic card recommendation per purchase type
-
-ELITE FEATURES (includes all Pro features, plus):
-- Concierge support with personal advisor
-- Early access to new features
-- Dedicated partner agreements with extra bonus rates
-- VIP alerts for time-limited campaigns
-
-CASHBACK AND POINT CONVERSION:
-- Klarna offers cashback conversion to EuroBonus
-- Advise users to check the Klarna app for converting cashback to EuroBonus points
-
-OTHER BONUS PROGRAMS IN THE APP:
-- SAS EuroBonus: Main program for flight points
-- Flying Blue: Air France/KLM loyalty program
-- Cashpoint: Cash reward program
-
-$premiumUpsell
-$eliteFeatures
-
-REMEMBER: User has these cards: $cardList – ALWAYS include all relevant cards in advice.
-
-Respond in English. Be concrete and practical. Use calculation examples.
-NEVER use markdown tables – use bullet lists with bold text. Mobile screen is narrow.
-NEVER refer users to Google for information available in the app.
-
-IMPORTANT: If you do not know the answer, respond with:
-ESCALATE: <the question>
-''';
-
-    // Behold maks 20 meldinger i historikken
-    final trimmedHistory = history.length > _maxHistoryMessages
+    final trimmed = history.length > _maxHistoryMessages
         ? history.sublist(history.length - _maxHistoryMessages)
         : history;
 
-    final response = await http.post(
-      Uri.parse(_apiUrl),
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': _apiKey,
-        'anthropic-version': '2023-06-01',
-      },
-      body: jsonEncode({
-        'model': 'claude-sonnet-4-6',
-        'max_tokens': 1024,
-        'system': systemPrompt,
-        'messages': trimmedHistory,
-      }),
-    );
-
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      final text = data['content'][0]['text'] as String;
-      if (text.contains('ESCALATE:')) {
-        final question = text.replaceFirst('ESCALATE:', '').trim();
-        await _sendSupportEmail(question);
-        return '⚠️ Jeg er usikker på dette. Jeg har sendt spørsmålet ditt til support@bonusvarsel.no – du får svar så snart som mulig!';
-      }
-      return text;
-    } else {
-      throw Exception('API-feil: ${response.statusCode}');
+    // System prompt som første melding
+    final messagesWithSystem = [
+      {'role': 'user', 'content': systemPrompt + '\n\nBruker: ' + (trimmed.isNotEmpty ? trimmed.first['content'] ?? '' : '')},
+      ...trimmed.skip(1).map((m) => {'role': m['role'] ?? 'user', 'content': m['content'] ?? ''}),
+    ];
+    final text = await _callViaFunction(messagesWithSystem.cast<Map<String, dynamic>>());
+    if (text.contains('ESCALATE:')) {
+      final question = text.replaceFirst('ESCALATE:', '').trim();
+      await _sendSupportEmail(question);
+      return '⚠️ Jeg er usikker på dette. Jeg har sendt spørsmålet til $_supportEmail – du får svar snart!';
     }
+    return text;
+  }
+
+  // ── Kortspesifikk kunnskap ───────────────────────────────────────────────
+  static List<Map<String, String>> _buildCardDetails(List<String> ids) {
+    const details = {
+      'sas_amex': {
+        'name': 'SAS EuroBonus American Express',
+        'benefits': '20p/100kr. Companion ticket (2-for-1) ved 75 000kr/år. '
+            'Reiseforsikring inkludert. Ikke akseptert overalt – bruk MC/Visa som backup. '
+            'Kan IKKE betale regninger via AvtaleGiro.',
+      },
+      'sas_mc': {
+        'name': 'SAS EuroBonus Mastercard',
+        'benefits': '15p/100kr. Kan betale regninger via AvtaleGiro. '
+            'Akseptert overalt. Best for faste utgifter.',
+      },
+      'sas_visa': {
+        'name': 'SAS EuroBonus Visa',
+        'benefits': '10p/100kr via Lunar. Kan betale regninger via AvtaleGiro. '
+            'Enklest å søke om.',
+      },
+      'trumf_visa': {
+        'name': 'Trumf Visa',
+        'benefits': '10p/100kr + ekstra Trumf-poeng i NorgesGruppen. '
+            'Skann QR OG betal med kort = dobbel opptjening. '
+            'Trumf-poeng → EuroBonus: 13,5p per krone ved automatisk overføring.',
+      },
+      'trumf_mc': {
+        'name': 'Trumf Mastercard',
+        'benefits': '8p/100kr + ekstra Trumf-poeng i NorgesGruppen. '
+            'Skann QR OG betal = dobbel. '
+            'Trumf-poeng → EuroBonus: 13,5p per krone.',
+      },
+    };
+    if (ids.isEmpty) return [details['sas_amex']!];
+    return ids.where((id) => details.containsKey(id))
+        .map((id) => details[id]!).toList();
+  }
+
+  static int? _destPointsCost(String destination, int adults, int children) {
+    const costs = {
+      'bangkok': 30000, 'thailand': 30000, 'asia': 30000,
+      'tokyo': 30000, 'japan': 30000, 'singapore': 30000,
+      'new york': 35000, 'usa': 35000, 'miami': 35000,
+      'london': 15000, 'paris': 15000, 'europa': 15000,
+      'barcelona': 15000, 'roma': 15000,
+      'dubai': 25000, 'midtøsten': 25000,
+      'tromsø': 5000, 'bergen': 5000, 'oslo': 5000,
+      'sydney': 40000, 'australia': 40000,
+    };
+    final dest = destination.toLowerCase();
+    int? costPerAdult;
+    for (final entry in costs.entries) {
+      if (dest.contains(entry.key)) { costPerAdult = entry.value; break; }
+    }
+    if (costPerAdult == null) return null;
+    final adultTotal  = costPerAdult * 2 * adults;   // t/r
+    final childTotal  = (costPerAdult * 0.75).round() * 2 * children;
+    return adultTotal + childTotal;
+  }
+
+  static String _buildSystemPrompt({
+    required String cardName,
+    required double rate,
+    required String cardList,
+    required List<String> allCardIds,
+    required bool isTrumfMember,
+    required String plan,
+    required bool isPremium,
+    required bool isElite,
+    bool norwegianMode = true,
+  }) {
+    final cardDetails = _buildCardDetails(allCardIds);
+    final cardKnowledge = cardDetails
+        .map((c) => '- ${c['name']}: ${c['benefits']}').join('\n');
+
+    return '''
+Du er ekspert-assistent for Bonusvarsel – norsk app for bonuspoeng.
+Svar på norsk. Vær konkret og praktisk. Ingen markdown-tabeller.
+
+BRUKERPROFIL:
+- Primærkort: $cardName (${rate.toStringAsFixed(1)}p/100kr)
+- Alle kort: $cardList
+- Trumf-medlem: ${isTrumfMember ? 'Ja' : 'Nei'}
+- Plan: $plan
+
+KORTFORDELER:
+$cardKnowledge
+
+NØKKELSTRATEGIER:
+- Amex overalt der akseptert + MC/Visa for regninger via AvtaleGiro
+- Mål 75 000kr/år på Amex → Companion Ticket (2-for-1 bonusreise)
+- Trumf QR + Amex i NorgesGruppen = dobbel opptjening
+- Billkill.no: betal fakturaer med kort og tjen poeng
+- Trumf → EuroBonus: Trumf-app → Bruk bonus → Opprett overføring
+
+BONUSPOENG ASIA T/R (per person):
+- Economy: 30 000p, Premium: 40 000p, Business: 60 000p
+- Barn 2-11 år: 75% av voksen
+
+${isPremium ? '' : 'Ved spørsmål om avanserte funksjoner: nevn at Premium gir mer. "Oppgrader i appen! 🚀"'}
+${isElite ? 'Brukeren er Elite: concierge-support, VIP-varsler, dedikerte avtaler.' : ''}
+
+Hvis du ikke vet: ESCALATE: <spørsmålet>
+''';
   }
 
   static Future<void> _sendSupportEmail(String question) async {
     // ignore: avoid_print
-    print('[SUPPORT] Ubesvart spørsmål → $_supportEmail: $question');
+    print('[SUPPORT] → $_supportEmail: $question');
   }
 }

@@ -1,119 +1,244 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import '../services/entitlement_service.dart';
+import '../theme/app_theme.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../pages/login_page.dart';
 import '../models/card_catalog.dart';
 import '../services/user_state.dart';
+import 'package:flutter/foundation.dart';
+
+class _MastercardLogo extends StatelessWidget {
+  final double size;
+  const _MastercardLogo({this.size = 38});
+  @override
+  Widget build(BuildContext context) =>
+    SizedBox(width: size, height: size * 0.65,
+      child: CustomPaint(painter: _MCPainter()));
+}
+class _MCPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size s) {
+    final h = s.height;
+    final r = h * 0.5;
+    final lx = s.width * 0.35;
+    final rx = s.width * 0.65;
+    final cy = h * 0.5;
+    // Rødt venstre
+    canvas.drawCircle(Offset(lx, cy), r, Paint()..color = const Color(0xFFEB001B));
+    // Oransje høyre
+    canvas.drawCircle(Offset(rx, cy), r, Paint()..color = const Color(0xFFF79E1B));
+    // Overlap: klipp høyre sirkel til venstre sirkel-area → oransje-rød blanding
+    final clip = Path()..addOval(Rect.fromCircle(center: Offset(lx, cy), radius: r));
+    canvas.save();
+    canvas.clipPath(clip);
+    canvas.drawCircle(Offset(rx, cy), r,
+      Paint()..color = const Color(0xFFFF5F00)..blendMode = BlendMode.srcOver);
+    canvas.restore();
+  }
+  @override bool shouldRepaint(_) => false;
+}
+
+class _VisaLogo extends StatelessWidget {
+  final double size;
+  const _VisaLogo({this.size = 38});
+  @override
+  Widget build(BuildContext context) =>
+    SizedBox(width: size * 1.5, height: size * 0.5,
+      child: CustomPaint(painter: _VisaPainter()));
+}
+class _VisaPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size s) {
+    final tp = TextPainter(
+      text: const TextSpan(text: 'VISA',
+        style: TextStyle(color: Color(0xFF1A1F71), fontSize: 22,
+          fontWeight: FontWeight.w900, fontStyle: FontStyle.italic, letterSpacing: 2)),
+      textDirection: TextDirection.ltr)..layout();
+    tp.paint(canvas, Offset((s.width - tp.width) / 2, (s.height - tp.height) / 2));
+  }
+  @override bool shouldRepaint(_) => false;
+}
+
+class _AmexLogo extends StatelessWidget {
+  final double size;
+  const _AmexLogo({this.size = 38});
+  @override
+  Widget build(BuildContext context) =>
+    SizedBox(width: size * 1.4, height: size * 0.55,
+      child: CustomPaint(painter: _AmexPainter()));
+}
+class _AmexPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size s) {
+    // Blå bakgrunn
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(Rect.fromLTWH(0, 0, s.width, s.height), const Radius.circular(4)),
+      Paint()..color = const Color(0xFF016FD0));
+    // Hvit AMEX tekst
+    final tp = TextPainter(
+      text: const TextSpan(text: 'AMEX',
+        style: TextStyle(color: Colors.white, fontSize: 14,
+          fontWeight: FontWeight.w900, letterSpacing: 1.5)),
+      textDirection: TextDirection.ltr)..layout();
+    tp.paint(canvas, Offset((s.width - tp.width) / 2, (s.height - tp.height) / 2));
+  }
+  @override bool shouldRepaint(_) => false;
+}
+
+class _SasLogo extends StatelessWidget {
+  final double size;
+  const _SasLogo({this.size = 38});
+  @override
+  Widget build(BuildContext context) =>
+    SizedBox(width: size * 1.4, height: size * 0.55,
+      child: CustomPaint(painter: _SasPainter()));
+}
+class _SasPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size s) {
+    // SAS navy bakgrunn
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(Rect.fromLTWH(0, 0, s.width, s.height), const Radius.circular(4)),
+      Paint()..color = const Color(0xFF00447C));
+    // Hvit SAS tekst
+    final tp = TextPainter(
+      text: const TextSpan(text: 'SAS',
+        style: TextStyle(color: Colors.white, fontSize: 15,
+          fontWeight: FontWeight.w900, letterSpacing: 2.5)),
+      textDirection: TextDirection.ltr)..layout();
+    tp.paint(canvas, Offset((s.width - tp.width) / 2, (s.height - tp.height) / 2));
+  }
+  @override bool shouldRepaint(_) => false;
+}
+
+class _TrumfLogo extends StatelessWidget {
+  final double size;
+  const _TrumfLogo({this.size = 38});
+  @override
+  Widget build(BuildContext context) =>
+    SizedBox(width: size * 1.4, height: size * 0.55,
+      child: CustomPaint(painter: _TrumfPainter()));
+}
+class _TrumfPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size s) {
+    // Trumf grønn bakgrunn
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(Rect.fromLTWH(0, 0, s.width, s.height), const Radius.circular(4)),
+      Paint()..color = const Color(0xFF007A3D));
+    // Hvit Trumf tekst
+    final tp = TextPainter(
+      text: const TextSpan(text: 'Trumf',
+        style: TextStyle(color: Colors.white, fontSize: 13,
+          fontWeight: FontWeight.w900, letterSpacing: 0.5)),
+      textDirection: TextDirection.ltr)..layout();
+    tp.paint(canvas, Offset((s.width - tp.width) / 2, (s.height - tp.height) / 2));
+  }
+  @override bool shouldRepaint(_) => false;
+}
+
+Widget _networkLogo(String network, String cardId, {double size = 34}) {
+  if (network == 'Mastercard') return _MastercardLogo(size: size);
+  if (network == 'Visa') return _VisaLogo(size: size);
+  if (network == 'Amex') return _AmexLogo(size: size);
+  return const SizedBox.shrink();
+}
+
+Widget _brandLogo(String cardId, {double size = 34}) {
+  if (cardId.startsWith('sas')) return _SasLogo(size: size);
+  if (cardId.startsWith('trumf')) return _TrumfLogo(size: size);
+  return const SizedBox.shrink();
+}
 
 class CardsPage extends StatefulWidget {
   const CardsPage({super.key});
-
   @override
   State<CardsPage> createState() => _CardsPageState();
 }
 
 class _CardsPageState extends State<CardsPage> {
-  String? _selectedCardId;
+  Set<String> _selectedCardIds = {};
 
-  // Kortdata med logo-farge, beskrivelse og URL
   static const _cards = [
-    _CardInfo(
-      id: 'sas_amex',
-      name: 'SAS EuroBonus American Express',
-      network: 'Amex',
+    _CardInfo(id: 'sas_amex', name: 'SAS EuroBonus American Express', network: 'Amex',
       ratePer100: 20,
-      color: Color(0xFF00447C),
-      icon: Icons.credit_card,
+      activeColor: Color(0xFF60A5FA), activeBg: Color(0xFF1C3860), borderColor: Color(0xFF1D4ED8),
       description: 'Beste SAS-kort. 20 poeng per 100 kr på alle kjøp. Søk direkte hos American Express Norge.',
-      url: 'https://www.americanexpress.com/no/',
-      badge: 'Mest poeng',
-    ),
-    _CardInfo(
-      id: 'sas_mc',
-      name: 'SAS EuroBonus Mastercard',
-      network: 'Mastercard',
+      url: 'https://www.americanexpress.com/no/', badge: 'Mest poeng'),
+    _CardInfo(id: 'sas_mc', name: 'SAS EuroBonus Mastercard', network: 'Mastercard',
       ratePer100: 15,
-      color: Color(0xFF1A1A2E),
-      icon: Icons.credit_card,
-      description: 'SAS EuroBonus Mastercard via DNB. Gå til Mine kort i DNB-appen → trykk Mastercard → Oppgrader → legg inn EuroBonus-nummer. 15 poeng per 100 kr.',
-      url: 'https://saseurobonusmastercard.no/kortene/mastercard/',
-      badge: 'Populær',
-    ),
-    _CardInfo(
-      id: 'sas_visa',
-      name: 'SAS EuroBonus Visa',
-      network: 'Visa',
+      activeColor: Color(0xFF60A5FA), activeBg: Color(0xFF1C3860), borderColor: Color(0xFF1D4ED8),
+      description: 'SAS EuroBonus Mastercard via DNB. Gå til Mine kort i DNB-appen → Mastercard → Oppgrader → legg inn EuroBonus-nummer.',
+      url: 'https://saseurobonusmastercard.no/kortene/mastercard/', badge: 'Populær'),
+    _CardInfo(id: 'sas_visa', name: 'SAS EuroBonus Visa', network: 'Visa',
       ratePer100: 10,
-      color: Color(0xFF1A3C6E),
-      icon: Icons.credit_card,
-      description: 'SAS EuroBonus Visa via Lunar. Last ned Lunar-appen og søk om SAS EuroBonus Visa direkte der. 10 poeng per 100 kr.',
-      url: 'https://www.lunar.app/en/personal/sas-eurobonus',
-      badge: null,
-    ),
-    _CardInfo(
-      id: 'trumf_visa',
-      name: 'Trumf Visa',
-      network: 'Visa',
+      activeColor: Color(0xFF60A5FA), activeBg: Color(0xFF1C3860), borderColor: Color(0xFF1D4ED8),
+      description: 'SAS EuroBonus Visa via Lunar. Last ned Lunar-appen og søk om SAS EuroBonus Visa direkte der.',
+      url: 'https://www.lunar.app/en/personal/sas-eurobonus', badge: null),
+    _CardInfo(id: 'trumf_visa', name: 'Trumf Visa', network: 'Visa',
       ratePer100: 10,
-      color: Color(0xFF6B2D8B),
-      icon: Icons.credit_card,
-      description: 'Trumf Visa via Trumf Pay. Legg til Visa-kortet ditt i Trumf-appen under Trumf Pay for å koble opptjening. 10 poeng per 100 kr.',
-      url: 'https://www.trumf.no/trumf-kredittkort/trumf-kredittkort-i-trumf-pay',
-      badge: 'Trumf',
-    ),
-    _CardInfo(
-      id: 'trumf_mc',
-      name: 'Trumf Mastercard',
-      network: 'Mastercard',
+      activeColor: Color(0xFF34D399), activeBg: Color(0xFF1A3828), borderColor: Color(0xFF065F46),
+      description: 'Trumf Visa via Trumf Pay. Legg til Visa-kortet ditt i Trumf-appen under Trumf Pay for å koble opptjening.',
+      url: 'https://www.trumf.no/trumf-kredittkort/trumf-kredittkort-i-trumf-pay', badge: 'Trumf'),
+    _CardInfo(id: 'trumf_mc', name: 'Trumf Mastercard', network: 'Mastercard',
       ratePer100: 8,
-      color: Color(0xFF4A1F6B),
-      icon: Icons.credit_card,
-      description: 'Trumf sitt eget Mastercard. Søk på trumf.no. 8 poeng per 100 kr på alle kjøp. Best kombinert med Trumf-medlemskap.',
-      url: 'https://www.trumf.no',
-      badge: null,
-    ),
+      activeColor: Color(0xFF34D399), activeBg: Color(0xFF1A3828), borderColor: Color(0xFF065F46),
+      description: 'Trumf sitt eget Mastercard. Søk på trumf.no. 8 poeng per 100 kr på alle kjøp.',
+      url: 'https://www.trumf.no', badge: null),
   ];
 
-  @override
-  void initState() {
-    super.initState();
-    _loadSelected();
-  }
+  @override void initState() { super.initState(); _loadSelected(); }
 
   Future<void> _loadSelected() async {
-    final id = await UserState.getSelectedCardId();
+    final ids = await UserState.getSelectedCardIds();
+    // Bakoverkompatibilitet: hent enkelt-ID hvis listen er tom
+    if (ids.isEmpty) {
+      final id = await UserState.getSelectedCardId();
+      if (id != null) ids.add(id);
+    }
     if (!mounted) return;
-    setState(() => _selectedCardId = id);
+    setState(() => _selectedCardIds = ids.toSet());
   }
 
   Future<void> _selectCard(String id, int rate) async {
-    // Krev innlogging for å velge kort
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
       if (!mounted) return;
-      await Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (_) => LoginPage(
-            onSuccess: () async {
-              await UserState.setSelectedCard(id, rate.toDouble());
-              if (!mounted) return;
-              setState(() => _selectedCardId = id);
-            },
-          ),
-        ),
-      );
+      await Navigator.of(context).push(MaterialPageRoute(
+        builder: (_) => LoginPage(onSuccess: () async {
+          await _toggleCard(id, rate);
+        }),
+      ));
       return;
     }
+    await _toggleCard(id, rate);
+  }
 
-    await UserState.setSelectedCard(id, rate.toDouble());
+  Future<void> _toggleCard(String id, int rate) async {
+    final isNowSelected = !_selectedCardIds.contains(id);
+    if (isNowSelected) {
+      cardSelectionNotifier.value++;
+      await UserState.addSelectedCard(id);
+      await UserState.setSelectedCard(id, rate.toDouble()); // primær = sist valgte
+    } else {
+      cardSelectionNotifier.value++;
+      await UserState.removeSelectedCard(id);
+    }
     if (!mounted) return;
-    setState(() => _selectedCardId = id);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(CardCatalog.nameFor(id) + ' valgt som aktivt kort'),
-        duration: const Duration(seconds: 2),
-      ),
-    );
+    setState(() {
+      if (isNowSelected) {
+        _selectedCardIds.add(id);
+      } else {
+        _selectedCardIds.remove(id);
+      }
+    });
+    final name = CardCatalog.nameFor(id);
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(isNowSelected ? '$name lagt til' : '$name fjernet'),
+      duration: const Duration(seconds: 1),
+    ));
   }
 
   Future<void> _openUrl(String url) async {
@@ -121,137 +246,130 @@ class _CardsPageState extends State<CardsPage> {
     if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Kunne ikke åpne lenken')),
-      );
+        const SnackBar(content: Text('Kunne ikke åpne lenken')));
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final selected = _cards.where((c) => c.id == _selectedCardId).firstOrNull;
-
     return Scaffold(
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        title: const Text('Kort'),
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        elevation: 0,
+        title: const Text('Kort',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 20)),
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(14, 14, 14, 30),
         children: [
-          // Hero
+
+          // ── Hero ──
           Container(
-            padding: const EdgeInsets.all(18),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(20),
               gradient: const LinearGradient(
-                colors: [Color(0xFF2F80ED), Color(0xFF0B4AA2)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              border: Border.all(color: const Color(0xFF334155)),
+                colors: [Color(0xFF0D1F3C), Color(0xFF1D4ED8)],
+                begin: Alignment.topLeft, end: Alignment.bottomRight),
+              borderRadius: BorderRadius.circular(18),
+              boxShadow: [BoxShadow(color: Color(0x440F2A6E), blurRadius: 12, offset: Offset(0, 4))],
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Velg ditt bonuskort',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 20,
-                    fontWeight: FontWeight.w900,
-                  ),
+            child: Row(children: [
+              Container(padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(color: const Color(0xFF152B4A), borderRadius: BorderRadius.circular(12)),
+                child: const Icon(Icons.credit_card_rounded, color: Colors.white, size: 26)),
+              const SizedBox(width: 14),
+              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                const Text('Velg bonuskort',
+                  style: TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.w900)),
+                const SizedBox(height: 3),
+                Text(
+                  _selectedCardIds.isEmpty
+                    ? 'Ingen kort valgt ennå'
+                    : '${_selectedCardIds.length} kort valgt',
+                  style: const TextStyle(color: Colors.white70, fontSize: 13),
                 ),
-                const SizedBox(height: 6),
-                const Text(
-                  'Valgt kort brukes til å beregne poeng på Reise og Shopping.',
-                  style: TextStyle(color: Colors.white70, height: 1.35),
+              ])),
+              if (_selectedCardIds.isNotEmpty)
+                CircleAvatar(
+                  radius: 13,
+                  backgroundColor: Colors.white24,
+                  child: Text('${_selectedCardIds.length}',
+                    style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w900)),
                 ),
-                if (selected != null) ...[
-                  const SizedBox(height: 12),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: selected.color.withValues(alpha: 0.30),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                          color: selected.color.withValues(alpha: 0.60)),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(Icons.check_circle,
-                            color: Colors.white, size: 16),
-                        const SizedBox(width: 8),
-                        Flexible(
-                          child: Text(
-                            '✓ ${selected.name}',
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w800,
-                              fontSize: 13,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ],
-            ),
+            ]),
           ),
-          const SizedBox(height: 16),
-          const Text(
-            'Tilgjengelige kort',
-            style: TextStyle(
-              fontWeight: FontWeight.w900,
-              fontSize: 16,
+          const SizedBox(height: 12),
+
+          // ── Annonseplass ──
+          Container(
+            height: 60,
+            decoration: BoxDecoration(
+              color: const Color(0xFF152B4A),
+              borderRadius: BorderRadius.circular(12),
+              border: AppTheme.activeBorder(),
             ),
+            child: const Center(child: Text('Annonse',
+              style: TextStyle(color: const Color(0xFFCBD5E1), fontSize: 12,
+                fontWeight: FontWeight.w600, letterSpacing: 1.5))),
           ),
-          const SizedBox(height: 10),
-          ..._cards.map((card) => _CardTile(
-                card: card,
-                isSelected: _selectedCardId == card.id,
-                onSelect: () => _selectCard(card.id, card.ratePer100),
-                onOpenUrl: () => _openUrl(card.url),
-              )),
-          const SizedBox(height: 20),
-          // Info-boks
+          const SizedBox(height: 18),
+
+          // ── SAS-seksjon ──
+          _sectionHeader('SAS EuroBonus', const Color(0xFF60A5FA), isAmex: false),
+          const SizedBox(height: 8),
+          ..._cards.where((c) => c.id.startsWith('sas')).map((card) => _CardTile(
+            card: card, isSelected: _selectedCardIds.contains(card.id),
+            onSelect: () => _selectCard(card.id, card.ratePer100),
+            onOpenUrl: () => _openUrl(card.url),
+          )),
+          const SizedBox(height: 8),
+
+          // ── Trumf-seksjon ──
+          _sectionHeader('Trumf', const Color(0xFF007A3D), isAmex: false),
+          const SizedBox(height: 8),
+          ..._cards.where((c) => c.id.startsWith('trumf')).map((card) => _CardTile(
+            card: card, isSelected: _selectedCardIds.contains(card.id),
+            onSelect: () => _selectCard(card.id, card.ratePer100),
+            onOpenUrl: () => _openUrl(card.url),
+          )),
+          const SizedBox(height: 14),
+
+          // ── Info-boks ──
           Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: const Color(0xFF1A3A6E),
+              color: const Color(0xFF152B4A),
               borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: const Color(0xFF1E293B)),
+              border: AppTheme.activeBorder(),
             ),
-            child: const Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Slik fungerer kortvalget',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-                SizedBox(height: 8),
-                Text(
-                  '• Valgt kort brukes til poengberegning på Reise-siden\n'
-                  '• Poeng per 100 kr er basert på standard opptjeningsrate\n'
-                  '• Faktisk opptjening avhenger av butikk og tilbud\n'
-                  '• Trykk "Se kort" for å søke om eller lese mer om kortet',
-                  style: TextStyle(
-                    color: Colors.white70,
-                    height: 1.5,
-                    fontSize: 13,
-                  ),
-                ),
-              ],
-            ),
+            child: const Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text('ℹ️  Slik fungerer kortvalget (multi)',
+                style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 14)),
+              SizedBox(height: 8),
+              Text(
+                '• Valgt kort brukes til poengberegning på Reise-siden\n'
+                '• Poeng per 100 kr er basert på standard opptjeningsrate\n'
+                '• Faktisk opptjening avhenger av butikk og tilbud\n'
+                '• Trykk "Se kort" for å søke om eller lese mer',
+                style: TextStyle(color: const Color(0xFFCBD5E1), height: 1.55, fontSize: 13)),
+            ]),
           ),
         ],
       ),
     );
+  }
+
+  Widget _sectionHeader(String label, Color color, {required bool isAmex}) {
+    return Row(children: [
+      if (label == 'SAS EuroBonus') _SasLogo(size: 28)
+      else _TrumfLogo(size: 28),
+      const SizedBox(width: 8),
+      Text(label, style: TextStyle(color: color, fontWeight: FontWeight.w900, fontSize: 15)),
+      const SizedBox(width: 8),
+      Expanded(child: Divider(color: color.withValues(alpha: 0.3))),
+    ]);
   }
 }
 
@@ -260,160 +378,112 @@ class _CardTile extends StatelessWidget {
   final bool isSelected;
   final VoidCallback onSelect;
   final VoidCallback onOpenUrl;
-
-  const _CardTile({
-    required this.card,
-    required this.isSelected,
-    required this.onSelect,
-    required this.onOpenUrl,
-  });
+  const _CardTile({required this.card, required this.isSelected,
+    required this.onSelect, required this.onOpenUrl});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: isSelected
-              ? card.color
-              : const Color(0xFF334155),
-          width: isSelected ? 2 : 1,
-        ),
-        color: isSelected
-            ? card.color.withValues(alpha: 0.12)
-            : const Color(0xFF1A3A6E),
+        color: isSelected ? card.activeBg : const Color(0xFF152B4A),
+        borderRadius: BorderRadius.circular(16),
+        border: isSelected 
+          ? Border.all(color: card.activeColor, width: 2)
+          : AppTheme.activeBorder(),
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05),
+          blurRadius: 6, offset: const Offset(0, 2))],
       ),
       child: InkWell(
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(16),
         onTap: onSelect,
         child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    width: 48,
-                    height: 48,
-                    decoration: BoxDecoration(
-                      color: card.color,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Icon(card.icon,
-                        color: Colors.white, size: 26),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                card.name,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w900,
-                                  fontSize: 15,
-                                ),
-                              ),
-                            ),
-                            if (card.badge != null)
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 8, vertical: 4),
-                                decoration: BoxDecoration(
-                                  color: card.color.withValues(alpha: 0.30),
-                                  borderRadius: BorderRadius.circular(999),
-                                  border: Border.all(
-                                      color:
-                                          card.color.withValues(alpha: 0.60)),
-                                ),
-                                child: Text(
-                                  card.badge!,
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.w800,
-                                    fontSize: 11,
-                                  ),
-                                ),
-                              ),
-                          ],
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          '${card.network}  •  ${card.ratePer100} poeng per 100 kr',
-                          style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.65),
-                            fontSize: 13,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Icon(
-                    isSelected
-                        ? Icons.radio_button_checked
-                        : Icons.radio_button_off,
-                    color: isSelected ? card.color : Colors.white38,
-                  ),
-                ],
-              ),
-              const SizedBox(height: 10),
-              Text(
-                card.description,
-                style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.75),
-                  fontSize: 13,
-                  height: 1.35,
+          padding: const EdgeInsets.all(14),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
+              // Logo-boks: brand øverst, nettverk under
+              Container(
+                width: 56, height: 56,
+                decoration: BoxDecoration(
+                  color: isSelected ? card.activeBg : const Color(0xFF1C3860),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: card.borderColor),
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    _brandLogo(card.id, size: 28),
+                    const SizedBox(height: 4),
+                    _networkLogo(card.network, card.id, size: 22),
+                  ],
                 ),
               ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: FilledButton(
-                      style: FilledButton.styleFrom(
-                        backgroundColor: isSelected
-                            ? card.color
-                            : const Color(0xFF1A3A6E),
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 10),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                      ),
-                      onPressed: onSelect,
-                      child: Text(
-                        isSelected ? '✓ Aktivt kort' : 'Velg dette kortet',
-                        style: const TextStyle(fontWeight: FontWeight.w900),
-                      ),
+              const SizedBox(width: 12),
+              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Row(children: [
+                  Expanded(child: Text(card.name,
+                    style: const TextStyle(color: Colors.white,
+                      fontWeight: FontWeight.w900, fontSize: 14))),
+                  if (card.badge != null)
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: card.activeBg,
+                        borderRadius: BorderRadius.circular(999),
+                        border: Border.all(color: card.borderColor)),
+                      child: Text(card.badge!,
+                        style: TextStyle(color: card.activeColor,
+                          fontWeight: FontWeight.w800, fontSize: 11)),
                     ),
+                ]),
+                const SizedBox(height: 4),
+                Text(
+                  '${card.network}  •  ${card.ratePer100} poeng/100 kr',
+                  style: TextStyle(color: card.activeColor,
+                    fontSize: 12, fontWeight: FontWeight.w700)),
+              ])),
+              const SizedBox(width: 8),
+              Icon(
+                isSelected ? Icons.check_circle_rounded : Icons.radio_button_off_rounded,
+                color: isSelected ? card.activeColor : Colors.black26, size: 22),
+            ]),
+            const SizedBox(height: 10),
+            Text(card.description,
+              style: const TextStyle(color: const Color(0xFFCBD5E1), fontSize: 13, height: 1.4)),
+            const SizedBox(height: 12),
+            Row(children: [
+              Expanded(child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                child: FilledButton(
+                  style: FilledButton.styleFrom(
+                    backgroundColor: isSelected ? card.activeColor : const Color(0xFF1C3860),
+                    foregroundColor: isSelected ? Colors.white : card.activeColor,
+                    padding: const EdgeInsets.symmetric(vertical: 11),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10)),
+                    elevation: 0,
                   ),
-                  const SizedBox(width: 10),
-                  OutlinedButton(
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: Colors.white70,
-                      side: const BorderSide(color: Color(0xFF2F80ED)),
-                      padding: const EdgeInsets.symmetric(
-                          vertical: 10, horizontal: 14),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                    ),
-                    onPressed: onOpenUrl,
-                    child: const Text('Se kort',
-                        style: TextStyle(fontWeight: FontWeight.w700)),
-                  ),
-                ],
+                  onPressed: onSelect,
+                  child: Text(isSelected ? '✓ Aktivt kort' : 'Velg dette kortet',
+                    style: const TextStyle(fontWeight: FontWeight.w900)),
+                ),
+              )),
+              const SizedBox(width: 10),
+              OutlinedButton(
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: card.activeColor,
+                  backgroundColor: const Color(0xFF1C3860),
+                  side: BorderSide(color: card.borderColor, width: 1.5),
+                  padding: const EdgeInsets.symmetric(vertical: 11, horizontal: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+                onPressed: onOpenUrl,
+                child: const Text('Se kort',
+                  style: TextStyle(fontWeight: FontWeight.w700)),
               ),
-            ],
-          ),
+            ]),
+          ]),
         ),
       ),
     );
@@ -421,25 +491,13 @@ class _CardTile extends StatelessWidget {
 }
 
 class _CardInfo {
-  final String id;
-  final String name;
-  final String network;
+  final String id, name, network, description, url;
   final int ratePer100;
-  final Color color;
-  final IconData icon;
-  final String description;
-  final String url;
+  final Color activeColor, activeBg, borderColor;
   final String? badge;
-
   const _CardInfo({
-    required this.id,
-    required this.name,
-    required this.network,
-    required this.ratePer100,
-    required this.color,
-    required this.icon,
-    required this.description,
-    required this.url,
-    this.badge,
+    required this.id, required this.name, required this.network,
+    required this.ratePer100, required this.activeColor, required this.activeBg,
+    required this.borderColor, required this.description, required this.url, this.badge,
   });
 }

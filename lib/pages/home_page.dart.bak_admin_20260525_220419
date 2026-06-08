@@ -1,0 +1,181 @@
+import 'ai_chat_page.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'settings_page.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+
+import 'bonusvarsel_admin_offers_page.dart';
+import 'ad_debug_page.dart';
+import 'package:package_info_plus/package_info_plus.dart';
+import '../services/whats_new_service.dart';
+import 'eb_shopping_page.dart';
+import 'travel_page.dart';
+import 'cards_page.dart';
+import 'trumf_kalkulator_page.dart';
+import 'bonusvarsel_alerts_page.dart';
+import '../services/onboarding_service.dart';
+import '../widgets/paywall_scroll_wrapper.dart';
+
+class HomePage extends StatefulWidget {
+  final int initialIndex;
+
+  const HomePage({
+    super.key,
+    this.initialIndex = 0,
+  });
+
+  @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  late int _index;
+
+  bool get _isAdmin {
+    final email = FirebaseAuth.instance.currentUser?.email ?? '';
+    return email == 'royrotvold@gmail.com' || email == 'roy@bonusvarsel.no';
+  }
+
+  final _pages = [
+    PaywallScrollWrapper(child: EbShoppingPage()),
+    TrumfKalkulatorPage(),
+    CardsPage(),
+    BonusvarselAlertsPage(),
+    TravelPage(),
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    final idx = widget.initialIndex;
+    _index = (idx >= 0 && idx < _pages.length) ? idx : 0;
+    WidgetsBinding.instance.addPostFrameCallback((_) => _checkWhatsNew());
+  }
+
+  Future<void> _checkWhatsNew() async {
+    try {
+      final info = await PackageInfo.fromPlatform();
+      if (!mounted) return;
+      await WhatsNewService.showIfNeeded(context, info.version);
+    } catch (_) {}
+  }
+
+  @override
+  void didUpdateWidget(covariant HomePage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.initialIndex != widget.initialIndex) {
+      final idx = widget.initialIndex;
+      _index = (idx >= 0 && idx < _pages.length) ? idx : 0;
+    }
+  }
+
+  Future<void> _resetOnboardingForDebug() async {
+    await OnboardingService.reset();
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Onboarding nullstilt. Lukk og åpne appen igjen.'),
+      ),
+    );
+  }
+
+  PreferredSizeWidget? _buildAppBar() {
+    return AppBar(
+      title: const Text('Bonusvarsel'),
+      actions: [
+        IconButton(
+          icon: const Icon(Icons.settings_outlined),
+          tooltip: 'Innstillinger',
+          onPressed: () => Navigator.push(context,
+            MaterialPageRoute(builder: (_) => const SettingsPage())),
+        ),
+        if (_isAdmin) PopupMenuButton<String>(
+          icon: const Icon(Icons.developer_mode),
+          tooltip: 'Admin',
+          onSelected: (val) {
+            if (val == 'debug') {
+              Navigator.push(context, MaterialPageRoute(
+                builder: (_) => const AdDebugPage()));
+            } else if (val == 'offers') {
+              Navigator.push(context, MaterialPageRoute(
+                builder: (_) => const BonusvarselAdminOffersPage()));
+            } else if (val == 'onboarding') {
+              _resetOnboardingForDebug();
+            }
+          },
+          itemBuilder: (_) => const [
+
+            PopupMenuItem(value: 'debug',
+              child: Row(children: [
+                Icon(Icons.bar_chart_outlined, size: 18),
+                SizedBox(width: 10),
+                Text('Annonse-statistikk'),
+              ])),
+            PopupMenuItem(value: 'offers',
+              child: Row(children: [
+                Icon(Icons.local_offer_outlined, size: 18),
+                SizedBox(width: 10),
+                Text('Tilbud/offers'),
+              ])),
+            PopupMenuDivider(),
+            PopupMenuItem(value: 'onboarding',
+              child: Row(children: [
+                Icon(Icons.refresh, size: 18),
+                SizedBox(width: 10),
+                Text('Nullstill onboarding'),
+              ])),
+          ],
+        ),
+      ],
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: _buildAppBar(),
+      body: IndexedStack(index: _index, children: _pages),
+      floatingActionButton: FloatingActionButton(
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        tooltip: 'Spør Bonusvarsel',
+        onPressed: () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const AiChatPage()),
+        ),
+        child: const Icon(Icons.chat_bubble_outline, color: Colors.white),
+      ),
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: _index,
+        onDestinationSelected: (i) => setState(() => _index = i),
+        destinations: const [
+          NavigationDestination(
+            icon: Icon(Icons.stars_outlined),
+            selectedIcon: Icon(Icons.stars),
+            label: 'Poeng',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.calculate_outlined),
+            selectedIcon: Icon(Icons.calculate),
+            label: 'Spar',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.credit_card_outlined),
+            selectedIcon: Icon(Icons.credit_card),
+            label: 'Kort',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.notifications_outlined),
+            selectedIcon: Icon(Icons.notifications),
+            label: 'Varsler',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.flight_outlined),
+            selectedIcon: Icon(Icons.flight),
+            label: 'Reis',
+          ),
+        ],
+      ),
+    );
+  }
+}

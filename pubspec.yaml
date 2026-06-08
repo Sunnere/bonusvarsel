@@ -2,7 +2,7 @@ name: bonusvarsel
 description: Bonusvarsel – SAS EuroBonus companion app
 publish_to: "none"
 
-version: 1.0.1+17
+version: 1.2.0+31
 
 environment:
   sdk: ">=3.2.0 <4.0.0"
@@ -26,6 +26,8 @@ dependencies:
   in_app_purchase_storekit: ^0.4.8+1
   firebase_messaging: ^15.2.10
   app_links: ^7.0.0
+  webview_flutter: ^4.13.1
+  package_info_plus: ^10.1.0
 
 dev_dependencies:
   flutter_test:

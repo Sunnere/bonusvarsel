@@ -1,0 +1,135 @@
+import 'ai_chat_page.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'package:package_info_plus/package_info_plus.dart';
+import '../services/whats_new_service.dart';
+import 'eb_shopping_page.dart';
+import 'travel_page.dart';
+import 'cards_page.dart';
+import 'trumf_kalkulator_page.dart';
+import 'bonusvarsel_alerts_page.dart';
+import '../services/onboarding_service.dart';
+import '../widgets/paywall_scroll_wrapper.dart';
+
+class HomePage extends StatefulWidget {
+  final int initialIndex;
+
+  const HomePage({
+    super.key,
+    this.initialIndex = 0,
+  });
+
+  @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  late int _index;
+
+  final _pages = [
+    PaywallScrollWrapper(child: EbShoppingPage()),
+    TrumfKalkulatorPage(),
+    CardsPage(),
+    BonusvarselAlertsPage(),
+    TravelPage(),
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    final idx = widget.initialIndex;
+    _index = (idx >= 0 && idx < _pages.length) ? idx : 0;
+    WidgetsBinding.instance.addPostFrameCallback((_) => _checkWhatsNew());
+  }
+
+  Future<void> _checkWhatsNew() async {
+    try {
+      final info = await PackageInfo.fromPlatform();
+      if (!mounted) return;
+      await WhatsNewService.showIfNeeded(context, info.version);
+    } catch (_) {}
+  }
+
+  @override
+  void didUpdateWidget(covariant HomePage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.initialIndex != widget.initialIndex) {
+      final idx = widget.initialIndex;
+      _index = (idx >= 0 && idx < _pages.length) ? idx : 0;
+    }
+  }
+
+  Future<void> _resetOnboardingForDebug() async {
+    await OnboardingService.reset();
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Onboarding nullstilt. Lukk og åpne appen igjen.'),
+      ),
+    );
+  }
+
+  PreferredSizeWidget? _buildAppBar() {
+    if (!kDebugMode) return null;
+
+    return AppBar(
+      title: const Text('Bonusvarsel'),
+      actions: [
+        IconButton(
+          tooltip: 'Nullstill onboarding',
+          onPressed: _resetOnboardingForDebug,
+          icon: const Icon(Icons.bug_report_outlined),
+        ),
+      ],
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: _buildAppBar(),
+      body: IndexedStack(index: _index, children: _pages),
+      floatingActionButton: FloatingActionButton(
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        tooltip: 'Spør Bonusvarsel',
+        onPressed: () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const AiChatPage()),
+        ),
+        child: const Icon(Icons.chat_bubble_outline, color: Colors.white),
+      ),
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: _index,
+        onDestinationSelected: (i) => setState(() => _index = i),
+        destinations: const [
+          NavigationDestination(
+            icon: Icon(Icons.stars_outlined),
+            selectedIcon: Icon(Icons.stars),
+            label: 'Poeng',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.calculate_outlined),
+            selectedIcon: Icon(Icons.calculate),
+            label: 'Spar',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.credit_card_outlined),
+            selectedIcon: Icon(Icons.credit_card),
+            label: 'Kort',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.notifications_outlined),
+            selectedIcon: Icon(Icons.notifications),
+            label: 'Varsler',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.flight_outlined),
+            selectedIcon: Icon(Icons.flight),
+            label: 'Reis',
+          ),
+        ],
+      ),
+    );
+  }
+}

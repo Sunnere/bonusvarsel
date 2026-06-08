@@ -1,5 +1,10 @@
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:flutter/foundation.dart';
+
+/// Globalt signal — trigges når kortvalg endres
+final cardSelectionNotifier = ValueNotifier<int>(0);
+
 class UserState {
   static SharedPreferences? _prefs;
 
@@ -13,13 +18,15 @@ class UserState {
     return _prefs!;
   }
 
-  static const _kSelectedCardId = 'selected_card_id';
+  // ── Enkelt aktivt kort (bakoverkompatibelt) ──────────────────────────
+  static const _kSelectedCardId   = 'selected_card_id';
   static const _kSelectedCardRate = 'selected_card_rate_per_100';
 
   static Future<void> setSelectedCard(String id, double ratePer100) async {
     final prefs = await _p();
     await prefs.setString(_kSelectedCardId, id);
     await prefs.setDouble(_kSelectedCardRate, ratePer100);
+    await addSelectedCard(id);
   }
 
   static Future<String?> getSelectedCardId() async {
@@ -32,10 +39,74 @@ class UserState {
     return prefs.getDouble(_kSelectedCardRate);
   }
 
-  // (valgfritt) enkel reset hvis du trenger
+  // ── Multi-kort ───────────────────────────────────────────────────────
+  static const _kSelectedCards = 'selected_card_ids';
+
+  static Future<void> addSelectedCard(String id) async {
+    final prefs = await _p();
+    final current = prefs.getStringList(_kSelectedCards) ?? [];
+    if (!current.contains(id)) {
+      current.add(id);
+      await prefs.setStringList(_kSelectedCards, current);
+    }
+  }
+
+  static Future<void> removeSelectedCard(String id) async {
+    final prefs = await _p();
+    final current = prefs.getStringList(_kSelectedCards) ?? [];
+    current.remove(id);
+    await prefs.setStringList(_kSelectedCards, current);
+  }
+
+  static Future<List<String>> getSelectedCardIds() async {
+    final prefs = await _p();
+    return prefs.getStringList(_kSelectedCards) ?? [];
+  }
+
+  // ── Trumf-medlemskap ─────────────────────────────────────────────────
+  static const _kTrumfMember = 'trumf_member';
+
+  static Future<void> setTrumfMember(bool value) async {
+    final prefs = await _p();
+    await prefs.setBool(_kTrumfMember, value);
+  }
+
+  static Future<bool> isTrumfMember() async {
+    final prefs = await _p();
+    return prefs.getBool(_kTrumfMember) ?? false;
+  }
+
+  // ── EuroBonus-poeng ──────────────────────────────────────────────────
+  static const _kEurobonusPoints = 'eurobonus_points';
+
+  static Future<void> setEurobonusPoints(int points) async {
+    final prefs = await _p();
+    await prefs.setInt(_kEurobonusPoints, points);
+  }
+
+  static Future<int> getEurobonusPoints() async {
+    final prefs = await _p();
+    return prefs.getInt(_kEurobonusPoints) ?? 0;
+  }
+
+  // ── Favoritter ───────────────────────────────────────────────────────
+  static const _kFavorites = 'favorite_alerts';
+
+  static Future<void> setFavorites(List<String> favorites) async {
+    final prefs = await _p();
+    await prefs.setStringList(_kFavorites, favorites);
+  }
+
+  static Future<List<String>> getFavorites() async {
+    final prefs = await _p();
+    return prefs.getStringList(_kFavorites) ?? [];
+  }
+
+  // ── Reset ────────────────────────────────────────────────────────────
   static Future<void> clearSelectedCard() async {
     final prefs = await _p();
     await prefs.remove(_kSelectedCardId);
     await prefs.remove(_kSelectedCardRate);
+    await prefs.remove(_kSelectedCards);
   }
 }

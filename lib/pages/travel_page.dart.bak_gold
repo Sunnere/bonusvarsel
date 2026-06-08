@@ -1,0 +1,1265 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_markdown/flutter_markdown.dart';
+import '../widgets/ad_slot.dart';
+import '../services/ad_service.dart';
+import '../models/ad_slot.dart';
+import 'package:url_launcher/url_launcher.dart';
+import '../models/card_catalog.dart';
+import '../services/user_state.dart';
+import '../services/entitlement_service.dart';
+import '../services/ai_service.dart';
+import 'premium_page.dart';
+import 'premium_page.dart';
+
+// ─── Poengkostnader EuroBonus (per person, én vei) ───────────────────────────
+// Kilde: SAS EuroBonus bonustabell
+class _EbCost {
+  // Zone → {cabin: poeng per person én vei}
+  static const Map<String, Map<String, int>> _table = {
+    'Skandinavia':    {'Economy': 5000,  'Premium': 10000, 'Business': 15000},
+    'Europa':         {'Economy': 15000, 'Premium': 22500, 'Business': 30000},
+    'Midtøsten':      {'Economy': 25000, 'Premium': 37500, 'Business': 50000},
+    'Asia':           {'Economy': 30000, 'Premium': 40000, 'Business': 60000},
+    'Afrika':         {'Economy': 30000, 'Premium': 40000, 'Business': 60000},
+    'Nord-Amerika':   {'Economy': 35000, 'Premium': 52500, 'Business': 70000},
+    'Sør-Amerika':    {'Economy': 35000, 'Premium': 52500, 'Business': 70000},
+    'Australia/NZ':   {'Economy': 40000, 'Premium': 60000, 'Business': 80000},
+  };
+
+  static const Map<String, String> _destZone = {
+    'bangkok': 'Asia', 'thailand': 'Asia', 'tokyo': 'Asia', 'japan': 'Asia',
+    'singapore': 'Asia', 'bali': 'Asia', 'hongkong': 'Asia',
+    'new york': 'Nord-Amerika', 'usa': 'Nord-Amerika', 'miami': 'Nord-Amerika',
+    'los angeles': 'Nord-Amerika', 'chicago': 'Nord-Amerika',
+    'london': 'Europa', 'paris': 'Europa', 'barcelona': 'Europa',
+    'roma': 'Europa', 'amsterdam': 'Europa', 'berlin': 'Europa',
+    'dubai': 'Midtøsten', 'abu dhabi': 'Midtøsten',
+    'oslo': 'Skandinavia', 'tromsø': 'Skandinavia', 'bergen': 'Skandinavia',
+    'stockholm': 'Skandinavia', 'københavn': 'Skandinavia',
+    'sydney': 'Australia/NZ', 'melbourne': 'Australia/NZ',
+    'johannesburg': 'Afrika', 'nairobi': 'Afrika', 'cape town': 'Afrika',
+  };
+
+  static String zoneFor(String dest) {
+    final d = dest.toLowerCase();
+    for (final e in _destZone.entries) {
+      if (d.contains(e.key)) return e.value;
+    }
+    return 'Europa';
+  }
+
+  static int costPerPerson(String dest, String cabin) {
+    final zone = zoneFor(dest);
+    return _table[zone]?[cabin] ?? 15000;
+  }
+
+  // Spedbarn 0-23 mnd: 10% av voksen (fanget)
+  static int infantCost(String dest, String cabin) =>
+      (costPerPerson(dest, cabin) * 0.10).round();
+  // Barn 2-11 år: 75% av voksen (eget sete)
+  static int childCost(String dest, String cabin) =>
+      (costPerPerson(dest, cabin) * 0.75).round();
+  // Ungdom 12-25 år: SAS Young = ca 75% av voksen
+  static int youthCost(String dest, String cabin) =>
+      (costPerPerson(dest, cabin) * 0.75).round();
+
+  // Total t/r for hele familien
+  static int totalFamily({
+    required String dest,
+    required String cabin,
+    required int adults,
+    required int youth,
+    required int children,
+    required int infants,
+    required bool companionTicket,
+  }) {
+    final adultCost  = costPerPerson(dest, cabin) * 2; // t/r
+    final youthEach  = youthCost(dest, cabin)  * 2;
+    final childEach  = childCost(dest, cabin)  * 2;
+    final infantEach = infantCost(dest, cabin) * 2;
+    int totalAdults = adultCost * adults;
+    if (companionTicket && adults >= 2) {
+      totalAdults -= adultCost; // én voksen gratis med Amex CT
+    }
+    return totalAdults
+        + (youthEach  * youth)
+        + (childEach  * children)
+        + (infantEach * infants);
+  }
+}
+
+class TravelPage extends StatefulWidget {
+  const TravelPage({super.key});
+  @override
+  State<TravelPage> createState() => _TravelPageState();
+}
+
+class _TravelPageState extends State<TravelPage> with WidgetsBindingObserver {
+  // Reisemål
+  final _destCtrl = TextEditingController(text: 'Bangkok');
+  int _adults = 2;
+  int _youth = 0;    // 12–25 år (SAS Young)
+  int _children = 2; // 2–11 år
+  int _infants = 0;  // 0–23 måneder (fanget)
+  String _cabin = 'Economy';
+
+  // Valgte kort og poeng
+  List<String> _cardIds = [];
+  int _cardRatePer100 = 20;
+  bool _hasAmex = false;
+  bool _isTrumfMember = false;
+
+  // Nåværende poeng
+  final _pointsCtrl = TextEditingController(text: '0');
+
+  // Månedlig forbruk (for opptjeningsestimering)
+  double _monthlySpend = 20000;
+
+  // AI
+  String? _aiPlan;
+  bool _aiLoading = false;
+  bool _norwegianMode = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+    WidgetsBinding.instance.addObserver(this);
+    cardSelectionNotifier.addListener(_load);
+    EntitlementService.instance.addListener(() { if (mounted) setState(() {}); });
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    cardSelectionNotifier.removeListener(_load);
+    EntitlementService.instance.removeListener(() {});
+    _destCtrl.dispose();
+    _pointsCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) _load();
+  }
+
+  Future<void> _load() async {
+    final ids = await UserState.getSelectedCardIds();
+    if (ids.isEmpty) {
+      final id = await UserState.getSelectedCardId();
+      if (id != null) ids.add(id);
+    }
+    final trumf = await UserState.isTrumfMember();
+    const rateMap = {'sas_amex':20,'sas_mc':15,'sas_visa':10,'trumf_visa':10,'trumf_mc':8};
+    final best = ids.isEmpty ? 15 :
+        ids.map((i) => rateMap[i] ?? 10).reduce((a, b) => a > b ? a : b);
+    if (!mounted) return;
+    setState(() {
+      _cardIds = ids;
+      _cardRatePer100 = best;
+      _hasAmex = ids.contains('sas_amex');
+      _isTrumfMember = trumf;
+    });
+  }
+
+  // ── Beregninger ──────────────────────────────────────────────────────────
+  String get _dest => _destCtrl.text.trim().isEmpty ? 'Bangkok' : _destCtrl.text.trim();
+
+  // ── Destinasjonsbilde ───────────────────────────────────────────────────
+  static const Map<String, String> _specificImages = {
+    'bangkok':       'https://images.unsplash.com/photo-1508009603885-50cf7c579365?w=800&auto=format&fit=crop',
+    'thailand':      'https://images.unsplash.com/photo-1552465011-b4e21bf6e79a?w=800&auto=format&fit=crop',
+    'phuket':        'https://images.unsplash.com/photo-1552465011-b4e21bf6e79a?w=800&auto=format&fit=crop',
+    'ko samui':      'https://images.unsplash.com/photo-1552465011-b4e21bf6e79a?w=800&auto=format&fit=crop',
+    'tokyo':         'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=800&auto=format&fit=crop',
+    'osaka':         'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=800&auto=format&fit=crop',
+    'japan':         'https://images.unsplash.com/photo-1528360983277-13d401cdc186?w=800&auto=format&fit=crop',
+    'singapore':     'https://images.unsplash.com/photo-1525625293386-3f8f99389edd?w=800&auto=format&fit=crop',
+    'bali':          'https://images.unsplash.com/photo-1537996194471-e657df975ab4?w=800&auto=format&fit=crop',
+    'indonesia':     'https://images.unsplash.com/photo-1537996194471-e657df975ab4?w=800&auto=format&fit=crop',
+    'hong kong':     'https://images.unsplash.com/photo-1506970845246-18f21d533b20?w=800&auto=format&fit=crop',
+    'hongkong':      'https://images.unsplash.com/photo-1506970845246-18f21d533b20?w=800&auto=format&fit=crop',
+    'vietnam':       'https://images.unsplash.com/photo-1528360983277-13d401cdc186?w=800&auto=format&fit=crop',
+    'hanoi':         'https://images.unsplash.com/photo-1528360983277-13d401cdc186?w=800&auto=format&fit=crop',
+    'ho chi minh':   'https://images.unsplash.com/photo-1528360983277-13d401cdc186?w=800&auto=format&fit=crop',
+    'saigon':        'https://images.unsplash.com/photo-1528360983277-13d401cdc186?w=800&auto=format&fit=crop',
+    'kina':          'https://images.unsplash.com/photo-1508804185872-d7badad00f7d?w=800&auto=format&fit=crop',
+    'china':         'https://images.unsplash.com/photo-1508804185872-d7badad00f7d?w=800&auto=format&fit=crop',
+    'beijing':       'https://images.unsplash.com/photo-1508804185872-d7badad00f7d?w=800&auto=format&fit=crop',
+    'peking':        'https://images.unsplash.com/photo-1508804185872-d7badad00f7d?w=800&auto=format&fit=crop',
+    'shanghai':      'https://images.unsplash.com/photo-1474181487882-5abf3f0ba6c2?w=800&auto=format&fit=crop',
+    'india':         'https://images.unsplash.com/photo-1564507592333-c60657eea523?w=800&auto=format&fit=crop',
+    'new delhi':     'https://images.unsplash.com/photo-1564507592333-c60657eea523?w=800&auto=format&fit=crop',
+    'mumbai':        'https://images.unsplash.com/photo-1564507592333-c60657eea523?w=800&auto=format&fit=crop',
+    'goa':           'https://images.unsplash.com/photo-1564507592333-c60657eea523?w=800&auto=format&fit=crop',
+    'maldives':      'https://images.unsplash.com/photo-1514282401047-d79a71a590e8?w=800&auto=format&fit=crop',
+    'maldivene':     'https://images.unsplash.com/photo-1514282401047-d79a71a590e8?w=800&auto=format&fit=crop',
+    'sri lanka':     'https://images.unsplash.com/photo-1546708973-b339540b5162?w=800&auto=format&fit=crop',
+    'nepal':         'https://images.unsplash.com/photo-1544735716-392fe2489ffa?w=800&auto=format&fit=crop',
+    'korea':         'https://images.unsplash.com/photo-1538485399081-7191377e8241?w=800&auto=format&fit=crop',
+    'south korea':   'https://images.unsplash.com/photo-1538485399081-7191377e8241?w=800&auto=format&fit=crop',
+    'seoul':         'https://images.unsplash.com/photo-1538485399081-7191377e8241?w=800&auto=format&fit=crop',
+    'filippinene':   'https://images.unsplash.com/photo-1518509562904-e7ef99cdcc86?w=800&auto=format&fit=crop',
+    'philippines':   'https://images.unsplash.com/photo-1518509562904-e7ef99cdcc86?w=800&auto=format&fit=crop',
+    'malaysia':      'https://images.unsplash.com/photo-1596422846543-75c6fc197f07?w=800&auto=format&fit=crop',
+    'kuala lumpur':  'https://images.unsplash.com/photo-1596422846543-75c6fc197f07?w=800&auto=format&fit=crop',
+    'cambodia':      'https://images.unsplash.com/photo-1508009603885-50cf7c579365?w=800&auto=format&fit=crop',
+    'kambodsja':     'https://images.unsplash.com/photo-1508009603885-50cf7c579365?w=800&auto=format&fit=crop',
+    'london':        'https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?w=800&auto=format&fit=crop',
+    'england':       'https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?w=800&auto=format&fit=crop',
+    'paris':         'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=800&auto=format&fit=crop',
+    'frankrike':     'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=800&auto=format&fit=crop',
+    'france':        'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=800&auto=format&fit=crop',
+    'nice':          'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=800&auto=format&fit=crop',
+    'barcelona':     'https://images.unsplash.com/photo-1583422409516-2895a77efded?w=800&auto=format&fit=crop',
+    'madrid':        'https://images.unsplash.com/photo-1543785734-4b6e564642f8?w=800&auto=format&fit=crop',
+    'spania':        'https://images.unsplash.com/photo-1583422409516-2895a77efded?w=800&auto=format&fit=crop',
+    'spain':         'https://images.unsplash.com/photo-1583422409516-2895a77efded?w=800&auto=format&fit=crop',
+    'malaga':        'https://images.unsplash.com/photo-1555881400-74d7acaacd8b?w=800&auto=format&fit=crop',
+    'sevilla':       'https://images.unsplash.com/photo-1555881400-74d7acaacd8b?w=800&auto=format&fit=crop',
+    'marbella':      'https://images.unsplash.com/photo-1555881400-74d7acaacd8b?w=800&auto=format&fit=crop',
+    'ibiza':         'https://images.unsplash.com/photo-1555881400-74d7acaacd8b?w=800&auto=format&fit=crop',
+    'mallorca':      'https://images.unsplash.com/photo-1555881400-74d7acaacd8b?w=800&auto=format&fit=crop',
+    'tenerife':      'https://images.unsplash.com/photo-1589555116689-df6f9b51e9aa?w=800&auto=format&fit=crop',
+    'gran canaria':  'https://images.unsplash.com/photo-1589555116689-df6f9b51e9aa?w=800&auto=format&fit=crop',
+    'lanzarote':     'https://images.unsplash.com/photo-1589555116689-df6f9b51e9aa?w=800&auto=format&fit=crop',
+    'kanariøyene':   'https://images.unsplash.com/photo-1589555116689-df6f9b51e9aa?w=800&auto=format&fit=crop',
+    'canary islands':'https://images.unsplash.com/photo-1589555116689-df6f9b51e9aa?w=800&auto=format&fit=crop',
+    'italia':        'https://images.unsplash.com/photo-1552832230-c0197dd311b5?w=800&auto=format&fit=crop',
+    'italy':         'https://images.unsplash.com/photo-1552832230-c0197dd311b5?w=800&auto=format&fit=crop',
+    'roma':          'https://images.unsplash.com/photo-1552832230-c0197dd311b5?w=800&auto=format&fit=crop',
+    'rome':          'https://images.unsplash.com/photo-1552832230-c0197dd311b5?w=800&auto=format&fit=crop',
+    'milano':        'https://images.unsplash.com/photo-1552832230-c0197dd311b5?w=800&auto=format&fit=crop',
+    'milan':         'https://images.unsplash.com/photo-1552832230-c0197dd311b5?w=800&auto=format&fit=crop',
+    'venezia':       'https://images.unsplash.com/photo-1514890547357-a9ee288728e0?w=800&auto=format&fit=crop',
+    'venice':        'https://images.unsplash.com/photo-1514890547357-a9ee288728e0?w=800&auto=format&fit=crop',
+    'amsterdam':     'https://images.unsplash.com/photo-1534351590666-13e3e96b5017?w=800&auto=format&fit=crop',
+    'netherlands':   'https://images.unsplash.com/photo-1534351590666-13e3e96b5017?w=800&auto=format&fit=crop',
+    'nederland':     'https://images.unsplash.com/photo-1534351590666-13e3e96b5017?w=800&auto=format&fit=crop',
+    'berlin':        'https://images.unsplash.com/photo-1560969184-10fe8719e047?w=800&auto=format&fit=crop',
+    'germany':       'https://images.unsplash.com/photo-1560969184-10fe8719e047?w=800&auto=format&fit=crop',
+    'tyskland':      'https://images.unsplash.com/photo-1560969184-10fe8719e047?w=800&auto=format&fit=crop',
+    'münchen':       'https://images.unsplash.com/photo-1560969184-10fe8719e047?w=800&auto=format&fit=crop',
+    'munich':        'https://images.unsplash.com/photo-1560969184-10fe8719e047?w=800&auto=format&fit=crop',
+    'wien':          'https://images.unsplash.com/photo-1516550893923-42d28e5677af?w=800&auto=format&fit=crop',
+    'vienna':        'https://images.unsplash.com/photo-1516550893923-42d28e5677af?w=800&auto=format&fit=crop',
+    'austria':       'https://images.unsplash.com/photo-1516550893923-42d28e5677af?w=800&auto=format&fit=crop',
+    'østerrike':     'https://images.unsplash.com/photo-1516550893923-42d28e5677af?w=800&auto=format&fit=crop',
+    'sveits':        'https://images.unsplash.com/photo-1530122037265-a5f1f91d3b99?w=800&auto=format&fit=crop',
+    'switzerland':   'https://images.unsplash.com/photo-1530122037265-a5f1f91d3b99?w=800&auto=format&fit=crop',
+    'zürich':        'https://images.unsplash.com/photo-1530122037265-a5f1f91d3b99?w=800&auto=format&fit=crop',
+    'zurich':        'https://images.unsplash.com/photo-1530122037265-a5f1f91d3b99?w=800&auto=format&fit=crop',
+    'hellas':        'https://images.unsplash.com/photo-1533105079780-92b9be482077?w=800&auto=format&fit=crop',
+    'greece':        'https://images.unsplash.com/photo-1533105079780-92b9be482077?w=800&auto=format&fit=crop',
+    'athen':         'https://images.unsplash.com/photo-1533105079780-92b9be482077?w=800&auto=format&fit=crop',
+    'athens':        'https://images.unsplash.com/photo-1533105079780-92b9be482077?w=800&auto=format&fit=crop',
+    'santorini':     'https://images.unsplash.com/photo-1533105079780-92b9be482077?w=800&auto=format&fit=crop',
+    'mykonos':       'https://images.unsplash.com/photo-1533105079780-92b9be482077?w=800&auto=format&fit=crop',
+    'kreta':         'https://images.unsplash.com/photo-1533105079780-92b9be482077?w=800&auto=format&fit=crop',
+    'crete':         'https://images.unsplash.com/photo-1533105079780-92b9be482077?w=800&auto=format&fit=crop',
+    'rhodos':        'https://images.unsplash.com/photo-1533105079780-92b9be482077?w=800&auto=format&fit=crop',
+    'rhodes':        'https://images.unsplash.com/photo-1533105079780-92b9be482077?w=800&auto=format&fit=crop',
+    'kroatia':       'https://images.unsplash.com/photo-1555990793-da11153b2473?w=800&auto=format&fit=crop',
+    'croatia':       'https://images.unsplash.com/photo-1555990793-da11153b2473?w=800&auto=format&fit=crop',
+    'dubrovnik':     'https://images.unsplash.com/photo-1555990793-da11153b2473?w=800&auto=format&fit=crop',
+    'split':         'https://images.unsplash.com/photo-1555990793-da11153b2473?w=800&auto=format&fit=crop',
+    'portugal':      'https://images.unsplash.com/photo-1558370781-d6196949e317?w=800&auto=format&fit=crop',
+    'lisboa':        'https://images.unsplash.com/photo-1558370781-d6196949e317?w=800&auto=format&fit=crop',
+    'lisbon':        'https://images.unsplash.com/photo-1558370781-d6196949e317?w=800&auto=format&fit=crop',
+    'porto':         'https://images.unsplash.com/photo-1558370781-d6196949e317?w=800&auto=format&fit=crop',
+    'algarve':       'https://images.unsplash.com/photo-1558370781-d6196949e317?w=800&auto=format&fit=crop',
+    'tyrkia':        'https://images.unsplash.com/photo-1524231757912-21f4fe3a7200?w=800&auto=format&fit=crop',
+    'turkey':        'https://images.unsplash.com/photo-1524231757912-21f4fe3a7200?w=800&auto=format&fit=crop',
+    'istanbul':      'https://images.unsplash.com/photo-1524231757912-21f4fe3a7200?w=800&auto=format&fit=crop',
+    'antalya':       'https://images.unsplash.com/photo-1524231757912-21f4fe3a7200?w=800&auto=format&fit=crop',
+    'bodrum':        'https://images.unsplash.com/photo-1524231757912-21f4fe3a7200?w=800&auto=format&fit=crop',
+    'alanya':        'https://images.unsplash.com/photo-1524231757912-21f4fe3a7200?w=800&auto=format&fit=crop',
+    'prag':          'https://images.unsplash.com/photo-1541849546-216549ae216d?w=800&auto=format&fit=crop',
+    'prague':        'https://images.unsplash.com/photo-1541849546-216549ae216d?w=800&auto=format&fit=crop',
+    'budapest':      'https://images.unsplash.com/photo-1551867633-194f125bddfa?w=800&auto=format&fit=crop',
+    'hungary':       'https://images.unsplash.com/photo-1551867633-194f125bddfa?w=800&auto=format&fit=crop',
+    'ungarn':        'https://images.unsplash.com/photo-1551867633-194f125bddfa?w=800&auto=format&fit=crop',
+    'malta':         'https://images.unsplash.com/photo-1558642452-9d2a7deb7f62?w=800&auto=format&fit=crop',
+    'kypros':        'https://images.unsplash.com/photo-1558642452-9d2a7deb7f62?w=800&auto=format&fit=crop',
+    'cyprus':        'https://images.unsplash.com/photo-1558642452-9d2a7deb7f62?w=800&auto=format&fit=crop',
+    'irland':        'https://images.unsplash.com/photo-1590089415225-401ed6f9db8e?w=800&auto=format&fit=crop',
+    'ireland':       'https://images.unsplash.com/photo-1590089415225-401ed6f9db8e?w=800&auto=format&fit=crop',
+    'dublin':        'https://images.unsplash.com/photo-1590089415225-401ed6f9db8e?w=800&auto=format&fit=crop',
+    'skottland':     'https://images.unsplash.com/photo-1506377585622-bedcbb027afc?w=800&auto=format&fit=crop',
+    'scotland':      'https://images.unsplash.com/photo-1506377585622-bedcbb027afc?w=800&auto=format&fit=crop',
+    'edinburgh':     'https://images.unsplash.com/photo-1506377585622-bedcbb027afc?w=800&auto=format&fit=crop',
+    'polen':         'https://images.unsplash.com/photo-1541849546-216549ae216d?w=800&auto=format&fit=crop',
+    'poland':        'https://images.unsplash.com/photo-1541849546-216549ae216d?w=800&auto=format&fit=crop',
+    'dubai':         'https://images.unsplash.com/photo-1512453979798-5ea266f8880c?w=800&auto=format&fit=crop',
+    'abu dhabi':     'https://images.unsplash.com/photo-1512453979798-5ea266f8880c?w=800&auto=format&fit=crop',
+    'kairo':         'https://images.unsplash.com/photo-1539650116574-75c0c6d73f6e?w=800&auto=format&fit=crop',
+    'cairo':         'https://images.unsplash.com/photo-1539650116574-75c0c6d73f6e?w=800&auto=format&fit=crop',
+    'hurghada':      'https://images.unsplash.com/photo-1539650116574-75c0c6d73f6e?w=800&auto=format&fit=crop',
+    'marokko':       'https://images.unsplash.com/photo-1597211684565-dca65c5cdc90?w=800&auto=format&fit=crop',
+    'morocco':       'https://images.unsplash.com/photo-1597211684565-dca65c5cdc90?w=800&auto=format&fit=crop',
+    'marrakech':     'https://images.unsplash.com/photo-1597211684565-dca65c5cdc90?w=800&auto=format&fit=crop',
+    'petra':         'https://images.unsplash.com/photo-1548786811-dd6e453ccca7?w=800&auto=format&fit=crop',
+    'jordan':        'https://images.unsplash.com/photo-1548786811-dd6e453ccca7?w=800&auto=format&fit=crop',
+    'new york':      'https://images.unsplash.com/photo-1534430480872-3498386e7856?w=800&auto=format&fit=crop',
+    'usa':           'https://images.unsplash.com/photo-1534430480872-3498386e7856?w=800&auto=format&fit=crop',
+    'america':       'https://images.unsplash.com/photo-1534430480872-3498386e7856?w=800&auto=format&fit=crop',
+    'miami':         'https://images.unsplash.com/photo-1533106497176-45ae19e68ba2?w=800&auto=format&fit=crop',
+    'florida':       'https://images.unsplash.com/photo-1533106497176-45ae19e68ba2?w=800&auto=format&fit=crop',
+    'los angeles':   'https://images.unsplash.com/photo-1534190760961-74e8c1c5c3da?w=800&auto=format&fit=crop',
+    'las vegas':     'https://images.unsplash.com/photo-1581351721010-8cf859cb14a4?w=800&auto=format&fit=crop',
+    'chicago':       'https://images.unsplash.com/photo-1494522358652-f30e61a60313?w=800&auto=format&fit=crop',
+    'canada':        'https://images.unsplash.com/photo-1519832979-6fa011b87667?w=800&auto=format&fit=crop',
+    'toronto':       'https://images.unsplash.com/photo-1519832979-6fa011b87667?w=800&auto=format&fit=crop',
+    'vancouver':     'https://images.unsplash.com/photo-1519832979-6fa011b87667?w=800&auto=format&fit=crop',
+    'mexico':        'https://images.unsplash.com/photo-1512813195386-6cf811ad3542?w=800&auto=format&fit=crop',
+    'cancun':        'https://images.unsplash.com/photo-1512813195386-6cf811ad3542?w=800&auto=format&fit=crop',
+    'brasil':        'https://images.unsplash.com/photo-1483729558449-99ef09a8c325?w=800&auto=format&fit=crop',
+    'brazil':        'https://images.unsplash.com/photo-1483729558449-99ef09a8c325?w=800&auto=format&fit=crop',
+    'rio':           'https://images.unsplash.com/photo-1483729558449-99ef09a8c325?w=800&auto=format&fit=crop',
+    'argentina':     'https://images.unsplash.com/photo-1612294037637-ec328d0e075e?w=800&auto=format&fit=crop',
+    'peru':          'https://images.unsplash.com/photo-1526392060635-9d6019884377?w=800&auto=format&fit=crop',
+    'colombia':      'https://images.unsplash.com/photo-1560889713-31b8991d6e6f?w=800&auto=format&fit=crop',
+    'oslo':          'https://images.unsplash.com/photo-1531366936337-7c912a4589a7?w=800&auto=format&fit=crop',
+    'norge':         'https://images.unsplash.com/photo-1531366936337-7c912a4589a7?w=800&auto=format&fit=crop',
+    'norway':        'https://images.unsplash.com/photo-1531366936337-7c912a4589a7?w=800&auto=format&fit=crop',
+    'tromsø':        'https://images.unsplash.com/photo-1531366936337-7c912a4589a7?w=800&auto=format&fit=crop',
+    'tromso':        'https://images.unsplash.com/photo-1531366936337-7c912a4589a7?w=800&auto=format&fit=crop',
+    'bergen':        'https://images.unsplash.com/photo-1531366936337-7c912a4589a7?w=800&auto=format&fit=crop',
+    'lofoten':       'https://images.unsplash.com/photo-1531366936337-7c912a4589a7?w=800&auto=format&fit=crop',
+    'stockholm':     'https://images.unsplash.com/photo-1509356843151-3e7d96241e11?w=800&auto=format&fit=crop',
+    'sweden':        'https://images.unsplash.com/photo-1509356843151-3e7d96241e11?w=800&auto=format&fit=crop',
+    'sverige':       'https://images.unsplash.com/photo-1509356843151-3e7d96241e11?w=800&auto=format&fit=crop',
+    'københavn':     'https://images.unsplash.com/photo-1513622470522-26c3c8a854bc?w=800&auto=format&fit=crop',
+    'copenhagen':    'https://images.unsplash.com/photo-1513622470522-26c3c8a854bc?w=800&auto=format&fit=crop',
+    'denmark':       'https://images.unsplash.com/photo-1513622470522-26c3c8a854bc?w=800&auto=format&fit=crop',
+    'danmark':       'https://images.unsplash.com/photo-1513622470522-26c3c8a854bc?w=800&auto=format&fit=crop',
+    'finland':       'https://images.unsplash.com/photo-1559598467-f8b76c8155d0?w=800&auto=format&fit=crop',
+    'helsinki':      'https://images.unsplash.com/photo-1559598467-f8b76c8155d0?w=800&auto=format&fit=crop',
+    'island':        'https://images.unsplash.com/photo-1476610182048-b716b8518aae?w=800&auto=format&fit=crop',
+    'iceland':       'https://images.unsplash.com/photo-1476610182048-b716b8518aae?w=800&auto=format&fit=crop',
+    'reykjavik':     'https://images.unsplash.com/photo-1476610182048-b716b8518aae?w=800&auto=format&fit=crop',
+    'cape town':     'https://images.unsplash.com/photo-1580060839134-75a5edca2e99?w=800&auto=format&fit=crop',
+    'south africa':  'https://images.unsplash.com/photo-1580060839134-75a5edca2e99?w=800&auto=format&fit=crop',
+    'nairobi':       'https://images.unsplash.com/photo-1489392191049-fc10c97e64b6?w=800&auto=format&fit=crop',
+    'kenya':         'https://images.unsplash.com/photo-1489392191049-fc10c97e64b6?w=800&auto=format&fit=crop',
+    'zanzibar':      'https://images.unsplash.com/photo-1516026672322-bc52d61a55d5?w=800&auto=format&fit=crop',
+    'tanzania':      'https://images.unsplash.com/photo-1516026672322-bc52d61a55d5?w=800&auto=format&fit=crop',
+    'mauritius':     'https://images.unsplash.com/photo-1516026672322-bc52d61a55d5?w=800&auto=format&fit=crop',
+    'sydney':        'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&auto=format&fit=crop',
+    'australia':     'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&auto=format&fit=crop',
+    'melbourne':     'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&auto=format&fit=crop',
+    'auckland':      'https://images.unsplash.com/photo-1507699622108-4be3abd695ad?w=800&auto=format&fit=crop',
+  };
+
+  static const Map<String, String> _zoneImages = {
+    'Asia':         'https://images.unsplash.com/photo-1508009603885-50cf7c579365?w=800&auto=format&fit=crop',
+    'Europa':       'https://images.unsplash.com/photo-1499856871958-5b9627545d1a?w=800&auto=format&fit=crop',
+    'Nord-Amerika': 'https://images.unsplash.com/photo-1534430480872-3498386e7856?w=800&auto=format&fit=crop',
+    'Skandinavia':  'https://images.unsplash.com/photo-1531366936337-7c912a4589a7?w=800&auto=format&fit=crop',
+    'Midtøsten':    'https://images.unsplash.com/photo-1512453979798-5ea266f8880c?w=800&auto=format&fit=crop',
+    'Afrika':       'https://images.unsplash.com/photo-1489392191049-fc10c97e64b6?w=800&auto=format&fit=crop',
+    'Sør-Amerika':  'https://images.unsplash.com/photo-1483729558449-99ef09a8c325?w=800&auto=format&fit=crop',
+    'Australia/NZ': 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&auto=format&fit=crop',
+  };
+
+  String get _destImageUrl {
+    final d = _dest.toLowerCase();
+    for (final e in _specificImages.entries) {
+      if (d.contains(e.key)) return e.value;
+    }
+    final zone = _EbCost.zoneFor(_dest);
+    return _zoneImages[zone] ?? _zoneImages['Europa']!;
+  }
+
+
+  String _buildPaxString() {
+    final parts = <String>[];
+    if (_adults > 0)   parts.add('$_adults voksen${_adults > 1 ? 'e' : ''}');
+    if (_youth > 0)    parts.add('$_youth ungdom');
+    if (_children > 0) parts.add('$_children barn');
+    if (_infants > 0)  parts.add('$_infants spedbarn');
+    return parts.join(', ');
+  }
+
+  int get _currentPoints => int.tryParse(_pointsCtrl.text.replaceAll(' ', '')) ?? 0;
+
+  // Poeng som trengs t/r for hele familien
+  int get _pointsNeeded => _EbCost.totalFamily(
+    dest: _dest, cabin: _cabin,
+    adults: _adults, youth: _youth,
+    children: _children, infants: _infants,
+    companionTicket: _hasAmex,
+  );
+
+  // Månedlig opptjening fra kortbruk
+  int get _monthlyEarning => (_monthlySpend * _cardRatePer100 / 100).round();
+
+  // Månedlig opptjening med Trumf-overføring (13.5p/kr vs 10p/kr)
+  int get _monthlyTrumfBonus => _isTrumfMember
+      ? (8000 * 0.02 * 13.5).round() // 8000kr mat/mnd med QR = 2% = 160kr → 2160p
+      : 0;
+
+  int get _totalMonthlyEarning => _monthlyEarning + _monthlyTrumfBonus;
+
+  int get _pointsGap => (_pointsNeeded - _currentPoints).clamp(0, 9999999);
+
+  // Måneder for å nå målet
+  int get _monthsToGoal => _totalMonthlyEarning > 0
+      ? (_pointsGap / _totalMonthlyEarning).ceil()
+      : 999;
+
+  // Månedlig forbruk for å nå Amex CT (150 000 kr/år = 12 500/mnd)
+  bool get _onTrackForCT => _monthlySpend * 12 >= 150000;
+
+  String _fmt(int v) {
+    final s = v.toString();
+    final chunks = <String>[];
+    for (int i = s.length; i > 0; i -= 3) {
+      chunks.insert(0, s.substring(i - 3 < 0 ? 0 : i - 3, i));
+    }
+    return chunks.join(' ');
+  }
+
+  Future<void> _generatePlan() async {
+    setState(() { _aiLoading = true; _aiPlan = null; });
+    try {
+      final plan = await AiService.getTravelPlan(
+        destination: _dest,
+        adults: _adults + _youth,
+        children: _children,
+        cardIds: _cardIds,
+        isTrumfMember: _isTrumfMember,
+        norwegianMode: _norwegianMode,
+        currentPoints: _currentPoints,
+        estimatedPoints: _totalMonthlyEarning * 12,
+        totalAmount: (_monthlySpend * 12).round(),
+        includeFlight: true,
+        includeHotel: false,
+        includeCar: false,
+      );
+      if (!mounted) return;
+      setState(() { _aiPlan = plan; _aiLoading = false; });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() { _aiPlan = 'Feil: $e'; _aiLoading = false; });
+    }
+  }
+
+  // ── UI ───────────────────────────────────────────────────────────────────
+  static const _bg      = Color(0xFF0F2340);
+  static const _surface = Color(0xFF0F2340);
+  static const _surface2= Color(0xFF152B4A);
+  static const _border  = Color(0xFF2F435C);
+  static const _primary = Color(0xFF60A5FA);
+  static const _primaryD= Color(0xFF1D4ED8);
+  static const _success = Color(0xFF34D399);
+  static const _warning = Color(0xFFFBBF24);
+  static const _text    = Color(0xFFF8FAFC);
+  static const _textSoft= Color(0xFFE2E8F0);
+  static const _textMuted=Color(0xFFCBD5E1);
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      appBar: AppBar(
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        elevation: 0,
+        title: const Text('Reise',
+          style: TextStyle(color: _text, fontWeight: FontWeight.w900, fontSize: 20)),
+      ),
+      body: GestureDetector(
+        onTap: () => FocusScope.of(context).unfocus(),
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 40),
+          children: [
+            _heroSection(),
+            const SizedBox(height: 8),
+            if (EntitlementService.instance.isElite) _eliteSection(),
+            const SizedBox(height: 8),
+            _adBanner('reis'),
+            const SizedBox(height: 8),
+            _reisemaalSection(),
+            const SizedBox(height: 12),
+            _poengStatusSection(),
+            const SizedBox(height: 12),
+            _kabinetypeSection(),
+            const SizedBox(height: 12),
+            _opptjeningSection(),
+            const SizedBox(height: 12),
+            _slagplanSection(),
+            const SizedBox(height: 12),
+            _destinasjonerSection(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ── Hero ─────────────────────────────────────────────────────────────────
+  Widget _heroSection() {
+    final hasEnough = _currentPoints >= _pointsNeeded && _pointsNeeded > 0;
+    final pct = _pointsNeeded > 0
+        ? (_currentPoints / _pointsNeeded).clamp(0.0, 1.0)
+        : 0.0;
+
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFF0D1F3C), _primaryD],
+          begin: Alignment.topLeft, end: Alignment.bottomRight),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [BoxShadow(color: _primaryD.withValues(alpha: 0.3),
+            blurRadius: 16, offset: const Offset(0, 4))],
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        ClipRRect(
+          borderRadius: BorderRadius.circular(12),
+          child: Image.network(
+            _destImageUrl,
+            height: 140,
+            width: double.infinity,
+            fit: BoxFit.cover,
+            loadingBuilder: (ctx, child, prog) => prog == null
+                ? child
+                : Container(
+                    height: 140,
+                    color: const Color(0xFF152B4A),
+                    child: const Center(
+                      child: CircularProgressIndicator(
+                        color: Color(0xFF60A5FA), strokeWidth: 2)),
+                  ),
+            errorBuilder: (ctx, err, st) => Container(
+              height: 140,
+              color: const Color(0xFF152B4A),
+              child: const Center(
+                child: Text('✈️', style: TextStyle(fontSize: 48))),
+            ),
+          ),
+        ),
+        const SizedBox(height: 14),
+        Row(children: [
+          const Text('✈️', style: TextStyle(fontSize: 22)),
+          const SizedBox(width: 8),
+          Expanded(child: Text('Reise til $_dest',
+            style: const TextStyle(color: _text, fontWeight: FontWeight.w900,
+                fontSize: 20))),
+          if (hasEnough)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: _success.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(999),
+                border: Border.all(color: _success),
+              ),
+              child: const Text('✅ Nok poeng!',
+                style: TextStyle(color: _success, fontWeight: FontWeight.w800, fontSize: 12)),
+            ),
+        ]),
+        const SizedBox(height: 4),
+        Text(_buildPaxString() + ' · $_cabin',
+          style: const TextStyle(color: Colors.white60, fontSize: 13)),
+        const SizedBox(height: 16),
+
+        // Poengmål-rad
+        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+          Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            const Text('Poeng du trenger', style: TextStyle(color: Colors.white54, fontSize: 11)),
+            Text(_fmt(_pointsNeeded),
+              style: const TextStyle(color: _text, fontWeight: FontWeight.w900, fontSize: 22)),
+            if (_hasAmex)
+              const Text('inkl. Companion Ticket 🎟️',
+                style: TextStyle(color: _warning, fontSize: 11, fontWeight: FontWeight.w700)),
+          ]),
+          Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+            const Text('Du har nå', style: TextStyle(color: Colors.white54, fontSize: 11)),
+            Text(_fmt(_currentPoints),
+              style: TextStyle(
+                color: hasEnough ? _success : _primary,
+                fontWeight: FontWeight.w900, fontSize: 22)),
+            Text('mangler: ${_fmt(_pointsGap)}',
+              style: TextStyle(
+                color: _pointsGap == 0 ? _success : Colors.white54,
+                fontSize: 11)),
+          ]),
+        ]),
+        const SizedBox(height: 12),
+
+        // Progresjonslinje
+        ClipRRect(
+          borderRadius: BorderRadius.circular(4),
+          child: LinearProgressIndicator(
+            value: pct,
+            minHeight: 8,
+            backgroundColor: Colors.white12,
+            valueColor: AlwaysStoppedAnimation(hasEnough ? _success : _primary),
+          ),
+        ),
+        const SizedBox(height: 6),
+        Text('${(pct * 100).round()}% av målet nådd',
+          style: const TextStyle(color: Colors.white38, fontSize: 11)),
+      ]),
+    );
+  }
+
+  // ── Reisemål og antall ───────────────────────────────────────────────────
+  Widget _reisemaalSection() {
+    return _card(
+      title: '🌍 Reisemål og reisefølge',
+      info: 'Legg til alle som skal reise – vi regner ut poeng for hele familien.\n\nAldersgrupper:\n• Spedbarn (0–23 mnd): fanget, 10%\n• Barn (2–11 år): eget sete, 75%\n• Ungdom (12–25 år): SAS Young, 75%\n\n💡 Barn registreres i EuroBonus fra fødsel. Foreldre administrerer kontoen.',
+      children: [
+        TextField(
+          controller: _destCtrl,
+          onChanged: (_) => setState(() {}),
+          style: const TextStyle(color: _text),
+          decoration: InputDecoration(
+            labelText: 'Destinasjon',
+            labelStyle: const TextStyle(color: _textMuted),
+            filled: true, fillColor: _surface2,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: _border)),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: _border)),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: _primary, width: 1.5)),
+            prefixIcon: const Icon(Icons.flight_takeoff, color: _primary),
+          ),
+        ),
+        const SizedBox(height: 12),
+        _personRow('Voksne (26+)', _adults,
+          onMinus: _adults > 1 ? () => setState(() => _adults--) : null,
+          onPlus: () => setState(() => _adults++)),
+        const SizedBox(height: 8),
+        _personRow('Ungdom (12–25 år)', _youth,
+          note: 'SAS Young · ~75% av voksen',
+          onMinus: _youth > 0 ? () => setState(() => _youth--) : null,
+          onPlus: () => setState(() => _youth++)),
+        const SizedBox(height: 8),
+        _personRow('Barn (2–11 år)', _children,
+          note: '75% av voksen · eget sete',
+          onMinus: _children > 0 ? () => setState(() => _children--) : null,
+          onPlus: () => setState(() => _children++)),
+        const SizedBox(height: 8),
+        _personRow('Spedbarn (0–23 mnd)', _infants,
+          note: '10% av voksen · sitter på fanget',
+          onMinus: _infants > 0 ? () => setState(() => _infants--) : null,
+          onPlus: () => setState(() => _infants++)),
+      ],
+    );
+  }
+
+  Widget _personRow(String label, int value, {String? note, VoidCallback? onMinus, VoidCallback? onPlus}) {
+    return Row(children: [
+      Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text(label, style: const TextStyle(color: _textSoft, fontWeight: FontWeight.w700)),
+        if (note != null)
+          Text(note, style: const TextStyle(color: _textMuted, fontSize: 11)),
+      ])),
+      IconButton(
+        icon: const Icon(Icons.remove_circle_outline, color: _primary),
+        onPressed: onMinus,
+        color: onMinus != null ? _primary : Colors.white24,
+      ),
+      Text('$value', style: const TextStyle(color: _text,
+          fontSize: 20, fontWeight: FontWeight.w900)),
+      IconButton(
+        icon: const Icon(Icons.add_circle_outline, color: _primary),
+        onPressed: onPlus,
+      ),
+    ]);
+  }
+
+  // ── Kabintype ────────────────────────────────────────────────────────────
+  Widget _kabinetypeSection() {
+    final zone = _EbCost.zoneFor(_dest);
+    final cabins = ['Economy', 'Premium', 'Business'];
+    return _card(
+      title: '💺 Kabintype',
+      info: 'Economy er standard bonusreise og koster færrest poeng. Premium Economy er litt dyrere men mer komfortabel. Business koster dobbelt men du sitter i flat seng. Poengene vist er per person, én vei.',
+      children: [
+        Text('Sone: $zone', style: const TextStyle(color: _textMuted, fontSize: 12)),
+        const SizedBox(height: 10),
+        Row(children: cabins.map((c) {
+          final cost = _EbCost.costPerPerson(_dest, c);
+          final isActive = _cabin == c;
+          return Expanded(child: GestureDetector(
+            onTap: () => setState(() => _cabin = c),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 150),
+              margin: const EdgeInsets.only(right: 6),
+              padding: const EdgeInsets.symmetric(vertical: 10),
+              decoration: BoxDecoration(
+                color: isActive ? _primaryD.withValues(alpha: 0.3) : _surface2,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                  color: isActive ? _primary : _border,
+                  width: isActive ? 1.5 : 1),
+              ),
+              child: Column(children: [
+                Text(c, style: TextStyle(
+                  color: isActive ? _primary : _textSoft,
+                  fontWeight: FontWeight.w800, fontSize: 13)),
+                const SizedBox(height: 2),
+                Text('${_fmt(cost)}p',
+                  style: TextStyle(
+                    color: isActive ? _text : _textMuted,
+                    fontSize: 11, fontWeight: FontWeight.w700)),
+                Text('p.p. én vei',
+                  style: const TextStyle(color: Colors.white38, fontSize: 10)),
+              ]),
+            ),
+          ));
+        }).toList()),
+        const SizedBox(height: 10),
+        // Totaloversikt
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: _surface2,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: _border),
+          ),
+          child: Column(children: [
+            _costRow('$_adults voksne t/r',
+              _hasAmex && _adults >= 2
+                ? '${_fmt(_EbCost.costPerPerson(_dest, _cabin) * 2 * (_adults - 1))}p  +  🎟️ 1 gratis'
+                : '${_fmt(_EbCost.costPerPerson(_dest, _cabin) * 2 * _adults)}p'),
+            if (_youth > 0)
+              _costRow('$_youth ungdom t/r (SAS Young)',
+                '${_fmt(_EbCost.youthCost(_dest, _cabin) * 2 * _youth)}p'),
+            if (_children > 0)
+              _costRow('$_children barn t/r',
+                '${_fmt(_EbCost.childCost(_dest, _cabin) * 2 * _children)}p'),
+            if (_infants > 0)
+              _costRow('$_infants spedbarn t/r',
+                '${_fmt(_EbCost.infantCost(_dest, _cabin) * 2 * _infants)}p'),
+            const Divider(color: _border, height: 16),
+            _costRow('TOTALT', '${_fmt(_pointsNeeded)}p',
+              bold: true, color: _primary),
+            if (_hasAmex)
+              Padding(
+                padding: const EdgeInsets.only(top: 6),
+                child: Row(children: [
+                  const Text('🎟️ ', style: TextStyle(fontSize: 12)),
+                  Expanded(child: Text(
+                    'Companion Ticket: én voksen flyr gratis t/r (Amex 150 000 kr/år)',
+                    style: const TextStyle(color: _warning, fontSize: 11, height: 1.4))),
+                ]),
+              ),
+          ]),
+        ),
+      ],
+    );
+  }
+
+  Widget _costRow(String label, String value, {bool bold = false, Color? color}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 3),
+      child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+        Flexible(child: Text(label, style: TextStyle(
+          color: bold ? _textSoft : _textMuted,
+          fontWeight: bold ? FontWeight.w800 : FontWeight.w600,
+          fontSize: bold ? 14 : 13))),
+        const SizedBox(width: 8),
+        Text(value, style: TextStyle(
+          color: color ?? (bold ? _text : _textSoft),
+          fontWeight: bold ? FontWeight.w900 : FontWeight.w700,
+          fontSize: bold ? 14 : 13)),
+      ]),
+    );
+  }
+
+  // ── Poengstatus ──────────────────────────────────────────────────────────
+  Widget _poengStatusSection() {
+    return _card(
+      title: '🏆 Dine EuroBonus-poeng nå',
+      info: 'Logg inn på sas.no/eurobonus eller åpne SAS-appen. Poengene dine vises på forsiden under «Min konto». Skriv inn tallet her så regner vi ut hva du mangler til drømmeturen.',
+      children: [
+        TextField(
+          controller: _pointsCtrl,
+          onChanged: (_) => setState(() {}),
+          keyboardType: TextInputType.number,
+          style: const TextStyle(color: _text, fontSize: 22,
+              fontWeight: FontWeight.w900),
+          decoration: InputDecoration(
+            labelText: 'Nåværende poeng',
+            labelStyle: const TextStyle(color: _textMuted),
+            filled: true, fillColor: _surface2,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: _border)),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: _border)),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: _primary, width: 1.5)),
+            hintText: '0',
+            hintStyle: const TextStyle(color: Colors.white24),
+            suffixText: 'poeng',
+            suffixStyle: const TextStyle(color: _textMuted),
+          ),
+        ),
+        if (_currentPoints > 0) ...[
+          const SizedBox(height: 12),
+          _costRow('Trenger', '${_fmt(_pointsNeeded)}p'),
+          _costRow('Har nå', '${_fmt(_currentPoints)}p', color: _primary),
+          const Divider(color: _border, height: 16),
+          _costRow('Mangler', '${_fmt(_pointsGap)}p',
+            bold: true,
+            color: _pointsGap == 0 ? _success : const Color(0xFFF87171)),
+        ],
+      ],
+    );
+  }
+
+  // ── Opptjening ───────────────────────────────────────────────────────────
+  Widget _opptjeningSection() {
+    final kortNavn = _cardIds.isEmpty ? 'Ingen kort valgt'
+        : _cardIds.map((id) {
+            const n = {'sas_amex':'Amex','sas_mc':'MC SAS',
+                'sas_visa':'Visa SAS','trumf_visa':'Trumf Visa','trumf_mc':'Trumf MC'};
+            return n[id] ?? id;
+          }).join(' + ');
+
+    return _card(
+      title: '📈 Hvor raskt tjener du poeng?',
+      info: 'Dra i slideren for å justere hva du bruker på kortet per måned. Vi regner ut hvor lang tid det tar å nå poengs målet ditt. Husk: bruk Amex der det aksepteres for 20p/100kr.',
+      children: [
+        // Månedlig forbruk-slider
+        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+          const Text('Månedlig kortbruk',
+            style: TextStyle(color: _textSoft, fontWeight: FontWeight.w700)),
+          Text('${_fmt(_monthlySpend.round())} kr',
+            style: const TextStyle(color: _primary, fontWeight: FontWeight.w900)),
+        ]),
+        Slider(
+          value: _monthlySpend,
+          min: 5000, max: 100000, divisions: 19,
+          activeColor: _primary,
+          inactiveColor: _surface2,
+          onChanged: (v) => setState(() => _monthlySpend = (v / 5000).round() * 5000),
+        ),
+        const SizedBox(height: 8),
+
+        // Opptjeningstabell
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: _surface2, borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: _border)),
+          child: Column(children: [
+            _costRow(kortNavn.length > 25 ? kortNavn.substring(0,22) + '…' : 'Kort ($kortNavn)',
+              '${_fmt(_monthlyEarning)}p/mnd'),
+            if (_isTrumfMember)
+              _costRow('Trumf QR i butikk',
+                '+${_fmt(_monthlyTrumfBonus)}p/mnd', color: _success),
+            const Divider(color: _border, height: 12),
+            _costRow('Total per måned',
+              '${_fmt(_totalMonthlyEarning)}p/mnd', bold: true),
+            _costRow('Per år',
+              '${_fmt(_totalMonthlyEarning * 12)}p/år'),
+            if (_pointsGap > 0) ...[
+              const Divider(color: _border, height: 12),
+              _costRow('Måneder til målet',
+                _monthsToGoal >= 999 ? '∞' : '$_monthsToGoal mnd',
+                bold: true, color: _monthsToGoal <= 12 ? _success : _warning),
+            ],
+          ]),
+        ),
+        const SizedBox(height: 10),
+
+        // Amex CT status
+        if (_hasAmex) ...[
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 300),
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: _onTrackForCT
+                  ? _success.withValues(alpha: 0.1)
+                  : _warning.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: _onTrackForCT ? _success : _warning, width: 1),
+            ),
+            child: Row(children: [
+              Text(_onTrackForCT ? '🎟️' : '⚠️',
+                style: const TextStyle(fontSize: 18)),
+              const SizedBox(width: 10),
+              Expanded(child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    _onTrackForCT
+                        ? 'På vei mot Companion Ticket!'
+                        : 'Companion Ticket krever 150 000 kr/år',
+                    style: TextStyle(
+                      color: _onTrackForCT ? _success : _warning,
+                      fontWeight: FontWeight.w800, fontSize: 13)),
+                  const SizedBox(height: 2),
+                  Text(
+                    _onTrackForCT
+                        ? 'Du er på ${(_monthlySpend * 12 / 150000 * 100).round()}% av 150 000 kr/år – én voksen flyr gratis!'
+                        : 'Øk til ${_fmt(12500)} kr/mnd for å nå 150 000 kr/år',
+                    style: const TextStyle(color: Colors.white54, fontSize: 12)),
+                ],
+              )),
+            ]),
+          ),
+        ],
+
+        // Trumf overføring-info
+        if (_isTrumfMember) ...[
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: _success.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: _success.withValues(alpha: 0.3))),
+            child: const Text(
+              '🟢 Trumf-tips: 200 kr Trumf-bonus → 2 700 EuroBonus-poeng ved automatisk overføring (13,5p/kr). '
+              'Skann QR-kode i KIWI/MENY/SPAR + betal med Amex = dobbel opptjening!',
+              style: TextStyle(color: _success, fontSize: 12, height: 1.45)),
+          ),
+        ],
+      ],
+    );
+  }
+
+  // ── AI-slagplan ──────────────────────────────────────────────────────────
+  Widget _slagplanSection() {
+    return _card(
+      title: '🤖 AI-slagplan',
+      titleAction: GestureDetector(
+        onTap: () {
+          setState(() {
+            _norwegianMode = !_norwegianMode;
+            _aiPlan = null; // Reset så bruker må trykke "Lag slagplan" på nytt
+          });
+        },
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          decoration: BoxDecoration(
+            color: const Color(0xFF1C3860),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: const Color(0xFF3D6490)),
+          ),
+          child: Text(_norwegianMode ? '🇳🇴' : '🇬🇧',
+            style: const TextStyle(fontSize: 16)),
+        ),
+      ),
+      info: 'AI-en leser kortene dine, poengstatus, reisemål og favorittbutikker – og lager en personlig plan for å nå drømmeturen din raskest mulig.',
+      children: [
+        Text(
+          'AI lager en personlig plan basert på kortene dine, '
+          'poengstatus og reisemål.',
+          style: const TextStyle(color: _textMuted, fontSize: 13, height: 1.4)),
+        const SizedBox(height: 12),
+        if (_aiPlan != null) ...[
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: _surface2, borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: _border)),
+            child: MarkdownBody(
+              data: _aiPlan!,
+              styleSheet: MarkdownStyleSheet(
+                p: const TextStyle(color: Color(0xFFF8F6F0), fontSize: 13, height: 1.55),
+                strong: const TextStyle(color: Color(0xFF60A5FA), fontWeight: FontWeight.w800, fontSize: 13),
+                h1: const TextStyle(color: Color(0xFF60A5FA), fontWeight: FontWeight.w900, fontSize: 16),
+                h2: const TextStyle(color: Color(0xFF60A5FA), fontWeight: FontWeight.w800, fontSize: 14),
+                h3: const TextStyle(color: Color(0xFFF8F6F0), fontWeight: FontWeight.w700, fontSize: 13),
+                listBullet: const TextStyle(color: Color(0xFFC8D8E8), fontSize: 13),
+                blockquoteDecoration: BoxDecoration(
+                  color: const Color(0xFF1C3860),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+        ],
+        SizedBox(
+          width: double.infinity,
+          child: FilledButton.icon(
+            style: FilledButton.styleFrom(
+              backgroundColor: _primaryD,
+              foregroundColor: _text,
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12)),
+              elevation: 0,
+            ),
+            icon: _aiLoading
+                ? const SizedBox(width: 18, height: 18,
+                    child: CircularProgressIndicator(
+                        strokeWidth: 2, color: Colors.white))
+                : const Icon(Icons.auto_awesome),
+            label: Text(
+              _aiLoading ? 'Analyserer...'
+                  : (_aiPlan != null ? 'Oppdater slagplan' : 'Lag slagplan'),
+              style: const TextStyle(fontWeight: FontWeight.w900)),
+            onPressed: _aiLoading ? null : _generatePlan,
+          ),
+        ),
+        if (!EntitlementService.instance.isPremium) ...[
+          const SizedBox(height: 12),
+          GestureDetector(
+            onTap: () => Navigator.push(context,
+                MaterialPageRoute(builder: (_) => const PremiumPage())),
+            child: Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: const Color(0xFF1A2A1A),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: _warning.withValues(alpha: 0.4)),
+              ),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                const Row(children: [
+                  Text('⭐', style: TextStyle(fontSize: 16)),
+                  SizedBox(width: 6),
+                  Text('Lås opp full AI-slagplan',
+                    style: TextStyle(color: _warning,
+                      fontWeight: FontWeight.w900, fontSize: 14)),
+                ]),
+                const SizedBox(height: 8),
+                const Text('Premium – 49 kr/mnd (490 kr/år):',
+                  style: TextStyle(color: _textSoft,
+                    fontWeight: FontWeight.w800, fontSize: 13)),
+                const Text(
+                  '• Ubegrenset AI-analyse\n'
+                  '• Personlige varsler på e-post og Telegram\n'
+                  '• 5 Trumf Netthandel-favoritter\n'
+                  '• 5 SAS Online Shopping-favoritter',
+                  style: TextStyle(color: _textMuted, fontSize: 12, height: 1.5)),
+                const SizedBox(height: 8),
+                const Text('Elite – 89 kr/mnd (890 kr/år):',
+                  style: TextStyle(color: _primary,
+                    fontWeight: FontWeight.w800, fontSize: 13)),
+                const Text(
+                  '• Alt i Premium\n'
+                  '• 10 favoritter per program\n'
+                  '• SAS Bonusreise-oversikt\n'
+                  '• SkyTeam-flyselskaper (Air France, KLM, Delta)\n'
+                  '• VIP-varsler og concierge-support',
+                  style: TextStyle(color: _textMuted, fontSize: 12, height: 1.5)),
+                const SizedBox(height: 10),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  decoration: BoxDecoration(
+                    color: _warning.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: _warning.withValues(alpha: 0.5)),
+                  ),
+                  child: const Center(child: Text('Se alle planer →',
+                    style: TextStyle(color: _warning,
+                      fontWeight: FontWeight.w900, fontSize: 13))),
+                ),
+              ]),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  // ── Populære destinasjoner ───────────────────────────────────────────────
+  Widget _destinasjonerSection() {
+    final dests = [
+      {'flag':'🇳🇴','name':'Oslo → Tromsø',  'zone':'Skandinavia','p':_fmt(_EbCost.costPerPerson('Tromsø','Economy'))},
+      {'flag':'🇬🇧','name':'Oslo → London',   'zone':'Europa',     'p':_fmt(_EbCost.costPerPerson('London','Economy'))},
+      {'flag':'🇹🇭','name':'Oslo → Bangkok',  'zone':'Asia',       'p':_fmt(_EbCost.costPerPerson('Bangkok','Economy'))},
+      {'flag':'🇺🇸','name':'Oslo → New York', 'zone':'Nord-Amerika','p':_fmt(_EbCost.costPerPerson('New York','Economy'))},
+      {'flag':'🇯🇵','name':'Oslo → Tokyo',    'zone':'Asia',       'p':_fmt(_EbCost.costPerPerson('Tokyo','Economy'))},
+    ];
+
+    return _card(
+      title: '✈️ Populære bonusreiser (Economy, per person, én vei)',
+      children: dests.map((d) => GestureDetector(
+        onTap: () {
+          setState(() {
+            _destCtrl.text = d['name']!.split('→').last.trim();
+          });
+        },
+        child: Container(
+          margin: const EdgeInsets.only(bottom: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          decoration: BoxDecoration(
+            color: _surface2,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: _border)),
+          child: Row(children: [
+            Text(d['flag']!, style: const TextStyle(fontSize: 22)),
+            const SizedBox(width: 10),
+            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(d['name']!, style: const TextStyle(
+                color: _text, fontWeight: FontWeight.w700, fontSize: 13)),
+              Text(d['zone']!, style: const TextStyle(color: _textMuted, fontSize: 11)),
+            ])),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              decoration: BoxDecoration(
+                color: _primaryD.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: _primary.withValues(alpha: 0.4))),
+              child: Text('fra ${d['p']}p',
+                style: const TextStyle(
+                  color: _primary, fontWeight: FontWeight.w800, fontSize: 12)),
+            ),
+          ]),
+        ),
+      )).toList(),
+    );
+  }
+
+  // ── Hjelpemetoder ────────────────────────────────────────────────────────
+
+  Widget _eliteSection() {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 4),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [const Color(0xFF0F2340), const Color(0xFF0F2340)],
+          begin: Alignment.topLeft, end: Alignment.bottomRight),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFD4AF37).withValues(alpha: 0.4)),
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          const Text('🏆', style: TextStyle(fontSize: 18)),
+          const SizedBox(width: 8),
+          const Text('Elite-fordeler', style: TextStyle(
+            color: Color(0xFFD4AF37), fontWeight: FontWeight.w900, fontSize: 15)),
+        ]),
+        const SizedBox(height: 12),
+        _eliteBtn(
+          icon: '✈️',
+          label: 'SAS Bonusreiser',
+          subtitle: 'Se tilgjengelige bonusreiser fra SAS',
+          url: 'https://www.sas.no/eurobonus/bonus-travel/',
+        ),
+        const SizedBox(height: 8),
+        _eliteBtn(
+          icon: '🌍',
+          label: 'SkyTeam-flyselskaper',
+          subtitle: 'Air France, KLM, Delta og 16 andre',
+          url: 'https://www.skyteam.com/en/earn-and-redeem/',
+        ),
+        const SizedBox(height: 8),
+        _eliteBtn(
+          icon: '🇫🇷',
+          label: 'Air France',
+          subtitle: 'Bruk EuroBonus-poeng på Air France',
+          url: 'https://www.airfrance.no/',
+        ),
+        const SizedBox(height: 8),
+        _eliteBtn(
+          icon: '🇳🇱',
+          label: 'KLM',
+          subtitle: 'Flyg med KLM og tjen/bruke poeng',
+          url: 'https://www.klm.no/',
+        ),
+      ]),
+    );
+  }
+
+  Widget _eliteBtn({required String icon, required String label,
+      required String subtitle, required String url}) {
+    return GestureDetector(
+      onTap: () => launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication),
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: const Color(0xFF0F2340),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFFD4AF37).withValues(alpha: 0.2)),
+        ),
+        child: Row(children: [
+          Text(icon, style: const TextStyle(fontSize: 20)),
+          const SizedBox(width: 12),
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(label, style: const TextStyle(
+              color: Color(0xFFF8FAFC), fontWeight: FontWeight.w800, fontSize: 14)),
+            Text(subtitle, style: const TextStyle(
+              color: Color(0xFFCBD5E1), fontSize: 12)),
+          ])),
+          const Icon(Icons.arrow_forward_ios, color: Color(0xFFD4AF37), size: 14),
+        ]),
+      ),
+    );
+  }
+
+
+  
+  Widget _adBanner(String placement) {
+    return FutureBuilder<List<AdSlot>>(
+      future: AdService.instance.pickAds(placement: placement, count: 1),
+      builder: (context, snap) {
+        if (!snap.hasData || snap.data!.isEmpty) return const SizedBox.shrink();
+        return AdSlotCard(slot: snap.data!.first, placement: placement);
+      },
+    );
+  }
+
+  Widget _card({required String title, required List<Widget> children, String? info, Widget? titleAction}) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: _surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: _border),
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          Expanded(child: Text(title, style: const TextStyle(
+            color: _textSoft, fontWeight: FontWeight.w900, fontSize: 15))),
+          if (titleAction != null) ...[
+            const SizedBox(width: 8),
+            titleAction,
+          ],
+          if (info != null)
+            GestureDetector(
+              onTap: () => showModalBottomSheet(
+                context: context,
+                backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+                shape: const RoundedRectangleBorder(
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+                builder: (_) => Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 16, 24, 40),
+                  child: Column(mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Center(child: Container(width: 40, height: 4,
+                        decoration: BoxDecoration(color: Colors.white24,
+                          borderRadius: BorderRadius.circular(2)))),
+                      const SizedBox(height: 16),
+                      Text(title, style: const TextStyle(
+                        color: _text, fontWeight: FontWeight.w900, fontSize: 17)),
+                      const SizedBox(height: 12),
+                      Text(info, style: const TextStyle(
+                        color: _textMuted, fontSize: 14, height: 1.6)),
+                    ]),
+                ),
+              ),
+              child: Container(
+                padding: const EdgeInsets.all(6),
+                child: const Icon(Icons.info_outline_rounded,
+                  color: _textMuted, size: 18)),
+            ),
+        ]),
+        const SizedBox(height: 12),
+        ...children,
+      ]),
+    );
+  }
+}

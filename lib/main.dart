@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'services/entitlement_service.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:bonusvarsel/config/app_env.dart';
 import 'package:bonusvarsel/pages/home_page.dart';
@@ -8,17 +9,45 @@ import 'theme/app_theme.dart';
 import 'package:bonusvarsel/services/api_service.dart';
 import 'package:bonusvarsel/services/paywall_trigger_service.dart';
 
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
+
+ThemeData _getTheme() {
+  if (EntitlementService.instance.isElite) return AppTheme.elite();
+  if (EntitlementService.instance.isPremium) return AppTheme.premium();
+  return AppTheme.dark();
+}
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
+  await EntitlementService.instance.load();
   ApiService.registerDemoDeviceOnce();
   runApp(const BonusvarselApp());
   PaywallTriggerService.registerAppOpen();
   NotificationPolling.start();
 }
 
-class BonusvarselApp extends StatelessWidget {
+class BonusvarselApp extends StatefulWidget {
   const BonusvarselApp({super.key});
+  @override
+  State<BonusvarselApp> createState() => _BonusvarselAppState();
+}
+
+class _BonusvarselAppState extends State<BonusvarselApp> {
+  @override
+  void initState() {
+    super.initState();
+    EntitlementService.instance.addListener(_onPlanChanged);
+  }
+
+  @override
+  void dispose() {
+    EntitlementService.instance.removeListener(_onPlanChanged);
+    super.dispose();
+  }
+
+  void _onPlanChanged() => setState(() {});
 
   @override
   Widget build(BuildContext context) {
@@ -26,20 +55,21 @@ class BonusvarselApp extends StatelessWidget {
       routes: {
         '/premium': (_) => const PremiumPage(),
       },
-      theme: AppTheme.dark(),
-      darkTheme: AppTheme.dark(),
+      theme: _getTheme(),
+      darkTheme: _getTheme(),
       themeMode: ThemeMode.dark,
       title: AppEnv.isProd ? 'Bonusvarsel' : 'Bonusvarsel (${AppEnv.appFlavor})',
       debugShowCheckedModeBanner: false,
+      navigatorKey: navigatorKey,
       home: OnboardingGate(
         trumfUrl: 'https://www.trumf.no/',
         sasUrl: 'https://www.sas.no/eurobonus/',
         onPremiumSelected: () {
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(
-              builder: (_) => const PremiumPage(),
-            ),
-          );
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            navigatorKey.currentState?.push(
+              MaterialPageRoute(builder: (_) => const PremiumPage()),
+            );
+          });
         },
         child: const HomePage(),
       ),

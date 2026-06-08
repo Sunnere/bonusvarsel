@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../services/entitlement_service.dart';
 import '../services/checkout_service.dart';
 import 'checkout_page.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -123,6 +124,128 @@ await launchUrl(
     final accent = _selected == 'Elite'
         ? const Color(0xFFD4AF37)
         : const Color(0xFFF0D48A);
+
+    final currentPlan = EntitlementService.instance.plan;
+    final isCurrentElite = EntitlementService.instance.isElite;
+    final isCurrentPremium = EntitlementService.instance.isPremium;
+
+    if (isCurrentElite || isCurrentPremium) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Mitt abonnement')),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(isCurrentElite ? '🏆' : '⭐', style: const TextStyle(fontSize: 60)),
+                const SizedBox(height: 16),
+                Text(
+                  isCurrentElite ? 'Du er Elite-medlem!' : 'Du er Premium-medlem!',
+                  style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: Color(0xFFF8FAFC)),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  isCurrentElite
+                    ? 'Du har tilgang til alle funksjoner inkludert SkyTeam, 10 favoritter og VIP-varsler.'
+                    : 'Du har tilgang til 5 favoritter, AI-analyse og personlige varsler.',
+                  style: const TextStyle(color: Color(0xFFCBD5E1), fontSize: 14, height: 1.5),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 24),
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF0F2340),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: isCurrentElite ? const Color(0xFFD4AF37) : const Color(0xFF60A5FA)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Dine fordeler:', style: TextStyle(
+                        color: isCurrentElite ? const Color(0xFFD4AF37) : const Color(0xFF60A5FA),
+                        fontWeight: FontWeight.w900, fontSize: 15)),
+                      const SizedBox(height: 10),
+                      ...(isCurrentElite ? [
+                        '✅ Alt i Premium',
+                        '✅ 10 Trumf Netthandel-favoritter',
+                        '✅ 10 SAS Shopping-favoritter',
+                        '✅ SAS Bonusreise-oversikt',
+                        '✅ SkyTeam-flyselskaper (Air France, KLM, Delta)',
+                        '✅ VIP-varsler og concierge-support',
+                      ] : [
+                        '✅ 5 Trumf Netthandel-favoritter',
+                        '✅ 5 SAS Shopping-favoritter',
+                        '✅ AI-analyse ubegrenset',
+                        '✅ Personlige varsler',
+                        '✅ SAS fly-tilbudsvarsler',
+                      ]).map((t) => Padding(
+                        padding: const EdgeInsets.only(bottom: 6),
+                        child: Text(t, style: const TextStyle(color: Color(0xFFE2E8F0), fontSize: 13)),
+                      )),
+                    ],
+                  ),
+                ),
+
+                // ── Oppgrader til Elite (kun for Premium) ──────────────
+                if (isCurrentPremium && !isCurrentElite) ...[
+                  const SizedBox(height: 24),
+                  Container(
+                    padding: const EdgeInsets.all(18),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFF2A1F00), Color(0xFF1A1200)],
+                        begin: Alignment.topLeft, end: Alignment.bottomRight),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: const Color(0xFFD4AF37).withOpacity(0.5)),
+                    ),
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      const Row(children: [
+                        Text('🏆', style: TextStyle(fontSize: 24)),
+                        SizedBox(width: 8),
+                        Text('Oppgrader til Elite',
+                          style: TextStyle(color: Color(0xFFD4AF37),
+                            fontSize: 18, fontWeight: FontWeight.w900)),
+                      ]),
+                      const SizedBox(height: 8),
+                      const Text(
+                        'Få 10 favoritter, SkyTeam-bonus, VIP-varsler og concierge-support.',
+                        style: TextStyle(color: Color(0xFFC8D8E8), fontSize: 13, height: 1.5)),
+                      const SizedBox(height: 6),
+                      const Text('Kun 40 kr ekstra per måned',
+                        style: TextStyle(color: Color(0xFFD4AF37),
+                          fontSize: 13, fontWeight: FontWeight.w700)),
+                      const SizedBox(height: 14),
+                      SizedBox(
+                        width: double.infinity,
+                        child: FilledButton(
+                          style: FilledButton.styleFrom(
+                            backgroundColor: const Color(0xFFD4AF37),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12))),
+                          onPressed: () async {
+                            final url = Uri.parse('https://buy.stripe.com/bJecN600a8j8f7P8bvcQU06');
+                            if (await canLaunchUrl(url)) {
+                              await launchUrl(url, mode: LaunchMode.externalApplication);
+                            }
+                          },
+                          child: const Text('🏆 Bli Elite — 89 kr/mnd',
+                            style: TextStyle(color: Colors.black,
+                              fontSize: 15, fontWeight: FontWeight.w900)),
+                        ),
+                      ),
+                    ]),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
+      );
+    }
 
     return Scaffold(
       floatingActionButton: PaywallLauncherButton(
@@ -619,7 +742,9 @@ await launchUrl(
                             ),
                           ),
                           const SizedBox(width: 10),
-                          
+                        ],
+                      ),
+                    ),
                     const SizedBox(height: 20),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -645,21 +770,24 @@ await launchUrl(
                         ),
                       ],
                     ),
-
-                          FilledButton(
-                            style: FilledButton.styleFrom(
-                              backgroundColor: accent,
-                              foregroundColor: const Color(0xFF111111),
-                              textStyle: const TextStyle(fontWeight: FontWeight.w900),
-                            ),
-                            onPressed: () => _checkout(_selected),
-                            child: Text(
-                              _selected == 'Elite'
-                                  ? 'Fortsett til betaling • Elite'
-                                  : 'Fortsett til betaling • Premium',
-                            ),
-                          ),
-                        ],
+                    const SizedBox(height: 16),
+                    SizedBox(
+                      width: double.infinity,
+                      child: FilledButton(
+                        style: FilledButton.styleFrom(
+                          backgroundColor: accent,
+                          foregroundColor: const Color(0xFF111111),
+                          textStyle: const TextStyle(fontWeight: FontWeight.w900),
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14)),
+                        ),
+                        onPressed: () => _checkout(_selected),
+                        child: Text(
+                          _selected == 'Elite'
+                              ? 'Fortsett til betaling • Elite'
+                              : 'Fortsett til betaling • Premium',
+                        ),
                       ),
                     ),
                   ],

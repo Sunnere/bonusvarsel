@@ -1,4 +1,9 @@
 import 'package:flutter/material.dart';
+import '../theme/app_theme.dart';
+import '../services/entitlement_service.dart';
+import '../widgets/ad_slot.dart';
+import '../services/ad_service.dart';
+import '../models/ad_slot.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/trumf_calculator.dart';
@@ -52,6 +57,13 @@ class _TrumfKalkulatorPageState extends State<TrumfKalkulatorPage> {
     super.initState();
     _loadFavoritter();
     _loadEntitlement();
+    EntitlementService.instance.addListener(_loadEntitlement);
+  }
+
+  @override
+  void dispose() {
+    EntitlementService.instance.removeListener(_loadEntitlement);
+    super.dispose();
   }
 
   Future<void> _loadEntitlement() async {
@@ -158,7 +170,7 @@ class _TrumfKalkulatorPageState extends State<TrumfKalkulatorPage> {
                   decoration: BoxDecoration(
                     color: Colors.white.withOpacity(0.08),
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.white24),
+                    border: AppTheme.activeBorder(),
                   ),
                   child: const Row(mainAxisAlignment: MainAxisAlignment.center,
                     children: [
@@ -220,9 +232,46 @@ class _TrumfKalkulatorPageState extends State<TrumfKalkulatorPage> {
   Widget _buildKalkulator() {
     return ListView(padding: const EdgeInsets.fromLTRB(16, 16, 16, 32), children: [
 
+      _adBanner('spar'),
+      const SizedBox(height: 8),
       // ── Forbruk ──────────────────────────────────────────
       _card([
-        _secLabel('Ditt månedlige forbruk'),
+        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+          _secLabel('Ditt månedlige forbruk'),
+          GestureDetector(
+            onTap: () => showModalBottomSheet(
+              context: context,
+              backgroundColor: const Color(0xFF0F2340),
+              shape: const RoundedRectangleBorder(
+                borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+              builder: (_) => Padding(
+                padding: const EdgeInsets.fromLTRB(24, 16, 24, 40),
+                child: Column(mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Center(child: Container(width: 40, height: 4,
+                    decoration: BoxDecoration(color: Colors.white24,
+                      borderRadius: BorderRadius.circular(2)))),
+                  const SizedBox(height: 16),
+                  const Text('Hvorfor er dette viktig?',
+                    style: TextStyle(color: Colors.white,
+                      fontWeight: FontWeight.w900, fontSize: 17)),
+                  const SizedBox(height: 12),
+                  const Text(
+                    'Dette er det du handler for i dagligvarebutikken din per måned – '
+                    'f.eks. KIWI, MENY eller SPAR.\n\n'
+                    'Jo høyere beløp, desto mer Trumf-bonus tjener du. '
+                    'Kalkulatoren viser deg nøyaktig hva du kan spare og hvor mange '
+                    'EuroBonus-poeng du kan tjene.\n\n'
+                    '💡 Gå til Favoritter-fanen for å velge hvilken butikk du '
+                    'handler i – da blir utregningen enda mer presis!',
+                    style: TextStyle(color: Color(0xFFCBD5E1),
+                      fontSize: 14, height: 1.6)),
+                ]),
+              ),
+            ),
+            child: const Icon(Icons.info_outline_rounded,
+              color: Color(0xFF2A9D6E), size: 18)),
+        ]),
         _slider(_butikkNavn, _dagligvare, 500, 30000, 500,
             (v) => setState(() => _dagligvare = v)),
         if (_valgtMobil == 'talkmore')
@@ -460,7 +509,7 @@ class _TrumfKalkulatorPageState extends State<TrumfKalkulatorPage> {
       decoration: BoxDecoration(
         color: Colors.white.withOpacity(0.05),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white12),
+        border: AppTheme.activeBorder(),
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
@@ -493,6 +542,8 @@ class _TrumfKalkulatorPageState extends State<TrumfKalkulatorPage> {
   // ── FAVORITTER ────────────────────────────────────────────
   Widget _buildFavoritter() {
     return ListView(padding: const EdgeInsets.all(16), children: [
+      _adBanner('spar_favoritter'),
+      const SizedBox(height: 8),
       const Text(
         'Velg dine faste butikker og partnere.\nKalkulatoren oppdateres automatisk.',
         style: TextStyle(fontSize: 13, color: Colors.white54, height: 1.5),
@@ -501,12 +552,12 @@ class _TrumfKalkulatorPageState extends State<TrumfKalkulatorPage> {
       _card([
         _secLabel('🛒 Hvilken dagligvarebutikk bruker du mest?'),
         const SizedBox(height: 10),
-        _favGrid([
-          {'id': 'kiwi',  'icon': '🟡', 'name': 'KIWI',        'pct': '1%'},
-          {'id': 'meny',  'icon': '🔴', 'name': 'MENY',        'pct': '1%'},
-          {'id': 'spar',  'icon': '🟢', 'name': 'SPAR',        'pct': '1%'},
-          {'id': 'joker', 'icon': '🃏', 'name': 'Joker',       'pct': '1%'},
-          {'id': 'naer',  'icon': '🏘', 'name': 'Nærbutikken', 'pct': '1%'},
+        _favGridLogo([
+          {'id': 'kiwi',  'color': 0xFFFFD600, 'textColor': 0xFF1A1A1A, 'name': 'KIWI',        'pct': '1%'},
+          {'id': 'meny',  'color': 0xFFE4001B, 'textColor': 0xFFFFFFFF, 'name': 'MENY',        'pct': '1%'},
+          {'id': 'spar',  'color': 0xFF007A3D, 'textColor': 0xFFFFFFFF, 'name': 'SPAR',        'pct': '1%'},
+          {'id': 'joker', 'color': 0xFF1A1A2E, 'textColor': 0xFFFFFFFF, 'name': 'Joker',       'pct': '1%'},
+          {'id': 'naer',  'color': 0xFF2563EB, 'textColor': 0xFFFFFFFF, 'name': 'Nær',         'pct': '1%'},
         ], _valgtButikk,
             (id) => setState(() { _valgtButikk = id; _saveFavoritter(); })),
       ]),
@@ -537,8 +588,8 @@ class _TrumfKalkulatorPageState extends State<TrumfKalkulatorPage> {
       _card([
         Row(children: [
           Expanded(child: _secLabel('🛍️ Trumf Netthandel – opptil 10%')),
-          _badge(_isPremium ? 'Premium' : 'Lås opp',
-              _isPremium ? Colors.orange : Colors.grey),
+          _badge(_isElite ? 'Elite' : _isPremium ? 'Premium' : 'Lås opp',
+              _isElite ? Colors.blue : _isPremium ? Colors.orange : Colors.grey),
         ]),
         const SizedBox(height: 6),
         const Text(
@@ -551,8 +602,8 @@ class _TrumfKalkulatorPageState extends State<TrumfKalkulatorPage> {
       _card([
         Row(children: [
           Expanded(child: _secLabel('✈️ SAS Online Shopping')),
-          _badge(_isPremium ? 'Premium' : 'Lås opp',
-              _isPremium ? Colors.orange : Colors.grey),
+          _badge(_isElite ? 'Elite' : _isPremium ? 'Premium' : 'Lås opp',
+              _isElite ? Colors.blue : _isPremium ? Colors.orange : Colors.grey),
         ]),
         const SizedBox(height: 6),
         const Text(
@@ -574,17 +625,45 @@ class _TrumfKalkulatorPageState extends State<TrumfKalkulatorPage> {
           style: TextStyle(fontSize: 12, color: Colors.white54),
         ),
         const SizedBox(height: 10),
-        if (!_isElite) _paywallRow('Tilgjengelig i Elite-abonnement'),
+        if (!_isElite)
+          _paywallRow('Tilgjengelig i Elite-abonnement')
+        else
+          Container(
+            margin: const EdgeInsets.only(top: 8),
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: const Color(0xFF0F2340),
+              borderRadius: BorderRadius.circular(12),
+              border: AppTheme.activeBorder(),
+            ),
+            child: Row(children: [
+              const Text('🚀', style: TextStyle(fontSize: 18)),
+              const SizedBox(width: 10),
+              const Expanded(child: Text(
+                'SAS Bonusreiser og SkyTeam-varsler kommer snart til Elite.',
+                style: TextStyle(color: Color(0xFFCBD5E1), fontSize: 13, height: 1.4))),
+            ]),
+          ),
       ]),
     ]);
   }
 
   // ── WIDGETS ───────────────────────────────────────────────
+  Widget _adBanner(String placement) {
+    return FutureBuilder<List<AdSlot>>(
+      future: AdService.instance.pickAds(placement: placement, count: 1),
+      builder: (context, snap) {
+        if (!snap.hasData || snap.data!.isEmpty) return const SizedBox.shrink();
+        return AdSlotCard(slot: snap.data!.first, placement: placement);
+      },
+    );
+  }
+
   Widget _card(List<Widget> children) => Container(
     decoration: BoxDecoration(
       color: Colors.white.withOpacity(0.05),
       borderRadius: BorderRadius.circular(18),
-      border: Border.all(color: Colors.white12),
+      border: AppTheme.activeBorder(),
     ),
     padding: const EdgeInsets.all(16),
     margin: const EdgeInsets.only(bottom: 14),
@@ -694,6 +773,49 @@ class _TrumfKalkulatorPageState extends State<TrumfKalkulatorPage> {
               Text(item['pct']!,
                   style: TextStyle(fontSize: 10,
                       color: isSel ? const Color(0xFF4ADE80) : Colors.grey[500])),
+            ]),
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _favGridLogo(List<Map<String, dynamic>> items, String? sel,
+      ValueChanged<String> onSelect) {
+    return GridView.count(
+      crossAxisCount: 3, shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      crossAxisSpacing: 8, mainAxisSpacing: 8, childAspectRatio: 1.1,
+      children: items.map((item) {
+        final isSel = sel == item['id'];
+        final bgColor = Color(item['color'] as int);
+        final txtColor = Color(item['textColor'] as int);
+        return GestureDetector(
+          onTap: () => onSelect(item['id'] as String),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            decoration: BoxDecoration(
+              color: isSel
+                  ? const Color(0xFF1A8A5C).withOpacity(0.2)
+                  : Colors.white.withOpacity(0.04),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(
+                color: isSel ? const Color(0xFF1A8A5C) : Colors.white12),
+            ),
+            child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+              Container(
+                width: 48, height: 28,
+                decoration: BoxDecoration(
+                  color: bgColor,
+                  borderRadius: BorderRadius.circular(6)),
+                child: Center(child: Text(item['name'] as String,
+                  style: TextStyle(color: txtColor,
+                    fontWeight: FontWeight.w900, fontSize: 12))),
+              ),
+              const SizedBox(height: 4),
+              Text(item['pct'] as String,
+                style: TextStyle(fontSize: 10,
+                  color: isSel ? const Color(0xFF4ADE80) : Colors.grey[500])),
             ]),
           ),
         );

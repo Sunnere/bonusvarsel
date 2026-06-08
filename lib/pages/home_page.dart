@@ -1,6 +1,13 @@
 import 'ai_chat_page.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'settings_page.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+
+import 'bonusvarsel_admin_offers_page.dart';
+import 'ad_debug_page.dart';
+import 'package:package_info_plus/package_info_plus.dart';
+import '../services/whats_new_service.dart';
 import 'eb_shopping_page.dart';
 import 'travel_page.dart';
 import 'cards_page.dart';
@@ -24,6 +31,11 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   late int _index;
 
+  bool get _isAdmin {
+    final email = FirebaseAuth.instance.currentUser?.email ?? '';
+    return email == 'royrotvold@gmail.com' || email == 'roy@bonusvarsel.no';
+  }
+
   final _pages = [
     PaywallScrollWrapper(child: EbShoppingPage()),
     TrumfKalkulatorPage(),
@@ -37,6 +49,15 @@ class _HomePageState extends State<HomePage> {
     super.initState();
     final idx = widget.initialIndex;
     _index = (idx >= 0 && idx < _pages.length) ? idx : 0;
+    WidgetsBinding.instance.addPostFrameCallback((_) => _checkWhatsNew());
+  }
+
+  Future<void> _checkWhatsNew() async {
+    try {
+      final info = await PackageInfo.fromPlatform();
+      if (!mounted) return;
+      await WhatsNewService.showIfNeeded(context, info.version);
+    } catch (_) {}
   }
 
   @override
@@ -60,15 +81,31 @@ class _HomePageState extends State<HomePage> {
   }
 
   PreferredSizeWidget? _buildAppBar() {
-    if (!kDebugMode) return null;
-
     return AppBar(
       title: const Text('Bonusvarsel'),
       actions: [
         IconButton(
-          tooltip: 'Nullstill onboarding',
-          onPressed: _resetOnboardingForDebug,
-          icon: const Icon(Icons.bug_report_outlined),
+          icon: const Icon(Icons.settings_outlined),
+          tooltip: 'Innstillinger',
+          onPressed: () => Navigator.push(context,
+            MaterialPageRoute(builder: (_) => const SettingsPage())),
+        ),
+        if (_isAdmin) PopupMenuButton<String>(
+          icon: const Icon(Icons.developer_mode),
+          tooltip: 'Admin',
+          onSelected: (val) {
+            if (val == 'onboarding') {
+              _resetOnboardingForDebug();
+            }
+          },
+          itemBuilder: (_) => const [
+            PopupMenuItem(value: 'onboarding',
+              child: Row(children: [
+                Icon(Icons.refresh, size: 18),
+                SizedBox(width: 10),
+                Text('Nullstill onboarding'),
+              ])),
+          ],
         ),
       ],
     );

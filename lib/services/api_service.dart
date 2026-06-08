@@ -106,7 +106,7 @@ class ApiService {
 
   static Future<Map<String, dynamic>> getHealth() async {
     try {
-      return await _getMap('/v1/health');
+      return await _getMap('/health');
     } catch (_) {
       return _getMap('/health');
     }

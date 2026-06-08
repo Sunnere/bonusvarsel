@@ -47,7 +47,7 @@ class _StaticInfoChip extends StatelessWidget {
 }
 
 class _BonusvarselDevHubPageState extends State<BonusvarselDevHubPage> {
-  static const bool _devHubEnabled = bool.fromEnvironment('ENABLE_DEV_HUB', defaultValue: false);
+  static const bool _devHubEnabled = true;
 
   Map<String, dynamic>? _systemHealth;
   // AI_ANCHOR: DEV_HUB_STATE_START
@@ -378,10 +378,10 @@ class _BonusvarselDevHubPageState extends State<BonusvarselDevHubPage> {
       return const SizedBox.shrink();
     }
 
-    final latestScore = (latestEval['score'] as num?) ?? 0;
-    final pinnedScore = (pinnedEval['score'] as num?) ?? 0;
-    final latestMomentum = (latestEval['momentum'] as num?) ?? 0;
-    final pinnedMomentum = (pinnedEval['momentum'] as num?) ?? 0;
+    final latestScore = num.tryParse('${latestEval['score'] ?? 0}') ?? 0;
+    final pinnedScore = num.tryParse('${pinnedEval['score'] ?? 0}') ?? 0;
+    final latestMomentum = num.tryParse('${latestEval['momentum'] ?? 0}') ?? 0;
+    final pinnedMomentum = num.tryParse('${pinnedEval['momentum'] ?? 0}') ?? 0;
     final latestDecision = latestEval['shouldNotify'] == true;
     final pinnedDecision = pinnedEval['shouldNotify'] == true;
 
@@ -934,8 +934,9 @@ FilledButton.icon(
       final res = await ApiService.processPushQueue();
       if (!mounted) return;
       setState(() => _queueState = {
-            'queue': res['result'],
-            'items': res['items'],
+            'queue': res['items'] ?? [],
+            'items': res['items'] ?? [],
+            'count': res['processed'] ?? 0,
           });
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Queue prosessert')),
@@ -978,10 +979,10 @@ FilledButton.icon(
 
   // AI_ANCHOR: DEV_HUB_QUEUE_START
   Widget _queueActionsCard() {
-    final queue = _queueState?['queue'] as Map<String, dynamic>?;
-    final total = queue?['total'] ?? 0;
-    final queued = queue?['queued'] ?? 0;
-    final processed = queue?['processed'] ?? 0;
+    final queueList = (_queueState?['queue'] as List?) ?? const [];
+    final total = _queueState?['count'] ?? queueList.length;
+    final queued = queueList.length;
+    final processed = 0;
     final items = (_queueState?['items'] as List?) ?? const [];
 
     return Container(
@@ -1934,14 +1935,14 @@ FilledButton.icon(
     if (notifications is List) {
       notificationCount = notifications.length;
     } else if (notifications is Map && notifications['count'] is num) {
-      notificationCount = (notifications['count'] as num).toInt();
+      notificationCount = (notifications['count'] as num? ?? 0).toInt();
     }
 
     int feedCount = 0;
     if (feed is List) {
       feedCount = feed.length;
     } else if (feed is Map && feed['count'] is num) {
-      feedCount = (feed['count'] as num).toInt();
+      feedCount = (feed['count'] as num? ?? 0).toInt();
     }
 
     return Container(

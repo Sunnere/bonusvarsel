@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class PremiumPaywallSheet extends StatefulWidget {
   final String source;
@@ -94,22 +95,6 @@ class _PremiumPaywallSheetState extends State<PremiumPaywallSheet> {
                 ),
               ),
               const SizedBox(height: 14),
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF22365F),
-                  borderRadius: BorderRadius.circular(999),
-                  border: Border.all(color: const Color(0xFF466AA6)),
-                ),
-                child: Text(
-                  'Kilde: ${widget.source}',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
               const SizedBox(height: 18),
               _infoCard(
                 title: 'Du kan gå glipp av bedre rate',
@@ -164,6 +149,33 @@ class _PremiumPaywallSheetState extends State<PremiumPaywallSheet> {
                     style: TextStyle(
                       fontSize: 17,
                       fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 10),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton(
+                  onPressed: () async {
+                    final url = Uri.parse('https://bonusvarsel.no');
+                    if (await canLaunchUrl(url)) {
+                      await launchUrl(url, mode: LaunchMode.externalApplication);
+                    }
+                  },
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: const Color(0xFFD4AF37),
+                    side: const BorderSide(color: Color(0xFFD4AF37)),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(18),
+                    ),
+                  ),
+                  child: const Text(
+                    '🏆 Kjøp Elite på bonusvarsel.no',
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w800,
                     ),
                   ),
                 ),

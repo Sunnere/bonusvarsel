@@ -31,10 +31,6 @@ class _PaywallScrollWrapperState extends State<PaywallScrollWrapper> {
         if (!seen && context.mounted) {
           if (!mounted) return;
 
-          await PaywallTriggerService.markScrollDepthSeen();
-
-          if (!mounted) return;
-
           await PaywallTriggerService.showPaywall(
             context,
             source: 'shopping_scroll',
@@ -42,6 +38,8 @@ class _PaywallScrollWrapperState extends State<PaywallScrollWrapper> {
             subtitle:
                 'Premium gir høyere poengrate og smartere valg – så du tjener mer per kjøp.',
           );
+
+          await PaywallTriggerService.markScrollDepthSeen();
         }
       }
     });

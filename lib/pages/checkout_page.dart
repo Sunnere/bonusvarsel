@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../services/checkout_service.dart';
 import '../services/entitlement_service.dart';
 
@@ -25,6 +26,18 @@ class _CheckoutPageState extends State<CheckoutPage> {
     super.initState();
     _prepare();
     CheckoutService.instance.onPurchaseSuccess = _onPurchaseSuccess;
+    // Sjekk om allerede aktivert
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final plan = CheckoutService.instance.plan.toLowerCase();
+      final targetPlan = CheckoutService.instance.effectivePlan.toLowerCase();
+      final currentPlan = EntitlementService.instance.plan.toLowerCase();
+      if (currentPlan == targetPlan && currentPlan != 'free') {
+        if (mounted) {
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (_) => const _PurchaseSuccessPage()));
+        }
+      }
+    });
   }
 
   @override
@@ -316,6 +329,22 @@ class _CheckoutPageState extends State<CheckoutPage> {
                       child: const Text(
                         'Gjenopprett kjøp',
                         style: TextStyle(color: Colors.white54),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    TextButton(
+                      onPressed: () async {
+                        final url = isElite
+                          ? 'https://buy.stripe.com/bJecN600a8j8f7P8bvcQU06'
+                          : 'https://buy.stripe.com/9B65kE28i7f44tbcrLcQU05';
+                        await launchUrl(Uri.parse(url),
+                          mode: LaunchMode.externalApplication);
+                      },
+                      child: Text(
+                        isElite
+                          ? '🌐 Betal via bonusvarsel.no (Elite 89kr)'
+                          : '🌐 Betal via bonusvarsel.no (Premium 49kr)',
+                        style: const TextStyle(color: Colors.white54),
                       ),
                     ),
                     const SizedBox(height: 20),

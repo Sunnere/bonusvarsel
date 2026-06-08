@@ -7,7 +7,7 @@ import '../widgets/premium_paywall_sheet.dart';
 class PaywallTriggerService {
   static const String _adClickCountKey = 'paywall_ad_click_count';
   static const String _appOpenCountKey = 'paywall_app_open_count';
-  static const String _scrollDepthSeenKey = 'paywall_scroll_depth_seen';
+  static const String _scrollDepthSeenKey = 'paywall_scroll_depth_last_shown';
   static const int _clicksBeforePrompt = 2;
   static const int _appOpensBeforePrompt = 3;
 
@@ -114,18 +114,20 @@ class PaywallTriggerService {
 
   static Future<bool> hasSeenScrollDepth() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getBool(_scrollDepthSeenKey) ?? false;
+    final lastShown = prefs.getInt(_scrollDepthSeenKey) ?? 0;
+    final daysSince = (DateTime.now().millisecondsSinceEpoch - lastShown) / (1000 * 60 * 60 * 24);
+    return daysSince < 3; // Vis igjen etter 3 dager
   }
 
   static Future<void> markScrollDepthSeen() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(_scrollDepthSeenKey, true);
+    await prefs.setInt(_scrollDepthSeenKey, DateTime.now().millisecondsSinceEpoch);
   }
 
   static Future<void> reset() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_adClickCountKey);
     await prefs.remove(_appOpenCountKey);
-    await prefs.remove(_scrollDepthSeenKey);
+    await prefs.setInt(_scrollDepthSeenKey, 0); // Reset
   }
 }

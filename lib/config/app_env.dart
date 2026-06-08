@@ -1,4 +1,4 @@
 class AppEnv {
-  static const bool isProd = false;
-  static const String appFlavor = 'dev';
+  static const bool isProd = true;
+  static const String appFlavor = 'prod';
 }

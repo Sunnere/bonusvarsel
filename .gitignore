@@ -87,3 +87,5 @@ node_modules/
 api/node_modules/
 
 .env
+scripts/run_dev.sh
+scripts/run_dev.sh

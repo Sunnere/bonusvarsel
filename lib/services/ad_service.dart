@@ -99,37 +99,74 @@ final Map<String, double> _userAffinity = {};
   /// Inventory (later: remote).
   /// Keep Amex/Mastercard/Visa present (SAS-related content rule).
   List<AdSlot> getCreative() => const <AdSlot>[
+        // ── POENG-FANEN ──────────────────────────────────────────────────
         AdSlot(
           id: 'amex_sas_1',
-          title: 'Amex: høy poengopptjening',
-          body: 'Bruk Amex på hverdagskjøp og bygg poeng raskere.',
-          cta: 'Se tilbud',
-          link: 'https://www.americanexpress.com/',
-          tags: ['cards', 'amex', 'elite'],
+          title: '✈️ Amex: 20 poeng per 100 kr',
+          body: 'Beste SAS-kort for hverdagskjøp. Companion ticket ved 150 000 kr/år.',
+          cta: 'Søk nå',
+          link: 'https://www.americanexpress.com/no/',
+          tags: ['poeng', 'cards', 'amex', 'elite'],
         ),
         AdSlot(
-          id: 'visa_sas_1',
-          title: 'Visa: trygt og bredt akseptert',
-          body: 'Se fordeler og kampanjer hos partnere.',
-          cta: 'Sjekk kort',
-          link: 'https://www.visa.com/',
-          tags: ['cards', 'visa'],
+          id: 'betalo_1',
+          title: '💡 Betalo: betal regninger med Amex',
+          body: 'Tjen EuroBonus-poeng på strøm, studielån og faste utgifter. 2,19% gebyr.',
+          cta: 'Les mer',
+          link: 'https://betalo.no/',
+          tags: ['poeng', 'shopping', 'betalo'],
+        ),
+        // ── SPAR-FANEN ──────────────────────────────────────────────────
+        AdSlot(
+          id: 'talkmore_1',
+          title: '📱 Talkmore: 4% Trumf på mobilregningen',
+          body: 'Bytt til Talkmore og tjen Trumf-bonus automatisk hver måned.',
+          cta: 'Se abonnement',
+          link: 'https://www.talkmore.no/',
+          tags: ['spar', 'trumf', 'talkmore'],
+        ),
+        AdSlot(
+          id: 'fjordkraft_1',
+          title: '⚡ Fjordkraft: 1% Trumf på strøm',
+          body: 'Bytt strømleverandør og tjen Trumf-bonus automatisk på strømregningen.',
+          cta: 'Bytt nå',
+          link: 'https://www.fjordkraft.no/',
+          tags: ['spar', 'trumf', 'fjordkraft'],
+        ),
+        // ── KORT-FANEN ──────────────────────────────────────────────────
+        AdSlot(
+          id: 'lunar_sas_visa',
+          title: '💳 SAS EuroBonus Visa via Lunar',
+          body: 'Søk om SAS EuroBonus Visa direkte i Lunar-appen. 10 poeng per 100 kr.',
+          cta: 'Søk i Lunar',
+          link: 'https://www.lunar.app/en/personal/sas-eurobonus',
+          tags: ['kort', 'visa', 'lunar'],
         ),
         AdSlot(
           id: 'mc_sas_1',
-          title: 'Mastercard: sterke fordeler',
-          body: 'Se fordeler som kan gi mer verdi i hverdagen.',
-          cta: 'Se fordeler',
-          link: 'https://www.mastercard.com/',
-          tags: ['cards', 'mastercard'],
+          title: '🔵 SAS EuroBonus Mastercard',
+          body: 'Via DNB. 15 poeng per 100 kr. Betal regninger via AvtaleGiro.',
+          cta: 'Se kortet',
+          link: 'https://saseurobonusmastercard.no/',
+          tags: ['kort', 'mastercard'],
         ),
+        // ── VARSLER-FANEN ──────────────────────────────────────────────
         AdSlot(
           id: 'shopping_boost_1',
-          title: 'Ekstra poeng-kampanjer i dag',
-          body: 'Sjekk butikker med høy rate akkurat nå.',
-          cta: 'Åpne',
+          title: '🛍️ Ekstra poeng-kampanjer i dag',
+          body: 'Sjekk SAS Online Shopping og Trumf Netthandel for høyeste rater nå.',
+          cta: 'Se kampanjer',
           link: 'https://onlineshopping.flysas.com/',
-          tags: ['shopping', 'campaign'],
+          tags: ['varsler', 'shopping', 'campaign'],
+        ),
+        // ── REISE-FANEN ─────────────────────────────────────────────────
+        AdSlot(
+          id: 'betalo_reise',
+          title: '✈️ Nå målet raskere med Betalo',
+          body: 'Betal reiseutgifter med Amex via Betalo og tjen ekstra poeng.',
+          cta: 'Prøv Betalo',
+          link: 'https://betalo.no/',
+          tags: ['reis', 'betalo', 'amex'],
         ),
       ];
 

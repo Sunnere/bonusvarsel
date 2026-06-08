@@ -196,19 +196,7 @@ class _AdSlotCardState extends State<AdSlotCard> {
           ),
           child: Stack(
             children: [
-              Positioned(
-                top: 0,
-                left: 0,
-                right: 0,
-                child: Container(
-                  height: _isPremiumPlacement ? 2 : 4,
-                  decoration: BoxDecoration(
-                    color: accentTop,
-                    borderRadius:
-                        const BorderRadius.vertical(top: Radius.circular(18)),
-                  ),
-                ),
-              ),
+              // Accent stripe removed for consistent design
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 18, 16, 14),
                 child: Column(

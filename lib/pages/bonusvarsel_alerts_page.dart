@@ -1,5 +1,10 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import '../theme/app_theme.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import '../widgets/ad_slot.dart';
+import '../services/ad_service.dart';
+import '../models/ad_slot.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:http/http.dart' as http;
@@ -39,12 +44,12 @@ class _BonusvarselAlertsPageState extends State<BonusvarselAlertsPage> {
 
   static const _tGreen  = Color(0xFF16a34a);
   static const _tGreenL = Color(0xFF4ADE80);
-  static const _tBg     = Color(0xFFf0fdf4);
-  static const _tBorder = Color(0xFF86efac);
+  static const _tBg     = Color(0xFF0B1728);
+  static const _tBorder = Color(0xFF34D399);
   static const _sBlue   = Color(0xFF2563eb);
   static const _sBlueL  = Color(0xFF93c5fd);
-  static const _sBg     = Color(0xFFeff6ff);
-  static const _sBorder = Color(0xFF93c5fd);
+  static const _sBg     = Color(0xFF0B1728);
+  static const _sBorder = Color(0xFF60A5FA);
 
   static const _trumfCats = [
     {"id": -1, "icon": "⭐", "name": "Kampanjer"},
@@ -91,19 +96,37 @@ class _BonusvarselAlertsPageState extends State<BonusvarselAlertsPage> {
     {"id":"sas_spotify", "name":"Spotify",       "cat":7,"pts":5, "popular":true, "url":"https://onlineshopping.flysas.com/nb-NO/butikk/spotify"},
   ];
 
+  void _onEntitlementChanged() { if (mounted) setState(() {}); }
+
   bool get _isPremium => EntitlementService.instance.isPremium || EntitlementService.instance.isElite;
   int get _maxFavs => EntitlementService.instance.isElite ? 10 : (_isPremium ? 5 : 0);
 
   @override
   void initState() {
     super.initState();
+    EntitlementService.instance.addListener(_onEntitlementChanged);
     _loadPrefs();
     _loadAlerts();
     _loadTrumfShops();
   }
 
+
+  Widget _adBanner(String placement) {
+    return FutureBuilder<List<AdSlot>>(
+      future: AdService.instance.pickAds(placement: placement, count: 1),
+      builder: (context, snap) {
+        if (!snap.hasData || snap.data!.isEmpty) return const SizedBox.shrink();
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: AdSlotCard(slot: snap.data!.first, placement: placement),
+        );
+      },
+    );
+  }
+
   @override
   void dispose() {
+    EntitlementService.instance.removeListener(_onEntitlementChanged);
     _emailCtrl.dispose();
     _telegramCtrl.dispose();
     super.dispose();
@@ -201,6 +224,24 @@ class _BonusvarselAlertsPageState extends State<BonusvarselAlertsPage> {
     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Telegram lagret!")));
   }
 
+
+  Future<void> _syncFavoritesToServer({required List<String> trumf, required List<String> sas}) async {
+    debugPrint('SYNC: email=$_emailValue trumf=$trumf');
+    try {
+      if (!ApiService.hasUsableBaseUrl) return;
+      final email = _emailValue.isNotEmpty 
+          ? _emailValue 
+          : FirebaseAuth.instance.currentUser?.email;
+      await ApiService.updateDeviceFavorites(
+        trumfFavs: trumf,
+        sasFavs: sas,
+        email: email,
+      );
+    } catch (e) {
+      debugPrint('Sync favorites feilet: \$e');
+    }
+  }
+
   Future<void> _toggleTrumf(String id) async {
     if (!_isPremium) { Navigator.of(context).pushNamed("/premium"); return; }
     final prefs = await SharedPreferences.getInstance();
@@ -210,6 +251,7 @@ class _BonusvarselAlertsPageState extends State<BonusvarselAlertsPage> {
     else { _snackMax(); return; }
     await prefs.setStringList(_kTrumfFavs, updated);
     setState(() => _trumfFavIds = updated);
+    _syncFavoritesToServer(trumf: updated, sas: _sasFavIds);
   }
 
   Future<void> _toggleSas(String id) async {
@@ -221,10 +263,21 @@ class _BonusvarselAlertsPageState extends State<BonusvarselAlertsPage> {
     else { _snackMax(); return; }
     await prefs.setStringList(_kSasFavs, updated);
     setState(() => _sasFavIds = updated);
+    _syncFavoritesToServer(trumf: _trumfFavIds, sas: updated);
   }
 
-  void _snackMax() => ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("Maks $_maxFavs favoritter – oppgrader for flere")));
+  void _snackMax() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text("Maks $_maxFavs favoritter valgt – Elite gir deg 10"),
+        action: SnackBarAction(
+          label: 'Oppgrader til Elite',
+          onPressed: () => Navigator.of(context).pushNamed('/premium'),
+        ),
+        duration: const Duration(seconds: 5),
+      ),
+    );
+  }
 
   List<Map<String, dynamic>> get _trumfFiltered {
     List<Map<String, dynamic>> s = _trumfCatId == -1
@@ -258,15 +311,17 @@ class _BonusvarselAlertsPageState extends State<BonusvarselAlertsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0a0f1e),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF0a0f1e),
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         title: const Text("Varsler"),
         actions: [IconButton(onPressed: _loadAlerts, icon: const Icon(Icons.refresh))],
       ),
       body: RefreshIndicator(
         onRefresh: _loadAlerts,
         child: ListView(padding: const EdgeInsets.all(16), children: [
+          _adBanner('varsler'),
+          const SizedBox(height: 8),
           _hero(),
           const SizedBox(height: 20),
           if (_loading) const Center(child: CircularProgressIndicator())
@@ -304,13 +359,13 @@ class _BonusvarselAlertsPageState extends State<BonusvarselAlertsPage> {
           if (_emailSaved) ...[
             const SizedBox(height: 6),
             Text("✅ Varsler sendes til $_emailValue",
-                style: TextStyle(color: Colors.green[700], fontWeight: FontWeight.w600)),
+                style: TextStyle(color: const Color(0xFF34D399), fontWeight: FontWeight.w600)),
           ],
           const SizedBox(height: 20),
           _h2("✈️ Telegram-varsler"),
           const SizedBox(height: 4),
           const Text("Legg til @BonusvarselBot og skriv inn brukernavn:",
-              style: TextStyle(color: Colors.grey, fontSize: 13)),
+              style: TextStyle(color: const Color(0xFF94A3B8), fontSize: 13)),
           const SizedBox(height: 8),
           Row(children: [
             Expanded(child: TextField(
@@ -336,7 +391,7 @@ class _BonusvarselAlertsPageState extends State<BonusvarselAlertsPage> {
           if (_telegramSaved) ...[
             const SizedBox(height: 6),
             Text("✅ Varsler sendes til $_telegramValue",
-                style: TextStyle(color: Colors.green[700], fontWeight: FontWeight.w600)),
+                style: TextStyle(color: const Color(0xFF34D399), fontWeight: FontWeight.w600)),
           ],
           const SizedBox(height: 32),
         ]),
@@ -370,7 +425,7 @@ class _BonusvarselAlertsPageState extends State<BonusvarselAlertsPage> {
   Widget _trumfBox() => Container(
     decoration: BoxDecoration(
       color: _tBg, borderRadius: BorderRadius.circular(20),
-      border: Border.all(color: _tBorder, width: 2)),
+      border: AppTheme.activeBorder()),
     padding: const EdgeInsets.all(16),
     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Row(children: [
@@ -378,11 +433,13 @@ class _BonusvarselAlertsPageState extends State<BonusvarselAlertsPage> {
           decoration: BoxDecoration(
             gradient: const LinearGradient(colors:[Color(0xFF16a34a),Color(0xFF166534)]),
             borderRadius: BorderRadius.circular(10)),
-          child: const Center(child: Text("🛒",style:TextStyle(fontSize:18)))),
+          child: const Center(child: Text("Trumf",
+            style: TextStyle(fontSize: 9, fontWeight: FontWeight.w800,
+              color: Color(0xFF34D399))))),
         const SizedBox(width:10),
         const Expanded(child: Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-          Text("Trumf Netthandel",style:TextStyle(fontSize:16,fontWeight:FontWeight.w700,color:Color(0xFF166534))),
-          Text("250+ butikker · Bonus overføres til EuroBonus",style:TextStyle(fontSize:11,color:Color(0xFF16a34a))),
+          Text("Trumf Netthandel",style:TextStyle(fontSize:16,fontWeight:FontWeight.w700,color:const Color(0xFF34D399))),
+          Text("250+ butikker · Bonus overføres til EuroBonus",style:TextStyle(fontSize:11,color:const Color(0xFF6EE7B7))),
         ])),
       ]),
       const SizedBox(height:12),
@@ -394,8 +451,8 @@ class _BonusvarselAlertsPageState extends State<BonusvarselAlertsPage> {
             padding:const EdgeInsets.symmetric(horizontal:10,vertical:5),
             decoration:BoxDecoration(color:_tGreen.withOpacity(0.15),borderRadius:BorderRadius.circular(20),border:Border.all(color:_tGreen)),
             child:Row(mainAxisSize:MainAxisSize.min,children:[
-              Text(name,style:const TextStyle(fontSize:12,fontWeight:FontWeight.w600,color:Color(0xFF166534))),
-              const SizedBox(width:4),const Icon(Icons.close,size:12,color:Color(0xFF16a34a)),
+              Text(name,style:const TextStyle(fontSize:12,fontWeight:FontWeight.w600,color:const Color(0xFF34D399))),
+              const SizedBox(width:4),const Icon(Icons.close,size:12,color:const Color(0xFF6EE7B7)),
             ]),
           ));
         }).toList()),
@@ -434,7 +491,7 @@ class _BonusvarselAlertsPageState extends State<BonusvarselAlertsPage> {
   Widget _sasBox() => Container(
     decoration: BoxDecoration(
       color: _sBg, borderRadius: BorderRadius.circular(20),
-      border: Border.all(color: _sBorder, width: 2)),
+      border: AppTheme.activeBorder()),
     padding: const EdgeInsets.all(16),
     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Row(children: [
@@ -445,8 +502,8 @@ class _BonusvarselAlertsPageState extends State<BonusvarselAlertsPage> {
           child:const Center(child:Text("✈️",style:TextStyle(fontSize:18)))),
         const SizedBox(width:10),
         const Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-          Text("SAS Online Shopping",style:TextStyle(fontSize:16,fontWeight:FontWeight.w700,color:Color(0xFF1e40af))),
-          Text("400+ butikker · Tjen EuroBonus-poeng direkte",style:TextStyle(fontSize:11,color:Color(0xFF2563eb))),
+          Text("SAS Online Shopping",style:TextStyle(fontSize:16,fontWeight:FontWeight.w700,color:const Color(0xFF60A5FA))),
+          Text("400+ butikker · Tjen EuroBonus-poeng direkte",style:TextStyle(fontSize:11,color:const Color(0xFF93C5FD))),
         ])),
       ]),
       const SizedBox(height:12),
@@ -458,8 +515,8 @@ class _BonusvarselAlertsPageState extends State<BonusvarselAlertsPage> {
             padding:const EdgeInsets.symmetric(horizontal:10,vertical:5),
             decoration:BoxDecoration(color:_sBlue.withOpacity(0.1),borderRadius:BorderRadius.circular(20),border:Border.all(color:_sBlue)),
             child:Row(mainAxisSize:MainAxisSize.min,children:[
-              Text(name,style:const TextStyle(fontSize:12,fontWeight:FontWeight.w600,color:Color(0xFF1e40af))),
-              const SizedBox(width:4),const Icon(Icons.close,size:12,color:Color(0xFF2563eb)),
+              Text(name,style:const TextStyle(fontSize:12,fontWeight:FontWeight.w600,color:const Color(0xFF60A5FA))),
+              const SizedBox(width:4),const Icon(Icons.close,size:12,color:const Color(0xFF93C5FD)),
             ]),
           ));
         }).toList()),
@@ -518,7 +575,7 @@ class _BonusvarselAlertsPageState extends State<BonusvarselAlertsPage> {
     Row(children:[
       Expanded(child:TextField(
         onChanged:onChange,
-        style:const TextStyle(fontSize:13,color:Colors.black87),
+        style:const TextStyle(fontSize:13,color:const Color(0xFFF8FAFC)),
         decoration:InputDecoration(
           hintText:"Søk på butikknavn...",
           hintStyle:TextStyle(color:Colors.grey[500]),
@@ -560,21 +617,21 @@ class _BonusvarselAlertsPageState extends State<BonusvarselAlertsPage> {
       padding:const EdgeInsets.symmetric(vertical:10,horizontal:12),
       margin:const EdgeInsets.only(bottom:6),
       decoration:BoxDecoration(
-        color:isSel?accent.withOpacity(0.08):Colors.white,
+        color:isSel?accent.withOpacity(0.12):const Color(0xFF0F1E35),
         borderRadius:BorderRadius.circular(12),
-        border:Border.all(color:isSel?accent:Colors.grey.shade200)),
+        border:Border.all(color:isSel?accent:const Color(0xFF2F435C))),
       child:Row(children:[
         Container(width:32,height:32,
           decoration:BoxDecoration(
-            color:hasCamp?accent.withOpacity(0.15):Colors.grey.shade100,
+            color:hasCamp?accent.withOpacity(0.15):const Color(0xFF1C3050),
             borderRadius:BorderRadius.circular(8)),
           child:Center(child:Text(name.isNotEmpty?name[0]:"?",
             style:TextStyle(fontSize:14,fontWeight:FontWeight.w800,
-              color:hasCamp?accent:Colors.grey)))),
+              color:hasCamp?accent:const Color(0xFF94A3B8))))),
         const SizedBox(width:10),
         Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
           Row(children:[
-            Flexible(child:Text(name,style:const TextStyle(fontSize:13,fontWeight:FontWeight.w600,color:Colors.black87),overflow:TextOverflow.ellipsis)),
+            Flexible(child:Text(name,style:const TextStyle(fontSize:13,fontWeight:FontWeight.w600,color:const Color(0xFFF8FAFC)),overflow:TextOverflow.ellipsis)),
             if(badge!=null)...[const SizedBox(width:5),
               Container(padding:const EdgeInsets.symmetric(horizontal:4,vertical:1),
                 decoration:BoxDecoration(color:accent,borderRadius:BorderRadius.circular(4)),
@@ -585,7 +642,7 @@ class _BonusvarselAlertsPageState extends State<BonusvarselAlertsPage> {
               Text("$normalPts p",style:TextStyle(fontSize:10,color:Colors.grey[400],decoration:TextDecoration.lineThrough)),
               const SizedBox(width:4)],
             Text("$pts p/100kr",style:TextStyle(fontSize:11,
-              color:hasCamp?accent:Colors.grey[600],
+              color:hasCamp?accent:const Color(0xFF94A3B8),
               fontWeight:hasCamp?FontWeight.w700:FontWeight.normal)),
           ]),
         ])),
@@ -637,7 +694,7 @@ class _BonusvarselAlertsPageState extends State<BonusvarselAlertsPage> {
           if(isTop)const Text("🏆",style:TextStyle(fontSize:20)),
         ]),
         const SizedBox(height:6),
-        Text(body,style:const TextStyle(color:Colors.black87)),
+        Text(body,style:const TextStyle(color:const Color(0xFFF8FAFC))),
         const SizedBox(height:6),
         Text("Rate: $rate",style:const TextStyle(fontWeight:FontWeight.w700,color:Colors.green)),
         if(url.isNotEmpty)...[

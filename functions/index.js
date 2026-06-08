@@ -3,8 +3,16 @@ const crypto = require("crypto");
 const { v4: uuidv4 } = require("uuid");
 const fs = require("fs");
 const path = require("path");
+const admin = require("firebase-admin");
 
-// Last inn .p8-nøkkelen – legg filen i functions/keys/SubscriptionKey.p8
+// Initialiser Firebase Admin
+if (!admin.apps.length) {
+  admin.initializeApp();
+}
+
+const db = admin.firestore();
+
+// ── App Store promo offer signing ─────────────────────────────────────────────
 const KEY_ID = "WNU3742ZH9";
 const BUNDLE_ID = "com.royrotvold.bonusvarsel";
 
@@ -14,24 +22,18 @@ function loadPrivateKey() {
 }
 
 exports.signPromoOffer = functions.https.onCall(async (data, context) => {
-  // Krev innlogging
   if (!context.auth) {
     throw new functions.https.HttpsError("unauthenticated", "Må være innlogget.");
   }
 
   const { productId, offerId } = data;
-
   if (!productId || !offerId) {
     throw new functions.https.HttpsError("invalid-argument", "productId og offerId er påkrevd.");
   }
 
-  const appBundleId = BUNDLE_ID;
-  const keyId = KEY_ID;
   const nonce = uuidv4().toLowerCase();
   const timestamp = Date.now();
-
-  // Payload som signeres
-  const payload = `${appBundleId}\u2063${keyId}\u2063${productId}\u2063${offerId}\u2063${nonce}\u2063${timestamp}`;
+  const payload = `${BUNDLE_ID}\u2063${KEY_ID}\u2063${productId}\u2063${offerId}\u2063${nonce}\u2063${timestamp}`;
 
   const privateKey = loadPrivateKey();
   const sign = crypto.createSign("SHA256");
@@ -39,10 +41,209 @@ exports.signPromoOffer = functions.https.onCall(async (data, context) => {
   sign.end();
   const signature = sign.sign({ key: privateKey, dsaEncoding: "ieee-p1363" }, "base64");
 
-  return {
-    keyId,
-    nonce,
-    timestamp,
-    signature,
-  };
+  return { keyId: KEY_ID, nonce, timestamp, signature };
 });
+
+// ── Stripe webhook ────────────────────────────────────────────────────────────
+const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET;
+
+exports.stripeWebhook = functions.https.onRequest(
+  { secrets: ["STRIPE_WEBHOOK_SECRET"] },
+  async (req, res) => {
+  const sig = req.headers["stripe-signature"];
+  const payload = req.rawBody;
+
+  // Verifiser Stripe signatur
+  let event;
+  try {
+    const hmac = crypto.createHmac("sha256", STRIPE_WEBHOOK_SECRET);
+    const [t, v1] = sig.split(",").reduce((acc, part) => {
+      const [key, val] = part.split("=");
+      if (key === "t") acc[0] = val;
+      if (key === "v1") acc[1] = val;
+      return acc;
+    }, [null, null]);
+
+    const signedPayload = `${t}.${payload}`;
+    hmac.update(signedPayload);
+    const expectedSig = hmac.digest("hex");
+
+    if (expectedSig !== v1) {
+      console.error("Stripe signatur feil");
+      return res.status(400).send("Ugyldig signatur");
+    }
+
+    event = JSON.parse(payload);
+  } catch (err) {
+    console.error("Webhook feil:", err);
+    return res.status(400).send(`Webhook feil: ${err.message}`);
+  }
+
+  // Håndter invoice.paid (abonnement betalt)
+  if (event.type === "invoice.paid") {
+    const invoice = event.data.object;
+    const email = invoice.customer_email;
+    const amount = invoice.amount_paid; // i øre
+    const description = invoice.lines?.data?.[0]?.description || '';
+
+    if (!email) {
+      console.error("Ingen e-post i invoice");
+      return res.status(200).send("OK");
+    }
+
+    let plan = "premium";
+    if (amount >= 8900 || description.toLowerCase().includes('elite')) plan = "elite";
+    console.log(`invoice.paid: Aktiverer ${plan} for ${email}, beløp: ${amount}, desc: ${description}`);
+
+    try {
+      const userRecord = await admin.auth().getUserByEmail(email);
+      await db.collection("subscriptions").doc(userRecord.uid).set({
+        plan,
+        email,
+        activatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+      console.log(`✅ ${plan} aktivert for ${email}`);
+      return res.status(200).send("OK");
+    } catch (err) {
+      if (err.code === 'auth/user-not-found') {
+        await db.collection("pending_subscriptions").doc(email.toLowerCase()).set({
+          plan,
+          email,
+          activatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+        console.log(`⏳ Pending ${plan} for ${email}`);
+        return res.status(200).send("OK");
+      }
+      console.error("Feil ved aktivering:", err);
+      return res.status(500).send("Feil");
+    }
+  }
+
+  // Håndter checkout.session.completed
+  if (event.type === "checkout.session.completed") {
+    const session = event.data.object;
+    const email = session.customer_details?.email || session.customer_email;
+    const priceId = session.line_items?.data?.[0]?.price?.id;
+
+    if (!email) {
+      console.error("Ingen e-post i session");
+      return res.status(200).send("OK");
+    }
+
+    // Bestem plan basert på beløp eller price ID
+    const amount = session.amount_total;
+    let plan = "premium";
+    if (amount >= 8900 || description?.toLowerCase().includes('elite')) plan = "elite";
+
+    console.log(`Aktiverer ${plan} for ${email}`);
+
+    try {
+      // Finn bruker i Firebase Auth via e-post
+      const userRecord = await admin.auth().getUserByEmail(email).catch(() => null);
+
+      if (userRecord) {
+        // Lagre plan i Firestore
+        await db.collection("subscriptions").doc(userRecord.uid).set({
+          plan,
+          email,
+          activatedAt: admin.firestore.FieldValue.serverTimestamp(),
+          stripeSessionId: session.id,
+          source: "stripe_web",
+        }, { merge: true });
+
+        console.log(`✅ ${plan} aktivert for uid: ${userRecord.uid}`);
+      } else {
+        // Bruker finnes ikke ennå — lagre med e-post som nøkkel
+        await db.collection("pending_subscriptions").doc(email.toLowerCase()).set({
+          plan,
+          email,
+          activatedAt: admin.firestore.FieldValue.serverTimestamp(),
+          stripeSessionId: session.id,
+          source: "stripe_web",
+        }, { merge: true });
+
+        console.log(`⏳ Pending ${plan} for ${email} (ikke registrert ennå)`);
+      }
+    } catch (err) {
+      console.error("Firestore feil:", err);
+    }
+  }
+
+  // Håndter customer.subscription.deleted (avmelding)
+  if (event.type === "customer.subscription.deleted") {
+    const subscription = event.data.object;
+    const email = subscription.customer_email;
+
+    if (email) {
+      const userRecord = await admin.auth().getUserByEmail(email).catch(() => null);
+      if (userRecord) {
+        await db.collection("subscriptions").doc(userRecord.uid).set({
+          plan: "free",
+          cancelledAt: admin.firestore.FieldValue.serverTimestamp(),
+        }, { merge: true });
+        console.log(`❌ Abonnement kansellert for ${email}`);
+      }
+    }
+  }
+
+  res.status(200).send("OK");
+});
+
+// ── Sjekk abonnement ──────────────────────────────────────────────────────────
+exports.checkSubscription = functions.https.onCall(async (data, context) => {
+  if (!context.auth) return { plan: 'free' };
+  
+  try {
+    const doc = await db.collection('subscriptions').doc(context.auth.uid).get();
+    if (doc.exists) {
+      return { plan: doc.data().plan || 'free' };
+    }
+    // Sjekk pending med e-post
+    const email = context.auth.token.email;
+    if (email) {
+      const pending = await db.collection('pending_subscriptions')
+        .doc(email.toLowerCase()).get();
+      if (pending.exists) {
+        return { plan: pending.data().plan || 'free' };
+      }
+    }
+    return { plan: 'free' };
+  } catch (e) {
+    return { plan: 'free' };
+  }
+});
+
+// ── Claude AI Proxy ────────────────────────────────────────────────────────
+exports.callClaude = functions.https.onCall(
+  { secrets: ["ANTHROPIC_API_KEY"] },
+  async (request) => {
+    if (!request.auth) {
+      throw new functions.https.HttpsError("unauthenticated", "Logg inn først.");
+    }
+
+    const { messages, model = "claude-sonnet-4-5", maxTokens = 1000 } = request.data;
+    const fetch = require("node-fetch");
+
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": process.env.ANTHROPIC_API_KEY,
+        "anthropic-version": "2023-06-01",
+      },
+      body: JSON.stringify({
+        model,
+        max_tokens: maxTokens,
+        messages,
+      }),
+    });
+
+    if (!response.ok) {
+      const err = await response.text();
+      throw new functions.https.HttpsError("internal", `Claude feil: ${err}`);
+    }
+
+    const result = await response.json();
+    return { content: result.content[0].text };
+  }
+);

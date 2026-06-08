@@ -1,72 +1,69 @@
+import dotenv from 'dotenv';
+import sgMail from '@sendgrid/mail';
+dotenv.config();
+
+if (process.env.SENDGRID_API_KEY) {
+  sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+  console.log('✅ SendGrid klar');
+}
+
 import express from "express";
 import cors from "cors";
 import fetch from "node-fetch";
 import * as cheerio from "cheerio";
 
-const app = express();
-<<<<<<< Updated upstream
-app.use(cors());
 
-app.get("/health", (_, res) => res.json({ ok: true }));
-
-app.get("/api/campaigns", async (_, res) => {
+// ── E-post sending via SendGrid ───────────────────────────────────────────────
+async function sendEmail(to, subject, html) {
+  if (!process.env.SENDGRID_API_KEY || !process.env.SENDGRID_FROM) {
+    console.warn('SendGrid ikke konfigurert');
+    return false;
+  }
   try {
-    const url = "https://onlineshopping.flysas.com/nb-NO/kampanjer/1";
+    await sgMail.send({
+      to,
+      from: process.env.SENDGRID_FROM,
+      subject,
+      html,
+    });
+    console.log(`E-post sendt til ${to}`);
+    return true;
+  } catch (e) {
+    console.error('SendGrid feil:', e?.response?.body || String(e));
+    return false;
+  }
+}
 
+// ── Telegram sending ─────────────────────────────────────────────────────────
+const TG_BOT_TOKEN = process.env.TG_BOT_TOKEN || '';
+const TG_CHAT_ID = process.env.TG_CHAT_ID || '';
+
+async function sendTelegram(message) {
+  if (!TG_BOT_TOKEN || !TG_CHAT_ID) {
+    console.warn('Telegram ikke konfigurert');
+    return false;
+  }
+  try {
+    const url = `https://api.telegram.org/bot${TG_BOT_TOKEN}/sendMessage`;
     const r = await fetch(url, {
-      headers: { "User-Agent": "BonusVarsel/1.0 (Codespaces)" }
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: TG_CHAT_ID,
+        text: message,
+        parse_mode: 'HTML',
+      }),
     });
+    const data = await r.json();
+    return data.ok;
+  } catch (e) {
+    console.error('Telegram feil:', e);
+    return false;
+  }
+}
 
-    if (!r.ok) {
-      return res.status(502).json({ error: "Upstream error", status: r.status });
-    }
 
-    const html = await r.text();
-    const $ = cheerio.load(html);
-
-    const items = [];
-
-    $("a").each((_, a) => {
-      const href = $(a).attr("href") || "";
-      const text = $(a).text().replace(/\s+/g, " ").trim();
-      if (!text || text.length < 10) return;
-
-      const absolute = href.startsWith("http")
-        ? href
-        : href.startsWith("/")
-          ? `https://onlineshopping.flysas.com${href}`
-          : `https://onlineshopping.flysas.com/${href}`;
-
-      const lower = text.toLowerCase();
-      const looksLikeCampaign =
-        lower.includes("poeng") || lower.includes("bonus") || /(\d+\s*x)/i.test(text);
-
-      if (!looksLikeCampaign) return;
-
-      const m = text.match(/(\d+)\s*x/i);
-      const multiplier = m ? Number(m[1]) : null;
-
-      items.push({
-        title: text,
-        store: null,
-        details: null,
-        multiplier,
-        url: absolute
-      });
-    });
-
-    const seen = new Set();
-    const campaigns = items
-      .filter((x) => {
-        const k = `${x.url}::${x.title}`;
-        if (seen.has(k)) return false;
-        seen.add(k);
-        return true;
-      })
-      .slice(0, 50);
-
-    res.json({ source: url, count: campaigns.length, campaigns });
-=======
+const app = express();
 
 const port = Number(process.env.PORT || 8080);
 const enableDevRoutes = process.env.ENABLE_DEV_ROUTES === "true";
@@ -262,6 +259,54 @@ function evaluateCampaign(item, reqBody = {}) {
   };
 }
 
+
+// ── Trumf Netthandel kampanjer ────────────────────────────────────────────────
+async function fetchTrumfCampaigns() {
+  try {
+    const url = "https://trumfnetthandel.no/api/campaigns";
+    const r = await fetch(url, {
+      headers: { "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)", "Accept": "application/json" }
+    });
+    if (!r.ok) throw new Error(`Trumf API failed: ${r.status}`);
+    const data = await r.json();
+    const items = Array.isArray(data?.data) ? data.data : Array.isArray(data) ? data : [];
+    return items.map(item => ({
+      id: item.uuid ?? item.id ?? `trumf-${Date.now()}`,
+      title: item.name ?? item.title ?? 'Trumf kampanje',
+      multiplier: item.points_campaign ? Number((item.points_campaign / (item.points || 1)).toFixed(2)) : null,
+      url: item.slug ? `https://trumfnetthandel.no/butikk/${item.slug}` : null,
+      slug: item.slug,
+      source: 'trumf',
+      points: item.points,
+      points_campaign: item.points_campaign,
+    })).filter(i => i.multiplier != null && i.multiplier > 1);
+  } catch (e) {
+    console.error("fetchTrumfCampaigns failed:", String(e));
+    return [];
+  }
+}
+
+// ── Kombiner alle kampanjer med abonnement-filtrering ────────────────────────
+async function fetchAllCampaigns(plan = 'free') {
+  const [sasCampaigns, trumfCampaigns] = await Promise.all([
+    fetchCampaigns(),
+    fetchTrumfCampaigns(),
+  ]);
+
+  const all = [
+    ...sasCampaigns.map(c => ({ ...c, source: 'sas', minPlan: 'free' })),
+    ...trumfCampaigns.map(c => ({ ...c, source: 'trumf', minPlan: 'free' })),
+  ];
+
+  // Filtrer på abonnement
+  const planLevel = { free: 0, premium: 1, elite: 2 };
+  const userLevel = planLevel[plan] ?? 0;
+
+  return all
+    .filter(c => (planLevel[c.minPlan] ?? 0) <= userLevel)
+    .sort((a, b) => (b.multiplier ?? 0) - (a.multiplier ?? 0));
+}
+
 async function runSimulation(reqBody = {}) {
   const simulationId = `sim-${Date.now()}`;
   const campaigns = await fetchCampaigns();
@@ -284,6 +329,9 @@ async function runSimulation(reqBody = {}) {
       dedupeKey: campaignKey(item),
     };
   });
+
+  // I dev-modus: nullstill dedup så vi alltid ser varsler
+  if (reqBody.devMode !== false) state.sentCampaignKeys = new Set();
 
   const shouldNotifyItems = evaluated.filter((item) => item.evaluation.shouldNotify);
   const deduped = shouldNotifyItems.filter((item) => !state.sentCampaignKeys.has(item.dedupeKey));
@@ -383,7 +431,6 @@ app.get("/api/campaigns", async (_, res) => {
       count: campaigns.length,
       campaigns,
     });
->>>>>>> Stashed changes
   } catch (e) {
     res.status(500).json({ error: String(e) });
   }
@@ -425,31 +472,28 @@ app.get("/api/debug", async (_, res) => {
       foundKeywords,
       htmlSnippet: html.slice(0, 2000),
     });
-<<<<<<< Updated upstream
   } catch (e) {
     res.status(500).json({ error: String(e) });
   }
-=======
-  });
+});
 
-  app.post("/dev/simulate-campaign", async (req, res) => {
-    try {
-      const result = await runSimulation(req.body ?? {});
-      res.json(result);
-    } catch (e) {
-      res.status(500).json({ error: String(e) });
-    }
-  });
+app.post("/dev/simulate-campaign", async (req, res) => {
+  try {
+    const result = await runSimulation(req.body ?? {});
+    res.json(result);
+  } catch (e) {
+    res.status(500).json({ error: String(e) });
+  }
+});
 
-  app.post("/v1/dev/simulate-campaign", async (req, res) => {
-    try {
-      const result = await runSimulation(req.body ?? {});
-      res.json(result);
-    } catch (e) {
-      res.status(500).json({ error: String(e) });
-    }
-  });
-}
+app.post("/v1/dev/simulate-campaign", async (req, res) => {
+  try {
+    const result = await runSimulation(req.body ?? {});
+    res.json(result);
+  } catch (e) {
+    res.status(500).json({ error: String(e) });
+  }
+});
 
 
 
@@ -468,7 +512,7 @@ app.post("/v1/push/simulate-alert", express.json(), (req, res) => {
     },
     evaluation: {
       score: Math.round(rate * 7),
-      momentum: rate > 5 ? "high" : "low",
+      momentum: rate > 5 ? 3 : 1,
       timing: "now",
       shouldNotify: rate >= 8,
       reason: rate >= 8
@@ -476,6 +520,26 @@ app.post("/v1/push/simulate-alert", express.json(), (req, res) => {
         : "Too low value → skip"
     }
   };
+
+  // Lagre i state og send til Telegram
+  if (result.evaluation.shouldNotify) {
+    const slug = req.body?.slug || 'butikk';
+    const tgMsg = `🔔 <b>${result.offer.rateText} bonus hos ${slug}</b>\n${result.evaluation.reason}\n\nScore: ${result.evaluation.score}`;
+    sendTelegram(tgMsg).catch(e => console.error('Telegram feil:', e));
+    state.activatedNotifications = [{
+      id: `sim-${Date.now()}`,
+      title: `${result.offer.rateText} bonus hos ${req.body?.slug || 'butikk'}`,
+      rate: result.offer.rate,
+      level: result.offer.level,
+      activatedAt: result.simulatedAt,
+      shouldNotify: true,
+      reason: result.evaluation.reason,
+      score: result.evaluation.score,
+      momentum: result.evaluation.momentum,
+      slug: req.body?.slug || 'outnorth',
+      message: result.evaluation.reason,
+    }];
+  }
 
   res.json(result);
 });
@@ -851,10 +915,264 @@ app.post("/v1/dev/auto-pipeline-threshold", express.json(), (req, res) => {
 });
 
 
+
+app.post("/v1/push/dispatch", express.json(), async (req, res) => {
+  try {
+    const { message, title, type } = req.body || {};
+    const text = message || title || 'Test varsel fra Bonusvarsel';
+    const ok = await sendTelegram(`🔔 <b>${title || 'Bonusvarsel'}</b>\n${text}`);
+    res.json({ ok, sent: ok, channel: 'telegram' });
+  } catch (e) {
+    res.status(500).json({ error: String(e) });
+  }
+});
+
+app.post("/v1/push/test", express.json(), async (req, res) => {
+  try {
+    const email = req.body?.email || null;
+    const tgOk = await sendTelegram('🧪 <b>Test varsel</b>\nDette er en test fra Bonusvarsel Dev Hub!');
+    let emailOk = false;
+    if (email) {
+      emailOk = await sendEmail(
+        email,
+        '🧪 Test varsel fra Bonusvarsel',
+        '<h2>Test varsel</h2><p>Dette er en test fra Bonusvarsel Dev Hub!</p>'
+      );
+    }
+    res.json({ ok: tgOk, sent: tgOk, emailSent: emailOk });
+  } catch (e) {
+    res.status(500).json({ error: String(e) });
+  }
+});
+
+
+// ── Push queue endpoints ──────────────────────────────────────────────────────
+const pushQueue = [];
+
+app.get("/v1/push/queue", (req, res) => {
+  res.json({ ok: true, queue: pushQueue, count: pushQueue.length });
+});
+
+app.post("/v1/push/queue/process", express.json(), async (req, res) => {
+  try {
+    const items = pushQueue.splice(0, pushQueue.length);
+    let sent = 0;
+    for (const item of items) {
+      const ok = await sendTelegram(`🔔 <b>${item.title || 'Bonusvarsel'}</b>\n${item.message || ''}`);
+      if (ok) sent++;
+    }
+    res.json({ ok: true, processed: items.length, sent, result: 'done', items });
+  } catch (e) {
+    res.status(500).json({ error: String(e) });
+  }
+});
+
+app.post("/v1/push/enqueue-test", express.json(), async (req, res) => {
+  try {
+    const item = { title: 'Test varsel', message: 'Dette er en test fra Bonusvarsel!', ts: Date.now() };
+    pushQueue.push(item);
+    const ok = await sendTelegram(`🧪 <b>${item.title}</b>\n${item.message}`);
+    res.json({ ok: true, sent: ok, queued: pushQueue.length });
+  } catch (e) {
+    res.status(500).json({ error: String(e) });
+  }
+});
+
+
+// ── Devices endpoint ─────────────────────────────────────────────────────────
+const registeredDevices = [];
+
+app.get("/v1/devices", (req, res) => {
+  res.json(registeredDevices);
+});
+
+app.post("/v1/devices", express.json(), (req, res) => {
+  const device = req.body || {};
+  device.registeredAt = new Date().toISOString();
+  const existing = registeredDevices.findIndex(d => d.deviceId === device.deviceId);
+  if (existing >= 0) {
+    registeredDevices[existing] = device;
+  } else {
+    registeredDevices.push(device);
+  }
+  res.json({ ok: true, device });
+});
+
+// ── Send test endpoint ────────────────────────────────────────────────────────
+app.post("/v1/push/send-test", express.json(), async (req, res) => {
+  try {
+    const { title, message, slug } = req.body || {};
+    const text = `🔔 <b>${title || 'Test varsel'}</b>\n${message || 'Dette er et test-varsel fra Bonusvarsel!'}${slug ? '\n\nButikk: ' + slug : ''}`;
+    const ok = await sendTelegram(text);
+    res.json({ ok, sent: ok, channel: 'telegram', sentAt: new Date().toISOString() });
+  } catch (e) {
+    res.status(500).json({ error: String(e) });
+  }
+});
+
+
+// ── Notifications endpoint ────────────────────────────────────────────────────
+app.get("/v1/notifications/activated", (req, res) => {
+  const notifications = state.activatedNotifications || [];
+  res.json({
+    ok: true,
+    count: notifications.length,
+    items: notifications,
+    lastUpdated: state.pipeline?.lastUpdated || null,
+  });
+});
+
+app.get("/v1/notifications/activated/elite", (req, res) => {
+  const notifications = state.activatedNotifications || [];
+  res.json({
+    ok: true,
+    count: notifications.length,
+    items: notifications,
+  });
+});
+
+// ── Push preview endpoint ─────────────────────────────────────────────────────
+app.get("/v1/push/preview", (req, res) => {
+  const notifications = state.activatedNotifications || [];
+  res.json({
+    ok: true,
+    previews: notifications.map(n => ({
+      title: n.title || 'Bonusvarsel',
+      message: n.message || n.reason || 'Kampanje tilgjengelig',
+      slug: n.slug,
+      score: n.evaluation?.score || 0,
+    })),
+  });
+});
+
+// ── Seed offers endpoint ──────────────────────────────────────────────────────
+app.post("/v1/offers", express.json(), (req, res) => {
+  const offer = req.body || {};
+  offer.id = `offer-${Date.now()}`;
+  offer.createdAt = new Date().toISOString();
+  state.seededOffers = state.seededOffers || [];
+  state.seededOffers.push(offer);
+  res.json({ ok: true, offer, total: state.seededOffers.length });
+});
+
+app.get("/v1/offers", (req, res) => {
+  res.json({
+    ok: true,
+    offers: state.seededOffers || [],
+    count: (state.seededOffers || []).length,
+  });
+});
+
+
+app.get("/v1/push/dispatch", (req, res) => {
+  const dispatches = state.activatedNotifications || [];
+  res.json({
+    ok: true,
+    count: dispatches.length,
+    dispatches: dispatches.map(n => ({
+      id: n.id || `dispatch-${Date.now()}`,
+      title: n.title || 'Bonusvarsel',
+      message: n.message || n.reason || 'Kampanje tilgjengelig',
+      slug: n.slug,
+      score: n.evaluation?.score || 0,
+      sentAt: n.sentAt || new Date().toISOString(),
+      channel: 'telegram',
+    })),
+  });
+});
+
+
+// ── Device favorites ─────────────────────────────────────────────────────────
+const deviceFavorites = {};
+
+app.post("/v1/devices/favorites", express.json(), (req, res) => {
+  const { trumf = [], sas = [], email = null } = req.body || {};
+  const deviceId = req.headers['x-device-id'] || 'default';
+  deviceFavorites[deviceId] = { trumf, sas, email, updatedAt: new Date().toISOString() };
+  console.log(`Favoritter oppdatert for ${deviceId}: Trumf=${trumf.length}, SAS=${sas.length}, Email=${email || 'ingen'}`);
+  res.json({ ok: true, trumf: trumf.length, sas: sas.length });
+});
+
+app.get("/v1/devices/favorites", (req, res) => {
+  res.json({ ok: true, devices: deviceFavorites });
+});
+
+
+
+async function checkFavoritesAndNotify() {
+  try {
+    const campaigns = await fetchCampaigns();
+    if (!campaigns.length) return;
+
+    for (const [deviceId, favs] of Object.entries(deviceFavorites)) {
+      const allFavSlugs = [...(favs.trumf || []), ...(favs.sas || [])];
+      if (!allFavSlugs.length) continue;
+
+      // Samle alle nye kampanjer i en liste
+      const newCampaigns = [];
+      for (const campaign of campaigns) {
+        if (!campaign.slug) continue;
+        // Normaliser - appen bruker tn_outnorth, API returnerer outnorth
+        const normalizedFavSlugs = allFavSlugs.map(s => 
+          s.replace(/^tn_/, '').replace(/^sas_/, ''));
+        const normalizedCampaignSlug = campaign.slug.replace(/^tn_/, '').replace(/^sas_/, '');
+        if (!normalizedFavSlugs.includes(normalizedCampaignSlug)) continue;
+        if ((campaign.multiplier ?? 1) <= 1) continue;
+        const key = `${deviceId}-${campaign.slug}-${campaign.multiplier}`;
+        if (state.sentCampaignKeys.has(key)) continue;
+        newCampaigns.push(campaign);
+        state.sentCampaignKeys.add(key);
+      }
+
+      if (!newCampaigns.length) continue;
+
+      // Send én samlet melding
+      const lines = newCampaigns
+        .sort((a, b) => (b.multiplier ?? 0) - (a.multiplier ?? 0))
+        .map(c => `• ${c.title}: ${c.multiplier}x bonus`)
+        .join('\n');
+
+      const msg = newCampaigns.length === 1
+        ? `🔔 <b>${newCampaigns[0].title}</b> har ${newCampaigns[0].multiplier}x bonus akkurat nå!\n\nÅpne Bonusvarsel og gå til butikken via appen for å tjene ekstra poeng.`
+        : `🔔 <b>${newCampaigns.length} favorittbutikker har kampanje!</b>\n\n${lines}\n\nÅpne Bonusvarsel for å handle og tjene ekstra poeng.`;
+
+      const tgOk = await sendTelegram(msg);
+
+      // Send e-post
+      if (favs.email) {
+        const htmlLines = newCampaigns
+          .sort((a,b) => (b.multiplier??0)-(a.multiplier??0))
+          .map(c => `<li><b>${c.title}</b>: ${c.multiplier}x bonus</li>`)
+          .join('');
+        const htmlMsg = newCampaigns.length === 1
+          ? `<h2>🔔 ${newCampaigns[0].title} har ${newCampaigns[0].multiplier}x bonus akkurat nå!</h2><p>Åpne Bonusvarsel og gå til butikken via appen for å tjene ekstra poeng.</p>`
+          : `<h2>🔔 ${newCampaigns.length} favorittbutikker har kampanje!</h2><ul>${htmlLines}</ul><p>Åpne Bonusvarsel for å handle og tjene ekstra poeng.</p>`;
+        await sendEmail(
+          favs.email,
+          '🔔 Bonusvarsel – kampanje hos favorittene dine!',
+          htmlMsg
+        );
+      }
+
+      if (tgOk) console.log(`Varsel sendt: ${newCampaigns.length} kampanjer til ${favs.email || 'ingen email'}`);
+    }
+  } catch (e) {
+    console.error('checkFavoritesAndNotify feil:', String(e));
+  }
+}
+
+app.post("/dev/check-favorites", async (req, res) => {
+  await checkFavoritesAndNotify();
+  res.json({ ok: true, devices: Object.keys(deviceFavorites).length });
+});
+
+
+app.post("/dev/reset-sent-keys", (req, res) => {
+  state.sentCampaignKeys = new Set();
+  res.json({ ok: true, message: "sentCampaignKeys nullstilt" });
+});
+
 app.listen(port, () => {
   console.log(`API running on http://127.0.0.1:${port}`);
   console.log(`DEV routes enabled: ${enableDevRoutes}`);
->>>>>>> Stashed changes
 });
-const port = process.env.PORT || 3000;
-app.listen(port, () => console.log(`API running on http://0.0.0.0:${port}`));

@@ -426,9 +426,13 @@ app.get("/version", (_, res) => {
 app.get("/api/campaigns", async (_, res) => {
   try {
     const campaigns = await fetchCampaigns();
+    const trumfCamps = campaigns.filter(c => c.source === 'trumf');
+    const sasCamps = campaigns.filter(c => c.source !== 'trumf');
     res.json({
-      source: "sas-live",
+      source: "combined",
       count: campaigns.length,
+      trumfCount: trumfCamps.length,
+      sasCount: sasCamps.length,
       campaigns,
     });
   } catch (e) {

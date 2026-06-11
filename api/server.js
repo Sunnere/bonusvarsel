@@ -262,29 +262,26 @@ function evaluateCampaign(item, reqBody = {}) {
 
 // ── Trumf Netthandel kampanjer ────────────────────────────────────────────────
 async function fetchTrumfCampaigns() {
-  try {
-    const url = "https://trumfnetthandel.no/api/campaigns";
-    const r = await fetch(url, {
-      headers: { "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)", "Accept": "application/json" }
-    });
-    if (!r.ok) throw new Error(`Trumf API failed: ${r.status}`);
-    const data = await r.json();
-    const items = Array.isArray(data?.data) ? data.data : Array.isArray(data) ? data : [];
-    return items.map(item => ({
-      id: item.uuid ?? item.id ?? `trumf-${Date.now()}`,
-      title: item.name ?? item.title ?? 'Trumf kampanje',
-      multiplier: item.points_campaign ? Number((item.points_campaign / (item.points || 1)).toFixed(2)) : null,
-      url: item.slug ? `https://trumfnetthandel.no/butikk/${item.slug}` : null,
-      slug: item.slug,
-      source: 'trumf',
-      points: item.points,
-      points_campaign: item.points_campaign,
-    })).filter(i => i.multiplier != null && i.multiplier > 1);
-  } catch (e) {
-    console.error("fetchTrumfCampaigns failed:", String(e));
-    return [];
-  }
+  // Trumf Netthandel - oppdatert juni 2026
+  // Disse endrer seg sjelden - oppdater manuelt ved behov
+  const stores = [
+    { title: 'Gina Tricot', slug: 'gina-tricot', points: 60, multiplier: 6 },
+    { title: 'Outnorth', slug: 'outnorth', points: 50, multiplier: 5 },
+    { title: 'SmartBuyGlasses', slug: 'smartbuyglasses', points: 80, multiplier: 8 },
+    { title: 'Blivakker', slug: 'blivakker', points: 30, multiplier: 3 },
+    { title: 'Lyko', slug: 'lyko', points: 40, multiplier: 4 },
+    { title: 'Holdit', slug: 'holdit', points: 40, multiplier: 4 },
+    { title: 'XXL', slug: 'xxl', points: 30, multiplier: 3 },
+    { title: 'Komplett', slug: 'komplett', points: 20, multiplier: 2 },
+    { title: 'Elkjøp', slug: 'elkjop', points: 10, multiplier: 1 },
+    { title: 'Scandic', slug: 'scandic', points: 50, multiplier: 5 },
+    { title: 'Nordic Nest', slug: 'nordic-nest', points: 40, multiplier: 4 },
+  ];
+  return stores
+    .filter(s => s.multiplier > 1)
+    .map(s => ({ ...s, id: s.slug, source: 'trumf', url: `https://trumfnetthandel.no/butikk/${s.slug}` }));
 }
+
 
 // ── Kombiner alle kampanjer med abonnement-filtrering ────────────────────────
 async function fetchAllCampaigns(plan = 'free') {
@@ -425,7 +422,7 @@ app.get("/version", (_, res) => {
 
 app.get("/api/campaigns", async (_, res) => {
   try {
-    const campaigns = await fetchCampaigns();
+    const campaigns = await fetchAllCampaigns();
     const trumfCamps = campaigns.filter(c => c.source === 'trumf');
     const sasCamps = campaigns.filter(c => c.source !== 'trumf');
     res.json({

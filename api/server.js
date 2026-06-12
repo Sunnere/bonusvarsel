@@ -445,14 +445,16 @@ app.get("/version", (_, res) => {
 
 app.get("/api/campaigns", async (_, res) => {
   try {
-    const campaigns = await fetchAllCampaigns();
+    const campaigns = await fetchAllCampaigns('elite');
     const trumfCamps = campaigns.filter(c => c.source === 'trumf');
-    const sasCamps = campaigns.filter(c => c.source !== 'trumf');
+    const sasCamps = campaigns.filter(c => c.source === 'sas');
+    const eliteCamps = campaigns.filter(c => c.source === 'elite');
     res.json({
       source: "combined",
       count: campaigns.length,
       trumfCount: trumfCamps.length,
       sasCount: sasCamps.length,
+      eliteCount: eliteCamps.length,
       campaigns,
     });
   } catch (e) {

@@ -283,16 +283,39 @@ async function fetchTrumfCampaigns() {
 }
 
 
+// ── SAS Holidays / Elite-tilbud ──────────────────────────────────────────────
+async function fetchEliteCampaigns() {
+  // SAS Holidays-kampanjer - oppdateres manuelt ved nye tilbud
+  const holidays = [
+    {
+      title: 'SAS Holidays: Spar 2 000 kr',
+      desc: 'Bestill fly + hotell innen 22. juni',
+      code: 'SUMMERDEAL',
+      savings: '2000 kr',
+      url: 'https://www.flysas.com/no-no/sas-holidays/',
+      ends: '22.06.2026',
+    },
+  ];
+  return holidays.map((h, i) => ({
+    ...h,
+    id: `elite-holiday-${i}`,
+    source: 'elite',
+  }));
+}
+
+
 // ── Kombiner alle kampanjer med abonnement-filtrering ────────────────────────
 async function fetchAllCampaigns(plan = 'free') {
-  const [sasCampaigns, trumfCampaigns] = await Promise.all([
+  const [sasCampaigns, trumfCampaigns, eliteCampaigns] = await Promise.all([
     fetchCampaigns(),
     fetchTrumfCampaigns(),
+    fetchEliteCampaigns(),
   ]);
 
   const all = [
     ...sasCampaigns.map(c => ({ ...c, source: 'sas', minPlan: 'free' })),
     ...trumfCampaigns.map(c => ({ ...c, source: 'trumf', minPlan: 'free' })),
+    ...eliteCampaigns.map(c => ({ ...c, source: 'elite', minPlan: 'elite' })),
   ];
 
   // Filtrer på abonnement

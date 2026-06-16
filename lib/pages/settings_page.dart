@@ -342,6 +342,15 @@ class _SettingsPageState extends State<SettingsPage> {
                 ],
                 const SizedBox(height: 12),
                 GestureDetector(
+                  onTap: () => launchUrl(Uri.parse('https://billing.stripe.com/p/login/3cIdRa5ku42S2l34ZjcQU00')),
+                  child: const Text(
+                    '💳 Administrer abonnement →',
+                    style: TextStyle(
+                      color: Color(0xFF94A3B8),
+                      fontSize: 12, fontWeight: FontWeight.w600)),
+                ),
+                const SizedBox(height: 8),
+                GestureDetector(
                   onTap: () => Navigator.pushNamed(context, '/premium'),
                   child: Text(
                     _currentPlan == 'elite'

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../services/auth_service.dart';
+import '../pages/login_page.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'bonusvarsel_dev_hub_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -33,7 +34,29 @@ class _SettingsPageState extends State<SettingsPage> {
   Future<void> _loadStatus() async {
     final prefs = await SharedPreferences.getInstance();
     final trialStart = prefs.getString(_trialKey);
-    final plan = EntitlementService.instance.plan;
+    var plan = EntitlementService.instance.plan;
+
+    // Sjekk Elite-utløp
+    final eliteExpiryStr = prefs.getString('elite_expiry');
+    if (eliteExpiryStr != null && plan == 'elite') {
+      final expiry = DateTime.parse(eliteExpiryStr);
+      if (DateTime.now().isAfter(expiry)) {
+        await EntitlementService.instance.unlock('premium_monthly');
+        plan = 'premium';
+        await prefs.remove('elite_expiry');
+      }
+    }
+
+    // Sjekk Elite-utløp
+    final eliteExpiry = prefs.getString('elite_expiry');
+    if (eliteExpiry != null && plan == 'elite') {
+      final expiry = DateTime.parse(eliteExpiry);
+      if (DateTime.now().isAfter(expiry)) {
+        await EntitlementService.instance.unlock('premium_monthly');
+        plan = 'premium';
+        await prefs.remove('elite_expiry');
+      }
+    }
 
     if (trialStart != null) {
       final start = DateTime.parse(trialStart);
@@ -64,6 +87,14 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   Future<void> _startTrial() async {
+    final user = AuthService.instance.currentUser;
+    if (user == null) {
+      if (!mounted) return;
+      await Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => const LoginPage()),
+      );
+      if (AuthService.instance.currentUser == null) return;
+    }
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_trialKey, DateTime.now().toIso8601String());
     await prefs.setBool('is_trial', true);
@@ -79,7 +110,42 @@ class _SettingsPageState extends State<SettingsPage> {
   Future<void> _redeemCode() async {
     final code = _codeController.text.trim().toUpperCase();
     if (code == _eliteCode) {
+      // Sjekk at bruker har betalt Premium (ikke trial)
+      final prefs = await SharedPreferences.getInstance();
+      final isTrial = prefs.getBool('is_trial') ?? false;
+      final isPaidPremium = _currentPlan == 'premium' && !isTrial;
+      
+      if (!isPaidPremium) {
+        if (mounted) {
+          showDialog(
+            context: context,
+            builder: (_) => AlertDialog(
+              backgroundColor: const Color(0xFF152B4A),
+              title: const Text('Premium kreves',
+                style: TextStyle(color: Color(0xFF60A5FA), fontWeight: FontWeight.w800)),
+              content: const Text(
+                'Du må ha et aktivt Premium-abonnement for å aktivere denne koden.\n\nKjøp Premium og kom tilbake for å aktivere Elite-koden din! 🚀',
+                style: TextStyle(color: Color(0xFFC8D8E8), height: 1.5)),
+              actions: [
+                FilledButton(
+                  style: FilledButton.styleFrom(backgroundColor: const Color(0xFF60A5FA)),
+                  onPressed: () {
+                    Navigator.pop(context);
+                    Navigator.pushNamed(context, '/premium');
+                  },
+                  child: const Text('Kjøp Premium', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
+                ),
+              ],
+            ),
+          );
+        }
+        return;
+      }
+
+      // Sett Elite med 30 dagers utløp
       await EntitlementService.instance.unlock('elite_monthly');
+      final eliteExpiry = DateTime.now().add(const Duration(days: 30));
+      await prefs.setString('elite_expiry', eliteExpiry.toIso8601String());
       setState(() { _currentPlan = 'elite'; _codeError = false; });
       _codeController.clear();
       if (mounted) {
@@ -90,7 +156,7 @@ class _SettingsPageState extends State<SettingsPage> {
             title: const Text('🏆 Elite aktivert!',
               style: TextStyle(color: Color(0xFFD4AF37), fontWeight: FontWeight.w800)),
             content: const Text(
-              'Takk for at du tester Bonusvarsel!\n\nDu har nå Elite-tilgang med 10 favoritter, VIP-varsler og SkyTeam-bonus.\n\nVi setter stor pris på tilbakemeldingen din! 🙏',
+              'Takk for at du tester Bonusvarsel!\n\nDu har nå Elite-tilgang i 30 dager med 10 favoritter, VIP-varsler og SkyTeam-bonus.\n\nVi setter stor pris på tilbakemeldingen din! 🙏',
               style: TextStyle(color: Color(0xFFC8D8E8), height: 1.5)),
             actions: [
               FilledButton(
@@ -590,7 +656,7 @@ class _SettingsPageState extends State<SettingsPage> {
           // ── WEB-SEKSJON ──────────────────────────────────────────
           GestureDetector(
             onTap: () => launchUrl(
-              Uri.parse('https://bonusvarsel.no'),
+              Uri.parse('https://www.bonusvarsel.no'),
               mode: LaunchMode.externalApplication),
             child: Container(
               margin: const EdgeInsets.only(bottom: 12),

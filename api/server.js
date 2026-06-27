@@ -67,9 +67,9 @@ const SAS_HOME   = "https://onlineshopping.flysas.com/nb-NO";
 const TRUMF_HOME = "https://trumfnetthandel.no";
 
 function bvOfferLink(c) {
+  // Trygg portal-hjem: gir alltid poeng, aldri 404.
+  // (Dype /butikk/-lenker finnes ikke og ga 404 – bekreftet.)
   if (c.source === 'trumf') return TRUMF_HOME;
-  if (c.source === 'elite') return c.url || SAS_HOME;
-  if (c.slug) return SAS_BASE + c.slug;
   return SAS_HOME;
 }
 function bvPortalLabel(c) {

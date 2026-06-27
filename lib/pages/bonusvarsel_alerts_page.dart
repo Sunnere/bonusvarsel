@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../widgets/ad_slot.dart';
 import '../services/ad_service.dart';
 import '../models/ad_slot.dart';
@@ -210,6 +211,18 @@ class _BonusvarselAlertsPageState extends State<BonusvarselAlertsPage> {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_kEmail, email);
     setState(() { _emailValue = email; _emailSaved = true; });
+    try {
+      final uid = FirebaseAuth.instance.currentUser?.uid;
+      if (uid != null) {
+        await FirebaseFirestore.instance.collection('users').doc(uid).set({
+          'alertEmail':           email,
+          'notificationsEnabled': true,
+          'updatedAt':            FieldValue.serverTimestamp(),
+        }, SetOptions(merge: true));
+      }
+    } catch (e) {
+      debugPrint('Firestore e-post feilet: $e');
+    }
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("E-post lagret!")));
   }
@@ -220,6 +233,18 @@ class _BonusvarselAlertsPageState extends State<BonusvarselAlertsPage> {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_kTelegram, tg);
     setState(() { _telegramValue = tg; _telegramSaved = true; });
+    try {
+      final uid = FirebaseAuth.instance.currentUser?.uid;
+      if (uid != null) {
+        await FirebaseFirestore.instance.collection('users').doc(uid).set({
+          'alertTelegram':        tg,
+          'notificationsEnabled': true,
+          'updatedAt':            FieldValue.serverTimestamp(),
+        }, SetOptions(merge: true));
+      }
+    } catch (e) {
+      debugPrint('Firestore Telegram feilet: $e');
+    }
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Telegram lagret!")));
   }
@@ -228,17 +253,34 @@ class _BonusvarselAlertsPageState extends State<BonusvarselAlertsPage> {
   Future<void> _syncFavoritesToServer({required List<String> trumf, required List<String> sas}) async {
     debugPrint('SYNC: email=$_emailValue trumf=$trumf');
     try {
-      if (!ApiService.hasUsableBaseUrl) return;
-      final email = _emailValue.isNotEmpty 
-          ? _emailValue 
-          : FirebaseAuth.instance.currentUser?.email;
-      await ApiService.updateDeviceFavorites(
-        trumfFavs: trumf,
-        sasFavs: sas,
-        email: email,
-      );
+      if (ApiService.hasUsableBaseUrl) {
+        final email = _emailValue.isNotEmpty
+            ? _emailValue
+            : FirebaseAuth.instance.currentUser?.email;
+        await ApiService.updateDeviceFavorites(
+          trumfFavs: trumf,
+          sasFavs: sas,
+          email: email,
+        );
+      }
     } catch (e) {
-      debugPrint('Sync favorites feilet: \$e');
+      debugPrint('Sync Railway feilet: $e');
+    }
+    try {
+      final uid = FirebaseAuth.instance.currentUser?.uid;
+      if (uid != null) {
+        await FirebaseFirestore.instance.collection('users').doc(uid).set({
+          'trumfFavs':            trumf,
+          'sasFavs':              sas,
+          'alertEmail':           _emailValue,
+          'alertTelegram':        _telegramValue,
+          'notificationsEnabled': _emailValue.isNotEmpty || _telegramValue.isNotEmpty,
+          'updatedAt':            FieldValue.serverTimestamp(),
+        }, SetOptions(merge: true));
+        debugPrint('✅ Favoritter synket til Firestore');
+      }
+    } catch (e) {
+      debugPrint('Sync Firestore feilet: $e');
     }
   }
 
@@ -267,14 +309,21 @@ class _BonusvarselAlertsPageState extends State<BonusvarselAlertsPage> {
   }
 
   void _snackMax() {
+    ScaffoldMessenger.of(context).clearSnackBars();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text("Maks $_maxFavs favoritter valgt – Elite gir deg 10"),
+        content: const Text("Maks 5 favoritter nådd – Elite gir deg 10"),
+        duration: const Duration(seconds: 8),
         action: SnackBarAction(
-          label: 'Oppgrader til Elite',
-          onPressed: () => Navigator.of(context).pushNamed('/premium'),
+          label: 'Oppgrader',
+          onPressed: () {
+            ScaffoldMessenger.of(context).clearSnackBars();
+            Navigator.of(context).pushNamed('/premium');
+          },
         ),
-        duration: const Duration(seconds: 5),
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: const Color(0xFF1C3A5E),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
     );
   }
@@ -362,10 +411,22 @@ class _BonusvarselAlertsPageState extends State<BonusvarselAlertsPage> {
                 style: TextStyle(color: const Color(0xFF34D399), fontWeight: FontWeight.w600)),
           ],
           const SizedBox(height: 20),
-          _h2("✈️ Telegram-varsler"),
-          const SizedBox(height: 4),
-          const Text("Legg til @BonusvarselBot og skriv inn brukernavn:",
-              style: TextStyle(color: const Color(0xFF94A3B8), fontSize: 13)),
+          Row(children: [
+            _h2("✈️ Telegram-varsler"),
+            const SizedBox(width: 8),
+            GestureDetector(
+              onTap: _showTelegramHelp,
+              child: Container(
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF2563EB).withOpacity(0.15),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.info_outline, size: 18, color: Color(0xFF60A5FA)),
+              ),
+            ),
+          ]),
+          const SizedBox(height: 8),
           const SizedBox(height: 8),
           Row(children: [
             Expanded(child: TextField(
@@ -575,14 +636,14 @@ class _BonusvarselAlertsPageState extends State<BonusvarselAlertsPage> {
     Row(children:[
       Expanded(child:TextField(
         onChanged:onChange,
-        style:const TextStyle(fontSize:13,color:const Color(0xFFF8FAFC)),
+        style:const TextStyle(fontSize:13,color:Color(0xFFF8FAFC)),
         decoration:InputDecoration(
           hintText:"Søk på butikknavn...",
           hintStyle:TextStyle(color:Colors.grey[500]),
           prefixIcon:Icon(Icons.search,size:16,color:Colors.grey[500]),
           contentPadding:const EdgeInsets.symmetric(horizontal:12,vertical:8),
           border:OutlineInputBorder(borderRadius:BorderRadius.circular(10)),
-          isDense:true,filled:true,fillColor:Colors.white,
+          isDense:true,filled:true,fillColor:const Color(0xFF1C1C1E),
         ),
       )),
       const SizedBox(width:8),
@@ -658,6 +719,67 @@ class _BonusvarselAlertsPageState extends State<BonusvarselAlertsPage> {
       ]),
     ));
 
+  void _showTelegramHelp() {
+    showDialog(
+      context: context,
+      builder: (ctx) => Dialog(
+        backgroundColor: const Color(0xFF0B1728),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(children: [
+                const Icon(Icons.telegram, color: Color(0xFF60A5FA)),
+                const SizedBox(width: 8),
+                const Expanded(child: Text("Telegram-varsler / Telegram alerts",
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Colors.white))),
+                IconButton(icon: const Icon(Icons.close, color: Colors.white54),
+                    onPressed: () => Navigator.pop(ctx)),
+              ]),
+              const SizedBox(height: 12),
+              const Text("🇳🇴 Norsk",
+                  style: TextStyle(color: Color(0xFF60A5FA), fontWeight: FontWeight.w700, fontSize: 13)),
+              const SizedBox(height: 8),
+              _step("1", "Åpne Telegram og søk etter @bonusvarsel_bot"),
+              _step("2", "Trykk Start (eller send /start til boten)"),
+              _step("3", "Skriv inn @bonusvarsel_bot i feltet under"),
+              _step("4", "Trykk Lagre – du er klar! 🎉"),
+              const SizedBox(height: 16),
+              const Divider(color: Color(0xFF334155)),
+              const SizedBox(height: 8),
+              const Text("🇬🇧 English",
+                  style: TextStyle(color: Color(0xFF60A5FA), fontWeight: FontWeight.w700, fontSize: 13)),
+              const SizedBox(height: 8),
+              _step("1", "Open Telegram and search for @bonusvarsel_bot"),
+              _step("2", "Tap Start (or send /start to the bot)"),
+              _step("3", "Enter @bonusvarsel_bot in the field below"),
+              _step("4", "Tap Save – you're all set! 🎉"),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _step(String num, String text) => Padding(
+    padding: const EdgeInsets.only(bottom: 5),
+    child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Container(
+        width: 20, height: 20,
+        margin: const EdgeInsets.only(right: 8, top: 1),
+        decoration: BoxDecoration(
+          color: Color(0xFF2563EB),
+          borderRadius: BorderRadius.circular(999)),
+        child: Center(child: Text(num,
+            style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: Colors.white)))),
+      Expanded(child: Text(text,
+          style: const TextStyle(fontSize: 12, color: Color(0xFFCBD5E1), height: 1.4))),
+    ]),
+  );
+
   Widget _seeAll(String label,String url,Color color)=>GestureDetector(
     onTap:()=>launchUrl(Uri.parse(url),mode:LaunchMode.externalApplication),
     child:Center(child:Text(label,style:TextStyle(fontSize:12,color:color,fontWeight:FontWeight.w600))));
@@ -685,18 +807,18 @@ class _BonusvarselAlertsPageState extends State<BonusvarselAlertsPage> {
     return Container(
       margin:const EdgeInsets.only(bottom:12),padding:const EdgeInsets.all(16),
       decoration:BoxDecoration(
-        color:isTop?const Color(0xFFECFDF5):Colors.white,
+        color:isTop?const Color(0xFF0F2A1A):const Color(0xFF0F1E35),
         borderRadius:BorderRadius.circular(16),
-        border:Border.all(color:isTop?Colors.green:Colors.grey.shade200)),
+        border:Border.all(color:isTop?const Color(0xFF34D399):const Color(0xFF2F435C))),
       child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
         Row(children:[
-          Expanded(child:Text(title,style:const TextStyle(fontSize:16,fontWeight:FontWeight.w900))),
+          Expanded(child:Text(title,style:const TextStyle(fontSize:16,fontWeight:FontWeight.w900,color:Color(0xFFF8FAFC)))),
           if(isTop)const Text("🏆",style:TextStyle(fontSize:20)),
         ]),
         const SizedBox(height:6),
-        Text(body,style:const TextStyle(color:const Color(0xFFF8FAFC))),
+        Text(body,style:const TextStyle(color:Color(0xFFCBD5E1))),
         const SizedBox(height:6),
-        Text("Rate: $rate",style:const TextStyle(fontWeight:FontWeight.w700,color:Colors.green)),
+        Text("Rate: $rate",style:const TextStyle(fontWeight:FontWeight.w700,color:Color(0xFF34D399))),
         if(url.isNotEmpty)...[
           const SizedBox(height:8),
           OutlinedButton.icon(

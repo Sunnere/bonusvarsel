@@ -24,11 +24,13 @@ class StoreSearchSection extends StatelessWidget {
         TextField(
           controller: controller,
           onChanged: onSearchChanged,
+          style: const TextStyle(color: Colors.white),
           decoration: InputDecoration(
             hintText: 'Søk butikker',
-            prefixIcon: const Icon(Icons.search),
+            hintStyle: const TextStyle(color: Color(0xFF8E8E93)),
+            prefixIcon: const Icon(Icons.search, color: Color(0xFF8E8E93)),
             filled: true,
-            fillColor: Colors.white,
+            fillColor: const Color(0xFF1C1C1E),
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 14,
               vertical: 12,

@@ -231,9 +231,56 @@ class _SettingsPageState extends State<SettingsPage> {
                     emailCtrl.text.trim(), passCtrl.text.trim());
                   if (ctx.mounted) Navigator.pop(ctx);
                 } catch (e) {
+                  final msg = e.toString()
+                    .replaceAll('Exception: ', '')
+                    .replaceAll('[firebase_auth/invalid-credential]', 'Feil e-post eller passord.')
+                    .replaceAll('[firebase_auth/wrong-password]', 'Feil passord.')
+                    .replaceAll('[firebase_auth/user-not-found]', 'Finner ikke brukeren.')
+                    .replaceAll('[firebase_auth/too-many-requests]', 'For mange forsøk. Vent litt.')
+                    .replaceAll('[firebase_auth/network-request-failed]', 'Nettverksfeil.');
+                  final savedEmail = emailCtrl.text.trim();
                   if (ctx.mounted) {
+                    ScaffoldMessenger.of(ctx).clearSnackBars();
                     ScaffoldMessenger.of(ctx).showSnackBar(
-                      SnackBar(content: Text('Feil: $e')));
+                      SnackBar(
+                        content: Text(msg),
+                        backgroundColor: const Color(0xFF1C3A5E),
+                        behavior: SnackBarBehavior.floating,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        action: SnackBarAction(
+                          label: 'Glemt passord?',
+                          textColor: const Color(0xFF60A5FA),
+                          onPressed: () async {
+                            if (savedEmail.isEmpty) return;
+                            try {
+                              await AuthService.instance.sendPasswordReset(savedEmail);
+                              if (ctx.mounted) {
+                                ScaffoldMessenger.of(ctx).showSnackBar(
+                                  SnackBar(
+                                    content: Text('Tilbakestillingslenke sendt til $savedEmail'),
+                                    backgroundColor: const Color(0xFF1C3A5E),
+                                    behavior: SnackBarBehavior.floating,
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                  ),
+                                );
+                              }
+                            } catch (e) {
+                              debugPrint('Reset feil: $e');
+                              if (ctx.mounted) {
+                                ScaffoldMessenger.of(ctx).showSnackBar(
+                                  SnackBar(
+                                    content: Text('Feil: ${e.toString().replaceAll("Exception: ", "")}'),
+                                    backgroundColor: Colors.red,
+                                    behavior: SnackBarBehavior.floating,
+                                  ),
+                                );
+                              }
+                            }
+                          },
+                        ),
+                        duration: const Duration(seconds: 8),
+                      ),
+                    );
                   }
                 }
               },
@@ -254,9 +301,21 @@ class _SettingsPageState extends State<SettingsPage> {
                     emailCtrl.text.trim(), passCtrl.text.trim());
                   if (ctx.mounted) Navigator.pop(ctx);
                 } catch (e) {
+                  final msg = e.toString()
+                    .replaceAll('Exception: ', '')
+                    .replaceAll('[firebase_auth/email-already-in-use]', 'E-postadressen er allerede i bruk.')
+                    .replaceAll('[firebase_auth/weak-password]', 'Passordet er for svakt. Bruk minst 6 tegn.')
+                    .replaceAll('[firebase_auth/invalid-email]', 'Ugyldig e-postadresse.');
                   if (ctx.mounted) {
+                    ScaffoldMessenger.of(ctx).clearSnackBars();
                     ScaffoldMessenger.of(ctx).showSnackBar(
-                      SnackBar(content: Text('Feil: $e')));
+                      SnackBar(
+                        content: Text(msg),
+                        backgroundColor: const Color(0xFF1C3A5E),
+                        behavior: SnackBarBehavior.floating,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                    );
                   }
                 }
               },
@@ -605,6 +664,51 @@ class _SettingsPageState extends State<SettingsPage> {
                         ),
                         onPressed: () async {
                           await AuthService.instance.signOut();
+                          if (context.mounted) setState(() {});
+                        },
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        icon: const Icon(Icons.delete_forever, size: 16),
+                        label: const Text('Slett bruker / Delete account'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: const Color(0xFF9CA3AF),
+                          side: const BorderSide(color: Color(0xFF9CA3AF)),
+                        ),
+                        onPressed: () async {
+                          final confirm = await showDialog<bool>(
+                            context: context,
+                            builder: (_) => AlertDialog(
+                              backgroundColor: const Color(0xFF152B4A),
+                              title: const Text('Slett bruker?',
+                                style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
+                              content: const Text(
+                                'Dette sletter kontoen din permanent. Du kan lage ny konto med samme e-post etterpå.',
+                                style: TextStyle(color: Color(0xFFC8D8E8), height: 1.5)),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.of(context).pop(false),
+                                  child: const Text('Avbryt', style: TextStyle(color: Color(0xFF8BA5C0)))),
+                                TextButton(
+                                  onPressed: () => Navigator.of(context).pop(true),
+                                  child: const Text('Slett', style: TextStyle(color: Color(0xFFF87171)))),
+                              ],
+                            ),
+                          );
+                          if (confirm != true) return;
+                          try {
+                            await AuthService.instance.currentUser?.delete();
+                            if (context.mounted) setState(() {});
+                          } catch (e) {
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text(
+                                  'Feil: Logg inn på nytt for å slette kontoen. / Please sign in again to delete your account.')));
+                            }
+                          }
                         },
                       ),
                     ),
@@ -635,10 +739,11 @@ class _SettingsPageState extends State<SettingsPage> {
                       onPressed: () async {
                         try {
                           await AuthService.instance.signInWithApple();
+                          if (context.mounted) setState(() {});
                         } catch (e) {
                           if (context.mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('Feil: $e')));
+                              SnackBar(content: Text(e.toString().replaceAll('Exception: ', ''))));
                           }
                         }
                       },

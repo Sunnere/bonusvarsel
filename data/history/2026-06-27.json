@@ -1,0 +1,214 @@
+{
+  "date": "2026-06-27",
+  "count": 26,
+  "campaigns": [
+    {
+      "slug": "gymgrossisten",
+      "name": "Gymgrossisten",
+      "points": 25,
+      "points_campaign": 50,
+      "campaign_ends_iso": "2026-06-28",
+      "categoryId": 8
+    },
+    {
+      "slug": "euroflorist",
+      "name": "Euroflorist",
+      "points": 25,
+      "points_campaign": 50,
+      "campaign_ends_iso": "2026-06-28",
+      "categoryId": 5
+    },
+    {
+      "slug": "jotex",
+      "name": "Jotex",
+      "points": 25,
+      "points_campaign": 50,
+      "campaign_ends_iso": "2026-06-28",
+      "categoryId": 6
+    },
+    {
+      "slug": "adidas",
+      "name": "Adidas",
+      "points": 25,
+      "points_campaign": 50,
+      "campaign_ends_iso": "2026-06-28",
+      "categoryId": 9
+    },
+    {
+      "slug": "nordic-print",
+      "name": "Nordic Print",
+      "points": 50,
+      "points_campaign": 100,
+      "campaign_ends_iso": "2026-06-30",
+      "categoryId": 7
+    },
+    {
+      "slug": "e-wheels-2",
+      "name": "E-Wheels",
+      "points": 50,
+      "points_campaign": 50,
+      "campaign_ends_iso": "2026-06-28",
+      "categoryId": 4
+    },
+    {
+      "slug": "komplett-1",
+      "name": "Komplett",
+      "points": 15,
+      "points_campaign": 30,
+      "campaign_ends_iso": "2026-06-28",
+      "categoryId": 4
+    },
+    {
+      "slug": "db-journey",
+      "name": "Db Journey",
+      "points": 25,
+      "points_campaign": 50,
+      "campaign_ends_iso": "2026-06-28",
+      "categoryId": 9
+    },
+    {
+      "slug": "bjorn-borg",
+      "name": "Björn Borg",
+      "points": 25,
+      "points_campaign": 100,
+      "campaign_ends_iso": "2026-06-28",
+      "categoryId": 1
+    },
+    {
+      "slug": "storytel-no",
+      "name": "Storytel",
+      "points": 250,
+      "points_campaign": 750,
+      "campaign_ends_iso": "2026-06-28",
+      "categoryId": 2
+    },
+    {
+      "slug": "karcher",
+      "name": "Kärcher",
+      "points": 25,
+      "points_campaign": 50,
+      "campaign_ends_iso": "2026-06-28",
+      "categoryId": 6
+    },
+    {
+      "slug": "elskling",
+      "name": "ELSKLING",
+      "points": 500,
+      "points_campaign": 3000,
+      "campaign_ends_iso": "2026-06-28",
+      "categoryId": 6
+    },
+    {
+      "slug": "kajakk-og-fritid",
+      "name": "Kajakk og Fritid",
+      "points": 25,
+      "points_campaign": 50,
+      "campaign_ends_iso": "2026-06-28",
+      "categoryId": ""
+    },
+    {
+      "slug": "safira",
+      "name": "Safira",
+      "points": 25,
+      "points_campaign": 50,
+      "campaign_ends_iso": "2026-06-30",
+      "categoryId": ""
+    },
+    {
+      "slug": "autodoc",
+      "name": "Autodoc",
+      "points": 25,
+      "points_campaign": 50,
+      "campaign_ends_iso": "2026-06-28",
+      "categoryId": 14
+    },
+    {
+      "slug": "watery",
+      "name": "Watery",
+      "points": 25,
+      "points_campaign": 50,
+      "campaign_ends_iso": "2026-06-28",
+      "categoryId": 9
+    },
+    {
+      "slug": "kicks",
+      "name": "KICKS",
+      "points": 25,
+      "points_campaign": 50,
+      "campaign_ends_iso": "2026-06-28",
+      "categoryId": ""
+    },
+    {
+      "slug": "proteinfabrikken",
+      "name": "Proteinfabrikken",
+      "points": 25,
+      "points_campaign": 50,
+      "campaign_ends_iso": "2026-06-28",
+      "categoryId": 9
+    },
+    {
+      "slug": "bad-stil",
+      "name": "Bad & Stil",
+      "points": 25,
+      "points_campaign": 50,
+      "campaign_ends_iso": "2026-06-30",
+      "categoryId": ""
+    },
+    {
+      "slug": "parfymno",
+      "name": "Parfym.no",
+      "points": 25,
+      "points_campaign": 75,
+      "campaign_ends_iso": "2026-06-28",
+      "categoryId": 8
+    },
+    {
+      "slug": "husqvarna",
+      "name": "Husqvarna",
+      "points": 25,
+      "points_campaign": 50,
+      "campaign_ends_iso": "2026-06-28",
+      "categoryId": 6
+    },
+    {
+      "slug": "volt",
+      "name": "VOLT",
+      "points": 25,
+      "points_campaign": 50,
+      "campaign_ends_iso": "2026-06-30",
+      "categoryId": 1
+    },
+    {
+      "slug": "go-nordic-cruiseline",
+      "name": "Go Nordic Cruiseline",
+      "points": 15,
+      "points_campaign": 30,
+      "campaign_ends_iso": "2026-06-30",
+      "categoryId": 14
+    },
+    {
+      "slug": "badno",
+      "name": "Bad.no",
+      "points": 25,
+      "points_campaign": 20,
+      "campaign_ends_iso": "2026-06-30",
+      "categoryId": 6
+    },
+    {
+      "slug": "badno",
+      "name": "Bad.no",
+      "points": 25,
+      "points_campaign": 50,
+      "campaign_ends_iso": "2026-06-28",
+      "categoryId": 6
+    },
+    {
+      "slug": "suitable",
+      "name": "Suitable",
+      "points": 25,
+      "points_campaign": 50,
+      "campaign_ends_iso": "2026-06-30",
+      "categoryId": 1
+    }
+  ]
+}

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../services/auth_service.dart';
+import 'login_page.dart';
 import '../services/entitlement_service.dart';
 import '../services/checkout_service.dart';
 import 'checkout_page.dart';
@@ -77,10 +79,20 @@ class _PremiumPageState extends State<PremiumPage> {
 
   
   void _checkout(String plan) async {
+    // Sjekk om brukeren er innlogget
+    final user = AuthService.instance.currentUser;
+    if (user == null) {
+      if (!mounted) return;
+      await Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => const LoginPage()),
+      );
+      if (AuthService.instance.currentUser == null) return;
+    }
+
     if (plan == 'Gratis') {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Gratis krever ingen betaling.')),
+        const SnackBar(content: Text('✅ Gratis plan aktivert!')),
       );
       return;
     }
@@ -91,8 +103,6 @@ class _PremiumPageState extends State<PremiumPage> {
     );
 
     final payload = CheckoutService.instance.toPayload();
-
-    // TODO: kobles til ekte Apple IAP / StoreKit
     debugPrint('Checkout payload: $payload');
 
     if (!mounted) return;

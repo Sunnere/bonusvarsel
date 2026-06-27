@@ -16,6 +16,8 @@ class _LoginPageState extends State<LoginPage> {
   bool _isLogin = true;
   bool _loading = false;
   String? _error;
+  int _failCount = 0;
+  bool _showForgotPassword = false;
 
   @override
   void dispose() {
@@ -39,12 +41,61 @@ class _LoginPageState extends State<LoginPage> {
         );
       }
       if (!mounted) return;
+      _failCount = 0;
+      _showForgotPassword = false;
       widget.onSuccess?.call();
       Navigator.of(context).pop();
     } on Exception catch (e) {
-      setState(() => _error = e.toString().replaceAll('Exception: ', ''));
+      final msg = e.toString()
+        .replaceAll('Exception: ', '')
+        .replaceAll('[firebase_auth/user-not-found]', 'Finner ikke brukeren. Sjekk e-postadressen.')
+        .replaceAll('[firebase_auth/wrong-password]', 'Feil passord. Prøv igjen.')
+        .replaceAll('[firebase_auth/invalid-credential]', 'Feil e-post eller passord.')
+        .replaceAll('[firebase_auth/email-already-in-use]', 'E-postadressen er allerede i bruk.')
+        .replaceAll('[firebase_auth/weak-password]', 'Passordet er for svakt. Bruk minst 6 tegn.')
+        .replaceAll('[firebase_auth/invalid-email]', 'Ugyldig e-postadresse.')
+        .replaceAll('[firebase_auth/network-request-failed]', 'Nettverksfeil. Sjekk internettforbindelsen.')
+        .replaceAll('[firebase_auth/too-many-requests]', 'For mange forsøk. Vent litt og prøv igjen.');
+      if (mounted) {
+        FocusScope.of(context).unfocus();
+        setState(() {
+          _error = msg;
+          if (_isLogin) {
+            _failCount++;
+            if (_failCount >= 1) _showForgotPassword = true;
+          }
+        });
+      }
     } finally {
       if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _sendPasswordReset() async {
+    final email = _emailCtrl.text.trim();
+    if (email.isEmpty) {
+      setState(() => _error = 'Skriv inn e-postadressen din først.');
+      return;
+    }
+    try {
+      await AuthService.instance.sendPasswordReset(email);
+      if (!mounted) return;
+      setState(() {
+        _error = null;
+        _failCount = 0;
+        _showForgotPassword = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Tilbakestillingslenke sendt til $email'),
+          backgroundColor: const Color(0xFF1C3A5E),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          duration: const Duration(seconds: 5),
+        ),
+      );
+    } on Exception catch (e) {
+      setState(() => _error = 'Klarte ikke sende e-post. Sjekk adressen og prøv igjen.');
     }
   }
 
@@ -57,10 +108,22 @@ class _LoginPageState extends State<LoginPage> {
         return;
       }
       if (!mounted) return;
+      _failCount = 0;
+      _showForgotPassword = false;
       widget.onSuccess?.call();
       Navigator.of(context).pop();
     } on Exception catch (e) {
-      setState(() => _error = e.toString());
+      final msg = e.toString()
+        .replaceAll('Exception: ', '')
+        .replaceAll('[firebase_auth/user-not-found]', 'Finner ikke brukeren. Sjekk e-postadressen.')
+        .replaceAll('[firebase_auth/wrong-password]', 'Feil passord. Prøv igjen.')
+        .replaceAll('[firebase_auth/invalid-credential]', 'Feil e-post eller passord.')
+        .replaceAll('[firebase_auth/email-already-in-use]', 'E-postadressen er allerede i bruk.')
+        .replaceAll('[firebase_auth/weak-password]', 'Passordet er for svakt. Bruk minst 6 tegn.')
+        .replaceAll('[firebase_auth/invalid-email]', 'Ugyldig e-postadresse.')
+        .replaceAll('[firebase_auth/network-request-failed]', 'Nettverksfeil. Sjekk internettforbindelsen.')
+        .replaceAll('[firebase_auth/too-many-requests]', 'For mange forsøk. Vent litt og prøv igjen.');
+      setState(() => _error = msg);
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -71,10 +134,17 @@ class _LoginPageState extends State<LoginPage> {
     try {
       await AuthService.instance.signInWithApple();
       if (!mounted) return;
+      _failCount = 0;
+      _showForgotPassword = false;
       widget.onSuccess?.call();
       Navigator.of(context).pop();
     } on Exception catch (e) {
-      setState(() => _error = e.toString());
+      final msg = e.toString()
+        .replaceAll('Exception: ', '')
+        .replaceAll('Apple-innlogging avbrutt', '')
+        .replaceAll('[firebase_auth/network-request-failed]', 'Nettverksfeil. Sjekk internettforbindelsen.')
+        .replaceAll('[firebase_auth/too-many-requests]', 'For mange forsøk. Vent litt og prøv igjen.');
+      if (msg.isNotEmpty) setState(() => _error = msg);
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -224,6 +294,25 @@ class _LoginPageState extends State<LoginPage> {
                 ),
               ),
 
+              if (_showForgotPassword && _isLogin) ...[
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    icon: const Icon(Icons.lock_reset, size: 16),
+                    label: const Text('Send nytt passord på e-post'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: const Color(0xFF60A5FA),
+                      side: const BorderSide(color: Color(0xFF60A5FA)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                    onPressed: _loading ? null : _sendPasswordReset,
+                  ),
+                ),
+                const SizedBox(height: 8),
+              ],
               if (_error != null) ...[
                 const SizedBox(height: 12),
                 Text(

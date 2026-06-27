@@ -1,0 +1,155 @@
+{
+  "month": "2026-06",
+  "shops": {
+    "gymgrossisten": {
+      "name": "Gymgrossisten",
+      "maxPoints": 50,
+      "firstSeen": "2026-06-27",
+      "lastSeen": "2026-06-27"
+    },
+    "euroflorist": {
+      "name": "Euroflorist",
+      "maxPoints": 50,
+      "firstSeen": "2026-06-27",
+      "lastSeen": "2026-06-27"
+    },
+    "jotex": {
+      "name": "Jotex",
+      "maxPoints": 50,
+      "firstSeen": "2026-06-27",
+      "lastSeen": "2026-06-27"
+    },
+    "adidas": {
+      "name": "Adidas",
+      "maxPoints": 50,
+      "firstSeen": "2026-06-27",
+      "lastSeen": "2026-06-27"
+    },
+    "nordic-print": {
+      "name": "Nordic Print",
+      "maxPoints": 100,
+      "firstSeen": "2026-06-27",
+      "lastSeen": "2026-06-27"
+    },
+    "e-wheels-2": {
+      "name": "E-Wheels",
+      "maxPoints": 50,
+      "firstSeen": "2026-06-27",
+      "lastSeen": "2026-06-27"
+    },
+    "komplett-1": {
+      "name": "Komplett",
+      "maxPoints": 30,
+      "firstSeen": "2026-06-27",
+      "lastSeen": "2026-06-27"
+    },
+    "db-journey": {
+      "name": "Db Journey",
+      "maxPoints": 50,
+      "firstSeen": "2026-06-27",
+      "lastSeen": "2026-06-27"
+    },
+    "bjorn-borg": {
+      "name": "Björn Borg",
+      "maxPoints": 100,
+      "firstSeen": "2026-06-27",
+      "lastSeen": "2026-06-27"
+    },
+    "storytel-no": {
+      "name": "Storytel",
+      "maxPoints": 750,
+      "firstSeen": "2026-06-27",
+      "lastSeen": "2026-06-27"
+    },
+    "karcher": {
+      "name": "Kärcher",
+      "maxPoints": 50,
+      "firstSeen": "2026-06-27",
+      "lastSeen": "2026-06-27"
+    },
+    "elskling": {
+      "name": "ELSKLING",
+      "maxPoints": 3000,
+      "firstSeen": "2026-06-27",
+      "lastSeen": "2026-06-27"
+    },
+    "kajakk-og-fritid": {
+      "name": "Kajakk og Fritid",
+      "maxPoints": 50,
+      "firstSeen": "2026-06-27",
+      "lastSeen": "2026-06-27"
+    },
+    "safira": {
+      "name": "Safira",
+      "maxPoints": 50,
+      "firstSeen": "2026-06-27",
+      "lastSeen": "2026-06-27"
+    },
+    "autodoc": {
+      "name": "Autodoc",
+      "maxPoints": 50,
+      "firstSeen": "2026-06-27",
+      "lastSeen": "2026-06-27"
+    },
+    "watery": {
+      "name": "Watery",
+      "maxPoints": 50,
+      "firstSeen": "2026-06-27",
+      "lastSeen": "2026-06-27"
+    },
+    "kicks": {
+      "name": "KICKS",
+      "maxPoints": 50,
+      "firstSeen": "2026-06-27",
+      "lastSeen": "2026-06-27"
+    },
+    "proteinfabrikken": {
+      "name": "Proteinfabrikken",
+      "maxPoints": 50,
+      "firstSeen": "2026-06-27",
+      "lastSeen": "2026-06-27"
+    },
+    "bad-stil": {
+      "name": "Bad & Stil",
+      "maxPoints": 50,
+      "firstSeen": "2026-06-27",
+      "lastSeen": "2026-06-27"
+    },
+    "parfymno": {
+      "name": "Parfym.no",
+      "maxPoints": 75,
+      "firstSeen": "2026-06-27",
+      "lastSeen": "2026-06-27"
+    },
+    "husqvarna": {
+      "name": "Husqvarna",
+      "maxPoints": 50,
+      "firstSeen": "2026-06-27",
+      "lastSeen": "2026-06-27"
+    },
+    "volt": {
+      "name": "VOLT",
+      "maxPoints": 50,
+      "firstSeen": "2026-06-27",
+      "lastSeen": "2026-06-27"
+    },
+    "go-nordic-cruiseline": {
+      "name": "Go Nordic Cruiseline",
+      "maxPoints": 30,
+      "firstSeen": "2026-06-27",
+      "lastSeen": "2026-06-27"
+    },
+    "badno": {
+      "name": "Bad.no",
+      "maxPoints": 50,
+      "firstSeen": "2026-06-27",
+      "lastSeen": "2026-06-27"
+    },
+    "suitable": {
+      "name": "Suitable",
+      "maxPoints": 50,
+      "firstSeen": "2026-06-27",
+      "lastSeen": "2026-06-27"
+    }
+  }
+}

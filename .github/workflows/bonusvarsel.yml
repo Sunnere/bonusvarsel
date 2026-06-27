@@ -29,7 +29,26 @@ jobs:
           LANGUAGE: nb
           COUNTRY: no
           PER_PAGE: "100"
-        run: CHANNEL=SAS LANGUAGE=nb COUNTRY=no PER_PAGE=100 node scripts/collect-loyaltykey.mjs
+        run: NO_CACHE=1 CHANNEL=SAS LANGUAGE=nb COUNTRY=no PER_PAGE=100 node scripts/collect-loyaltykey.mjs
+
+      - name: Arkiver historikk
+        env:
+          DATA_DIR: data
+        run: node scripts/archive-history.mjs
+
+      - name: Bygg tier-meldinger
+        env:
+          DATA_DIR: data
+          DISPLAY_NAME: "SAS EuroBonus"
+        run: node scripts/build-tier-messages.mjs
+
+      - name: Commit historikk til repo
+        run: |
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+          git add data/history data/tier-messages.json 2>/dev/null || true
+          git commit -m "Arkiver historikk $(date +%Y-%m-%d)" 2>/dev/null || echo "Ingen endringer"
+          git push 2>/dev/null || echo "Ingenting å pushe"
 
       - name: Notify Telegram
         env:
@@ -38,7 +57,7 @@ jobs:
           PROGRAM: sas
           CHANNEL: SAS
           COUNTRY: no
-          DISPLAY_NAME: "Trumf Netthandel"
+          DISPLAY_NAME: "SAS EuroBonus"
           DATA_DIR: data
         run: |
           if [ ! -f "data/changes.json" ]; then

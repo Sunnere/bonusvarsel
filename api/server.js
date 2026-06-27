@@ -59,7 +59,48 @@ async function sendTelegram(message) {
   } catch (e) {
     console.error('Telegram feil:', e);
     return false;
-  }
+  
+
+// ── Portal-hjelpefunksjoner (script 28) ──────────────────────────────────────
+const SAS_BASE   = "https://onlineshopping.flysas.com/nb-NO/butikk/";
+const SAS_HOME   = "https://onlineshopping.flysas.com/nb-NO";
+const TRUMF_HOME = "https://trumfnetthandel.no";
+
+function bvOfferLink(c) {
+  if (c.source === 'trumf') return TRUMF_HOME;
+  if (c.source === 'elite') return c.url || SAS_HOME;
+  if (c.slug) return SAS_BASE + c.slug;
+  return SAS_HOME;
+}
+function bvPortalLabel(c) {
+  return c.source === 'trumf' ? 'Trumf Netthandel' : 'SAS Online Shopping';
+}
+function bvPortalColor(c) {
+  return c.source === 'trumf' ? '#1F7A4D' : '#0F2340';
+}
+function bvOfferCard(c) {
+  const link  = bvOfferLink(c);
+  const label = bvPortalLabel(c);
+  const color = bvPortalColor(c);
+  const pts   = c.multiplier ? `${c.multiplier}x poeng per 100 kr` : '';
+  return `<div style="background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:20px 24px;margin:12px 0;font-family:Arial,sans-serif;">
+  <div style="display:inline-block;background:${color};color:#fff;font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;margin-bottom:10px;letter-spacing:.5px;">${label.toUpperCase()}</div>
+  <div style="font-size:17px;font-weight:700;color:#111;">${c.title}</div>
+  ${pts ? `<div style="color:#555;font-size:14px;margin-top:4px;">${pts}</div>` : ''}
+  <a href="${link}" style="display:inline-block;margin-top:14px;background:#D4AF37;color:#000;font-weight:700;padding:10px 22px;border-radius:8px;text-decoration:none;font-size:14px;">Handle via ${label} →</a>
+</div>`;
+}
+function bvTelegramLine(c) {
+  const link  = bvOfferLink(c);
+  const label = bvPortalLabel(c);
+  const pts   = c.multiplier ? `${c.multiplier}x poeng` : '';
+  return `🏆 <a href="${link}">${c.title}</a>${pts ? ': ' + pts : ''} <i>via ${label}</i>`;
+}
+const BV_EMAIL_REMINDER = `<div style="background:#FFF8E1;border-left:4px solid #D4AF37;padding:14px 18px;margin:20px 0;border-radius:6px;font-family:Arial,sans-serif;"><b style="color:#7A5C00;">⚠️ Viktig!</b> <span style="color:#7A5C00;">Du må klikke deg inn og <b>logge inn via portalen</b> (Trumf Netthandel eller SAS Online Shopping) for å få poengene. Starter du direkte i butikken, registreres ingen bonus.</span></div>`;
+const BV_TG_REMINDER = `⚠️ Husk: Klikk deg inn og logg inn via portalen for å få poengene. Starter du direkte i butikken, registreres ingen bonus.`;
+
+
+}
 }
 
 
@@ -1153,26 +1194,25 @@ async function checkFavoritesAndNotify() {
       if (!newCampaigns.length) continue;
 
       // Send én samlet melding
-      const lines = newCampaigns
-        .sort((a, b) => (b.multiplier ?? 0) - (a.multiplier ?? 0))
-        .map(c => `• ${c.title}: ${c.multiplier}x bonus`)
-        .join('\n');
+      // lines erstattet av bvTelegramLine (script 28)
 
+      const tgLines = newCampaigns
+        .sort((a, b) => (b.multiplier ?? 0) - (a.multiplier ?? 0))
+        .map(c => bvTelegramLine(c))
+        .join('\n');
       const msg = newCampaigns.length === 1
-        ? `🔔 <b>${newCampaigns[0].title}</b> har ${newCampaigns[0].multiplier}x bonus akkurat nå!\n\nÅpne Bonusvarsel og gå til butikken via appen for å tjene ekstra poeng.`
-        : `🔔 <b>${newCampaigns.length} favorittbutikker har kampanje!</b>\n\n${lines}\n\nÅpne Bonusvarsel for å handle og tjene ekstra poeng.`;
+        ? `🔔 <b>${newCampaigns[0].title}</b> har ${newCampaigns[0].multiplier}x bonus akkurat nå!\n\n${bvTelegramLine(newCampaigns[0])}\n\n${BV_TG_REMINDER}`
+        : `🔔 <b>${newCampaigns.length} favorittbutikker har kampanje!</b>\n\n${tgLines}\n\n${BV_TG_REMINDER}`;
 
       const tgOk = await sendTelegram(msg);
 
       // Send e-post
       if (favs.email) {
-        const htmlLines = newCampaigns
+        const htmlCards = newCampaigns
           .sort((a,b) => (b.multiplier??0)-(a.multiplier??0))
-          .map(c => `<li><b>${c.title}</b>: ${c.multiplier}x bonus</li>`)
+          .map(c => bvOfferCard(c))
           .join('');
-        const htmlMsg = newCampaigns.length === 1
-          ? `<h2>🔔 ${newCampaigns[0].title} har ${newCampaigns[0].multiplier}x bonus akkurat nå!</h2><p>Åpne Bonusvarsel og gå til butikken via appen for å tjene ekstra poeng.</p>`
-          : `<h2>🔔 ${newCampaigns.length} favorittbutikker har kampanje!</h2><ul>${htmlLines}</ul><p>Åpne Bonusvarsel for å handle og tjene ekstra poeng.</p>`;
+        const htmlMsg = `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:24px;"><h2 style="color:#0F2340;">🔔 ${newCampaigns.length === 1 ? newCampaigns[0].title + ' har kampanje!' : newCampaigns.length + ' favorittbutikker har kampanje!'}</h2>${htmlCards}${BV_EMAIL_REMINDER}</div>`;
         await sendEmail(
           favs.email,
           '🔔 Bonusvarsel – kampanje hos favorittene dine!',

@@ -1168,7 +1168,7 @@ app.get("/v1/devices/favorites", (req, res) => {
 
 async function checkFavoritesAndNotify() {
   try {
-    const campaigns = await fetchCampaigns();
+    const campaigns = await fetchAllCampaigns('elite');
     if (!campaigns.length) return;
 
     for (const [deviceId, favs] of Object.entries(deviceFavorites)) {

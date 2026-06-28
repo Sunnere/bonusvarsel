@@ -1169,10 +1169,13 @@ app.get("/v1/devices/favorites", (req, res) => {
 async function checkFavoritesAndNotify() {
   try {
     const campaigns = await fetchAllCampaigns('elite');
-    if (!campaigns.length) return;
+    console.log('[DIAG] campaigns hentet:', campaigns.length);
+    if (!campaigns.length) { console.log('[DIAG] AVBRYTER: ingen kampanjer'); return; }
+    console.log('[DIAG] antall enheter:', Object.keys(deviceFavorites).length);
 
     for (const [deviceId, favs] of Object.entries(deviceFavorites)) {
       const allFavSlugs = [...(favs.trumf || []), ...(favs.sas || [])];
+      console.log('[DIAG] enhet', deviceId, 'favs:', JSON.stringify(allFavSlugs), 'email:', favs.email || 'INGEN');
       if (!allFavSlugs.length) continue;
 
       // Samle alle nye kampanjer i en liste
@@ -1191,7 +1194,8 @@ async function checkFavoritesAndNotify() {
         state.sentCampaignKeys.add(key);
       }
 
-      if (!newCampaigns.length) continue;
+      console.log('[DIAG] enhet', deviceId, 'matchede kampanjer:', newCampaigns.length, newCampaigns.map(c=>c.slug).join(','));
+      if (!newCampaigns.length) { console.log('[DIAG] enhet', deviceId, 'INGEN match – hopper over'); continue; }
 
       // Send én samlet melding
       // lines erstattet av bvTelegramLine (script 28)

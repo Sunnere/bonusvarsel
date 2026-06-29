@@ -1242,6 +1242,9 @@ app.post("/dev/reset-sent-keys", (req, res) => {
   res.json({ ok: true, message: "sentCampaignKeys nullstilt" });
 });
 
+
+app.get("/debug/env",(_,res)=>{res.json({TG_BOT_TOKEN:process.env.TG_BOT_TOKEN?process.env.TG_BOT_TOKEN.substring(0,10)+"...":"MANGLER",TG_CHAT_ID:process.env.TG_CHAT_ID||"MANGLER",ENABLE_DEV_ROUTES:process.env.ENABLE_DEV_ROUTES||"MANGLER",SENDGRID_API_KEY:process.env.SENDGRID_API_KEY?"OK":"MANGLER"});});
+
 app.listen(port, () => {
   console.log(`API running on http://127.0.0.1:${port}`);
   console.log(`DEV routes enabled: ${enableDevRoutes}`);

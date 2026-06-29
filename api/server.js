@@ -1169,6 +1169,7 @@ app.get("/v1/devices/favorites", (req, res) => {
 async function checkFavoritesAndNotify() {
   try {
     const campaigns = await fetchAllCampaigns('elite');
+    console.log(`[CHECKFAV] campaigns=${campaigns.length} devices=${Object.keys(deviceFavorites).length}`);
     console.log('[DIAG] campaigns hentet:', campaigns.length);
     if (!campaigns.length) { console.log('[DIAG] AVBRYTER: ingen kampanjer'); return; }
     console.log('[DIAG] antall enheter:', Object.keys(deviceFavorites).length);

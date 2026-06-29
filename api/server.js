@@ -1250,3 +1250,4 @@ app.listen(port, () => {
   console.log(`API running on http://127.0.0.1:${port}`);
   console.log(`DEV routes enabled: ${enableDevRoutes}`);
 });
+// deploy-trigger tir. 30 jun. 2026 00.08.24 CEST

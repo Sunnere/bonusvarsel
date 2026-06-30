@@ -80,9 +80,9 @@ function bvPortalColor(c) {
   return c.source === 'trumf' ? '#1F7A4D' : '#0F2340';
 }
 function bvPointsText(c) {
-  if (c.source === 'trumf') return `${c.multiplier}% Trumf-bonus`;
-  if (c.source === 'sas')   return `${c.multiplier}× EuroBonus-poeng`;
-  return c.multiplier ? `${c.multiplier}× poeng` : '';
+  if (c.source === 'trumf') return 'ekstra Trumf-bonus nå';
+  if (c.source === 'sas')   return 'ekstra EuroBonus-poeng nå';
+  return 'kampanje nå';
 }
 function bvOfferCard(c) {
   const link  = bvOfferLink(c);

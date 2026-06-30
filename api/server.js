@@ -79,11 +79,16 @@ function bvPortalLabel(c) {
 function bvPortalColor(c) {
   return c.source === 'trumf' ? '#1F7A4D' : '#0F2340';
 }
+function bvPointsText(c) {
+  if (c.source === 'trumf') return `${c.multiplier}% Trumf-bonus`;
+  if (c.source === 'sas')   return `${c.multiplier}× EuroBonus-poeng`;
+  return c.multiplier ? `${c.multiplier}× poeng` : '';
+}
 function bvOfferCard(c) {
   const link  = bvOfferLink(c);
   const label = bvPortalLabel(c);
   const color = bvPortalColor(c);
-  const pts   = c.multiplier ? `${c.multiplier}x poeng per 100 kr` : '';
+  const pts   = bvPointsText(c);
   return `<div style="background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:20px 24px;margin:12px 0;font-family:Arial,sans-serif;">
   <div style="display:inline-block;background:${color};color:#fff;font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;margin-bottom:10px;letter-spacing:.5px;">${label.toUpperCase()}</div>
   <div style="font-size:17px;font-weight:700;color:#111;">${c.title}</div>
@@ -94,7 +99,7 @@ function bvOfferCard(c) {
 function bvTelegramLine(c) {
   const link  = bvOfferLink(c);
   const label = bvPortalLabel(c);
-  const pts   = c.multiplier ? `${c.multiplier}x poeng` : '';
+  const pts   = bvPointsText(c);
   return `🏆 <a href="${link}">${c.title}</a>${pts ? ': ' + pts : ''} <i>via ${label}</i>`;
 }
 const BV_EMAIL_REMINDER = `<div style="background:#FFF8E1;border-left:4px solid #D4AF37;padding:14px 18px;margin:20px 0;border-radius:6px;font-family:Arial,sans-serif;"><b style="color:#7A5C00;">⚠️ Viktig!</b> <span style="color:#7A5C00;">Du må klikke deg inn og <b>logge inn via portalen</b> (Trumf Netthandel eller SAS Online Shopping) for å få poengene. Starter du direkte i butikken, registreres ingen bonus.</span></div>`;

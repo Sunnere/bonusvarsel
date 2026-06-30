@@ -59,7 +59,8 @@ async function sendTelegram(message) {
   } catch (e) {
     console.error('Telegram feil:', e);
     return false;
-  
+  }
+}
 
 // ── Portal-hjelpefunksjoner (script 28) ──────────────────────────────────────
 const SAS_BASE   = "https://onlineshopping.flysas.com/nb-NO/butikk/";
@@ -98,10 +99,6 @@ function bvTelegramLine(c) {
 }
 const BV_EMAIL_REMINDER = `<div style="background:#FFF8E1;border-left:4px solid #D4AF37;padding:14px 18px;margin:20px 0;border-radius:6px;font-family:Arial,sans-serif;"><b style="color:#7A5C00;">⚠️ Viktig!</b> <span style="color:#7A5C00;">Du må klikke deg inn og <b>logge inn via portalen</b> (Trumf Netthandel eller SAS Online Shopping) for å få poengene. Starter du direkte i butikken, registreres ingen bonus.</span></div>`;
 const BV_TG_REMINDER = `⚠️ Husk: Klikk deg inn og logg inn via portalen for å få poengene. Starter du direkte i butikken, registreres ingen bonus.`;
-
-
-}
-}
 
 
 const app = express();

@@ -29,7 +29,7 @@ async function sendEmail(to, subject, html) {
     console.log(`E-post sendt til ${to}`);
     return true;
   } catch (e) {
-    console.error('SendGrid feil:', e?.response?.body || String(e));
+    console.error('SendGrid feil DETALJER:', JSON.stringify(e?.response?.body) || String(e));
     return false;
   }
 }

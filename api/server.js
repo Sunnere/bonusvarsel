@@ -1,3 +1,4 @@
+
 import dotenv from 'dotenv';
 import sgMail from '@sendgrid/mail';
 dotenv.config();
@@ -68,8 +69,6 @@ const SAS_HOME   = "https://onlineshopping.flysas.com/nb-NO";
 const TRUMF_HOME = "https://trumfnetthandel.no";
 
 function bvOfferLink(c) {
-  // Trygg portal-hjem: gir alltid poeng, aldri 404.
-  // (Dype /butikk/-lenker finnes ikke og ga 404 – bekreftet.)
   if (c.source === 'trumf') return TRUMF_HOME;
   return SAS_HOME;
 }
@@ -305,8 +304,6 @@ function evaluateCampaign(item, reqBody = {}) {
 
 // ── Trumf Netthandel kampanjer ────────────────────────────────────────────────
 async function fetchTrumfCampaigns() {
-  // Trumf Netthandel - oppdatert juni 2026
-  // Disse endrer seg sjelden - oppdater manuelt ved behov
   const stores = [
     { title: 'Gina Tricot', slug: 'gina-tricot', points: 60, multiplier: 6 },
     { title: 'Outnorth', slug: 'outnorth', points: 50, multiplier: 5 },
@@ -328,7 +325,6 @@ async function fetchTrumfCampaigns() {
 
 // ── SAS Holidays / Elite-tilbud ──────────────────────────────────────────────
 async function fetchEliteCampaigns() {
-  // SAS Holidays-kampanjer - oppdateres manuelt ved nye tilbud
   const holidays = [
     {
       title: 'SAS Holidays: Spar 2 000 kr',
@@ -361,7 +357,6 @@ async function fetchAllCampaigns(plan = 'free') {
     ...eliteCampaigns.map(c => ({ ...c, source: 'elite', minPlan: 'elite' })),
   ];
 
-  // Filtrer på abonnement
   const planLevel = { free: 0, premium: 1, elite: 2 };
   const userLevel = planLevel[plan] ?? 0;
 
@@ -393,7 +388,6 @@ async function runSimulation(reqBody = {}) {
     };
   });
 
-  // I dev-modus: nullstill dedup så vi alltid ser varsler
   if (reqBody.devMode !== false) state.sentCampaignKeys = new Set();
 
   const shouldNotifyItems = evaluated.filter((item) => item.evaluation.shouldNotify);
@@ -435,7 +429,7 @@ async function runSimulation(reqBody = {}) {
     lastUpdated: nowIso(),
     source: seeded.length > 0 ? "seeded+live" : "sas-live",
     summary: `scanned=${scanned} • notifyCandidates=${shouldNotifyItems.length} • queued=${queued} • dispatched=${dispatched}`,
-    recentCampaigns: prioritized.slice(0, 5).map((item) => ({
+    recentCampaigns: evaluated.slice(0, 5).map((item) => ({
       title: item.title,
       multiplier: item.multiplier,
       url: item.url,
@@ -590,7 +584,6 @@ app.post("/v1/push/simulate-alert", express.json(), (req, res) => {
     }
   };
 
-  // Lagre i state og send til Telegram
   if (result.evaluation.shouldNotify) {
     const slug = req.body?.slug || 'butikk';
     const tgMsg = `🔔 <b>${result.offer.rateText} bonus hos ${slug}</b>\n${result.evaluation.reason}\n\nScore: ${result.evaluation.score}`;
@@ -1181,11 +1174,9 @@ async function checkFavoritesAndNotify() {
       console.log('[DIAG] enhet', deviceId, 'favs:', JSON.stringify(allFavSlugs), 'email:', favs.email || 'INGEN');
       if (!allFavSlugs.length) continue;
 
-      // Samle alle nye kampanjer i en liste
       const newCampaigns = [];
       for (const campaign of campaigns) {
         if (!campaign.slug) continue;
-        // Normaliser - appen bruker tn_outnorth, API returnerer outnorth
         const normalizedFavSlugs = allFavSlugs.map(s => 
           s.replace(/^tn_/, '').replace(/^sas_/, ''));
         const normalizedCampaignSlug = campaign.slug.replace(/^tn_/, '').replace(/^sas_/, '');
@@ -1200,9 +1191,6 @@ async function checkFavoritesAndNotify() {
       console.log('[DIAG] enhet', deviceId, 'matchede kampanjer:', newCampaigns.length, newCampaigns.map(c=>c.slug).join(','));
       if (!newCampaigns.length) { console.log('[DIAG] enhet', deviceId, 'INGEN match – hopper over'); continue; }
 
-      // Send én samlet melding
-      // lines erstattet av bvTelegramLine (script 28)
-
       const tgLines = newCampaigns
         .sort((a, b) => (b.multiplier ?? 0) - (a.multiplier ?? 0))
         .map(c => bvTelegramLine(c))
@@ -1213,7 +1201,6 @@ async function checkFavoritesAndNotify() {
 
       const tgOk = await sendTelegram(msg);
 
-      // Send e-post
       if (favs.email) {
         const htmlCards = newCampaigns
           .sort((a,b) => (b.multiplier??0)-(a.multiplier??0))
@@ -1244,9 +1231,6 @@ app.post("/dev/reset-sent-keys", (req, res) => {
   state.sentCampaignKeys = new Set();
   res.json({ ok: true, message: "sentCampaignKeys nullstilt" });
 });
-
-
-app.get("/debug/env",(_,res)=>{res.json({TG_BOT_TOKEN:process.env.TG_BOT_TOKEN?process.env.TG_BOT_TOKEN.substring(0,10)+"...":"MANGLER",TG_CHAT_ID:process.env.TG_CHAT_ID||"MANGLER",ENABLE_DEV_ROUTES:process.env.ENABLE_DEV_ROUTES||"MANGLER",SENDGRID_API_KEY:process.env.SENDGRID_API_KEY?"OK":"MANGLER"});});
 
 app.listen(port, () => {
   console.log(`API running on http://127.0.0.1:${port}`);

@@ -1165,13 +1165,10 @@ async function checkFavoritesAndNotify() {
   try {
     const campaigns = await fetchAllCampaigns('elite');
     console.log(`[CHECKFAV] campaigns=${campaigns.length} devices=${Object.keys(deviceFavorites).length}`);
-    console.log('[DIAG] campaigns hentet:', campaigns.length);
-    if (!campaigns.length) { console.log('[DIAG] AVBRYTER: ingen kampanjer'); return; }
-    console.log('[DIAG] antall enheter:', Object.keys(deviceFavorites).length);
+    if (!campaigns.length) return;
 
     for (const [deviceId, favs] of Object.entries(deviceFavorites)) {
       const allFavSlugs = [...(favs.trumf || []), ...(favs.sas || [])];
-      console.log('[DIAG] enhet', deviceId, 'favs:', JSON.stringify(allFavSlugs), 'email:', favs.email || 'INGEN');
       if (!allFavSlugs.length) continue;
 
       const newCampaigns = [];
@@ -1187,9 +1184,7 @@ async function checkFavoritesAndNotify() {
         newCampaigns.push(campaign);
         state.sentCampaignKeys.add(key);
       }
-
-      console.log('[DIAG] enhet', deviceId, 'matchede kampanjer:', newCampaigns.length, newCampaigns.map(c=>c.slug).join(','));
-      if (!newCampaigns.length) { console.log('[DIAG] enhet', deviceId, 'INGEN match – hopper over'); continue; }
+      if (!newCampaigns.length) continue;
 
       const tgLines = newCampaigns
         .sort((a, b) => (b.multiplier ?? 0) - (a.multiplier ?? 0))

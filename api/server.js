@@ -13,6 +13,7 @@ import cors from "cors";
 import fetch from "node-fetch";
 import * as cheerio from "cheerio";
 import * as sentKeysStore from './lib/sentKeysStore.js';
+import { initMonitor, startMonitor, runMonitorCheck, monitorStatus } from './lib/monitor.js';
 
 
 // ── E-post sending via SendGrid ───────────────────────────────────────────────
@@ -470,6 +471,7 @@ app.get("/health", (_, res) => {
     version: appVersion,
     devRoutesEnabled: enableDevRoutes,
     sentKeys: sentKeysStore.status(),
+    monitor: monitorStatus(),
     pipeline: buildPipelineState(),
   });
 });
@@ -1229,6 +1231,19 @@ app.post("/dev/reset-sent-keys", async (req, res) => {
   await sentKeysStore.reset();
   res.json({ ok: true, message: "sentCampaignKeys nullstilt (minne + Firestore)", store: sentKeysStore.status() });
 });
+
+app.post("/dev/monitor-check", async (req, res) => {
+  try {
+    const result = await runMonitorCheck();
+    res.json({ ok: true, result });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: String(e) });
+  }
+});
+
+const monitorIntervalMs = Number(process.env.MONITOR_INTERVAL_MS || 30 * 60 * 1000);
+initMonitor({ fetchAllCampaigns, sendTelegram });
+startMonitor(monitorIntervalMs);
 
 sentKeysStore.init();
 sentKeysStore.warmUp().catch((e) => console.error('[sentKeysStore] warmUp error:', e));

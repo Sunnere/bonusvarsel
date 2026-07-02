@@ -12,6 +12,7 @@ import express from "express";
 import cors from "cors";
 import fetch from "node-fetch";
 import * as cheerio from "cheerio";
+import * as sentKeysStore from './lib/sentKeysStore.js';
 
 
 // ── E-post sending via SendGrid ───────────────────────────────────────────────
@@ -468,6 +469,7 @@ app.get("/health", (_, res) => {
     api: "up",
     version: appVersion,
     devRoutesEnabled: enableDevRoutes,
+    sentKeys: sentKeysStore.status(),
     pipeline: buildPipelineState(),
   });
 });
@@ -1180,9 +1182,9 @@ async function checkFavoritesAndNotify() {
         if (!normalizedFavSlugs.includes(normalizedCampaignSlug)) continue;
         if ((campaign.multiplier ?? 1) <= 1) continue;
         const key = `${deviceId}-${campaign.slug}-${campaign.multiplier}`;
-        if (state.sentCampaignKeys.has(key)) continue;
+        if (sentKeysStore.has(key)) continue;
         newCampaigns.push(campaign);
-        state.sentCampaignKeys.add(key);
+        await sentKeysStore.add(key);
       }
       if (!newCampaigns.length) continue;
 
@@ -1222,10 +1224,14 @@ app.post("/dev/check-favorites", async (req, res) => {
 });
 
 
-app.post("/dev/reset-sent-keys", (req, res) => {
+app.post("/dev/reset-sent-keys", async (req, res) => {
   state.sentCampaignKeys = new Set();
-  res.json({ ok: true, message: "sentCampaignKeys nullstilt" });
+  await sentKeysStore.reset();
+  res.json({ ok: true, message: "sentCampaignKeys nullstilt (minne + Firestore)", store: sentKeysStore.status() });
 });
+
+sentKeysStore.init();
+sentKeysStore.warmUp().catch((e) => console.error('[sentKeysStore] warmUp error:', e));
 
 app.listen(port, () => {
   console.log(`API running on http://127.0.0.1:${port}`);

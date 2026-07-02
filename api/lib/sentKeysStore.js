@@ -1,9 +1,10 @@
-// lib/sentKeysStore.js (ESM)
+// lib/sentKeysStore.js (ESM, firebase-admin v13+/v14 modulært API)
 // Persistent lagring av sentCampaignKeys i Firestore.
 // Faller tilbake til ren minne-modus hvis FIREBASE_SERVICE_ACCOUNT mangler
 // eller Firestore feiler – serveren skal aldri krasje pga. dette.
 
-import admin from 'firebase-admin';
+import { initializeApp, cert, getApps } from 'firebase-admin/app';
+import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 
 const COLLECTION = 'sentCampaignKeys';
 
@@ -19,10 +20,15 @@ export function init() {
   }
   try {
     const creds = JSON.parse(raw);
-    if (!admin.apps.length) {
-      admin.initializeApp({ credential: admin.credential.cert(creds) });
+    // Reparer private_key hvis \n ble dobbelt-escapet ved liming i Railway
+    if (typeof creds.private_key === 'string' && creds.private_key.includes('\\n')) {
+      creds.private_key = creds.private_key.replace(/\\n/g, '\n');
+      console.log('[sentKeysStore] private_key normalisert (\\n -> linjeskift)');
     }
-    db = admin.firestore();
+    if (!getApps().length) {
+      initializeApp({ credential: cert(creds) });
+    }
+    db = getFirestore();
     mode = 'firestore';
     console.log('[sentKeysStore] Firestore aktivert (prosjekt: ' + creds.project_id + ')');
   } catch (err) {
@@ -55,7 +61,7 @@ export async function add(key) {
   try {
     await db.collection(COLLECTION).doc(id).set({
       key: String(key),
-      sentAt: admin.firestore.FieldValue.serverTimestamp(),
+      sentAt: FieldValue.serverTimestamp(),
     });
   } catch (err) {
     console.error('[sentKeysStore] Klarte ikke å lagre nøkkel i Firestore:', err.message);

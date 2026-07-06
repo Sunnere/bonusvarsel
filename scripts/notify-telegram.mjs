@@ -1,3 +1,11 @@
+- name: Debug secrets (fjern etter feilsøking)
+        run: |
+          echo "TG_CHAT_ID lengde: ${#TG_CHAT_ID} tegn"
+          echo "TG_CHAT_ID verdi: '$TG_CHAT_ID'"
+          echo "TG_BOT_TOKEN lengde: ${#TG_BOT_TOKEN} tegn"
+        env:
+          TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
+          TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
 // scripts/notify-telegram.mjs
 
 export async function sendTelegram(message, opts = {}) {

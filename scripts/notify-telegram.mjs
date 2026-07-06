@@ -4,14 +4,9 @@ export async function sendTelegram(message, opts = {}) {
   const chatId = process.env.TG_CHAT_ID;
   if (!token) throw new Error("Missing env var: TG_BOT_TOKEN");
   if (!chatId) throw new Error("Missing env var: TG_CHAT_ID");
-
-  console.log(`DEBUG: TG_CHAT_ID lengde = ${chatId.length} tegn`);
-  console.log(`DEBUG: TG_CHAT_ID verdi  = '${chatId}'`);
-  console.log(`DEBUG: TG_BOT_TOKEN lengde = ${token.length} tegn`);
-  console.log(`DEBUG: TG_BOT_TOKEN starter med = '${token.slice(0, 10)}...'`);
-
   const parseMode = opts.parse_mode ?? "HTML";
   const disablePreview = opts.disable_web_page_preview ?? true;
+  // Telegram hard-limit er 4096 tegn per melding
   const chunks = splitTelegram(String(message ?? ""), 4000);
   for (const text of chunks) {
     const url = `https://api.telegram.org/bot${token}/sendMessage`;
@@ -27,10 +22,12 @@ export async function sendTelegram(message, opts = {}) {
     });
     if (!res.ok) {
       const txt = await res.text();
+      // 404 => nesten alltid feil token (eller token med feil tegn/whitespace)
       throw new Error(`Telegram API error ${res.status}: ${txt}`);
     }
   }
 }
+// Splitt på linjeskift hvis mulig (snillere enn å kutte midt i ord)
 function splitTelegram(text, maxLen) {
   if (!text) return [""];
   if (text.length <= maxLen) return [text];
@@ -45,6 +42,7 @@ function splitTelegram(text, maxLen) {
     }
     if (buf) out.push(buf);
     buf = line;
+    // hvis en enkelt linje er ekstremt lang, hard-kutt den
     while (buf.length > maxLen) {
       out.push(buf.slice(0, maxLen));
       buf = buf.slice(maxLen);

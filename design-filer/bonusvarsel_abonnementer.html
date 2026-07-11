@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Abonnementer – Bonusvarsel</title>
+<meta name="theme-color" content="#0e1208">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:       #0e1208;
+  --mid:      #161d0a;
+  --lift:     #1f2a10;
+  --high:     #283615;
+  --border:   rgba(125,186,122,0.15);
+  --border2:  rgba(201,149,106,0.15);
+  --green:    #7dba7a;
+  --green2:   #a8d4a6;
+  --green3:   #4a8a48;
+  --gold:     #c9956a;
+  --gold2:    #e8c4a0;
+  --gold3:    #9a6840;
+  --t1:       #f0f7ee;
+  --t2:       rgba(240,247,238,0.62);
+  --t3:       rgba(240,247,238,0.32);
+  --t4:       rgba(240,247,238,0.12);
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{
+  background:var(--bg);color:var(--t1);
+  font-family:'DM Sans',sans-serif;
+  font-size:16px;line-height:1.65;
+  overflow-x:hidden;-webkit-font-smoothing:antialiased;
+}
+body::before{
+  content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
+  background:
+    radial-gradient(ellipse 800px 600px at 15% 5%,  rgba(125,186,122,0.07),transparent),
+    radial-gradient(ellipse 600px 800px at 85% 90%, rgba(201,149,106,0.05),transparent),
+    radial-gradient(ellipse 1000px 400px at 50% 50%,rgba(74,138,72,0.04),transparent);
+}
+body::after{
+  content:'';position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.022;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size:180px;
+}
+
+.wrap{max-width:1100px;margin:0 auto;padding:0 32px;position:relative;z-index:1;}
+.wrap-sm{max-width:680px;margin:0 auto;padding:0 32px;position:relative;z-index:1;}
+
+/* NAV */
+nav{
+  position:sticky;top:0;z-index:100;
+  background:rgba(10,14,6,0.92);backdrop-filter:blur(24px);
+  border-bottom:1px solid var(--border);
+}
+.nav-inner{
+  max-width:1100px;margin:0 auto;padding:0 32px;
+  display:flex;align-items:center;justify-content:space-between;height:60px;
+}
+.nav-logo{
+  display:flex;align-items:center;gap:9px;
+  font-family:'Cormorant Garamond',serif;
+  font-size:1.25rem;font-weight:500;color:var(--green2);
+  text-decoration:none;
+}
+.nav-logo img{width:28px;height:28px;border-radius:7px;}
+.nav-back{
+  font-size:.78rem;color:var(--t3);text-decoration:none;
+  border:1px solid var(--border);padding:6px 14px;border-radius:50px;
+  transition:color .2s,border-color .2s;
+}
+.nav-back:hover{color:var(--green2);border-color:rgba(125,186,122,0.35);}
+
+/* HERO */
+.hero{
+  padding:80px 0 64px;text-align:center;
+  border-bottom:1px solid var(--border);
+  position:relative;overflow:hidden;
+}
+.hero-orb{position:absolute;border-radius:50%;pointer-events:none;}
+.o1{width:500px;height:500px;top:-120px;right:-80px;background:radial-gradient(circle,rgba(125,186,122,0.09),transparent 65%);}
+.o2{width:400px;height:400px;bottom:-80px;left:-80px;background:radial-gradient(circle,rgba(201,149,106,0.07),transparent 65%);}
+
+.hero-badge{
+  display:inline-flex;align-items:center;gap:6px;
+  background:rgba(125,186,122,0.1);
+  border:1px solid rgba(125,186,122,0.25);
+  color:var(--green2);font-size:.68rem;font-weight:500;
+  letter-spacing:.1em;text-transform:uppercase;
+  padding:5px 14px;border-radius:999px;margin-bottom:24px;
+  position:relative;z-index:1;
+}
+.hero-dot{width:5px;height:5px;border-radius:50%;background:var(--green);animation:pulse 2s ease-in-out infinite;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.4;}}
+
+.hero h1{
+  font-family:'Cormorant Garamond',serif;
+  font-size:clamp(2.4rem,5.5vw,4rem);
+  font-weight:300;line-height:1.08;letter-spacing:-.025em;
+  color:var(--t1);margin-bottom:18px;position:relative;z-index:1;
+}
+.hero h1 em{font-style:italic;color:var(--green2);}
+.hero h1 .gold{color:var(--gold2);}
+.hero-sub{
+  color:var(--t2);font-size:.98rem;font-weight:300;
+  max-width:520px;margin:0 auto;line-height:1.8;
+  position:relative;z-index:1;
+}
+
+/* CATEGORY LABELS */
+.cat-label{
+  display:flex;align-items:center;gap:10px;
+  margin:64px 0 28px;
+}
+.cat-label-line{flex:1;height:1px;background:var(--border);}
+.cat-label-text{
+  font-size:.68rem;font-weight:600;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--green);
+  white-space:nowrap;
+}
+
+/* PLAN GRID */
+.plans-grid{
+  display:grid;grid-template-columns:repeat(3,1fr);
+  gap:14px;margin-bottom:14px;
+}
+.plans-grid-2{
+  display:grid;grid-template-columns:repeat(2,1fr);
+  gap:14px;max-width:740px;
+}
+
+/* PLAN CARD */
+.plan{
+  background:var(--mid);
+  border:1px solid var(--border);
+  border-radius:18px;padding:28px;
+  position:relative;overflow:hidden;
+  transition:border-color .25s, background .25s;
+}
+.plan:hover{background:var(--lift);}
+.plan.featured{
+  border-color:rgba(125,186,122,0.4);
+  box-shadow:0 0 40px rgba(125,186,122,0.06);
+}
+.plan.elite{
+  background:linear-gradient(155deg,#1a2a0a,#0e1208);
+  border-color:rgba(201,149,106,0.35);
+}
+.plan.partner-sub{
+  background:linear-gradient(155deg,#0e1a08,#0e1208);
+  border-color:rgba(125,186,122,0.35);
+}
+.plan.partner-prov{
+  background:linear-gradient(155deg,#1a2a0a,#0e1208);
+  border-color:rgba(201,149,106,0.3);
+}
+
+/* Plan glow accent top */
+.plan::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:2px;
+  background:transparent;transition:background .25s;
+}
+.plan.featured::before{background:linear-gradient(90deg,transparent,rgba(125,186,122,0.5),transparent);}
+.plan.elite::before{background:linear-gradient(90deg,transparent,rgba(201,149,106,0.5),transparent);}
+.plan.partner-sub::before{background:linear-gradient(90deg,transparent,rgba(125,186,122,0.4),transparent);}
+.plan.partner-prov::before{background:linear-gradient(90deg,transparent,rgba(201,149,106,0.4),transparent);}
+
+.plan-badge{
+  position:absolute;top:14px;right:14px;
+  font-size:.58rem;font-weight:700;
+  padding:3px 9px;border-radius:999px;
+  letter-spacing:.06em;text-transform:uppercase;
+}
+.pb-green {background:rgba(125,186,122,0.14);border:1px solid rgba(125,186,122,0.28);color:var(--green2);}
+.pb-gold  {background:rgba(201,149,106,0.14);border:1px solid rgba(201,149,106,0.28);color:var(--gold2);}
+.pb-free  {background:rgba(240,247,238,0.06);border:1px solid rgba(240,247,238,0.12);color:var(--t3);}
+
+.plan-icon{font-size:1.6rem;margin-bottom:12px;}
+
+.plan-name{
+  font-family:'Cormorant Garamond',serif;
+  font-size:1.35rem;font-weight:400;
+  color:var(--green2);margin-bottom:4px;
+}
+.plan.elite .plan-name{color:var(--gold2);}
+.plan.partner-prov .plan-name{color:var(--gold2);}
+
+.plan-price{
+  font-family:'Cormorant Garamond',serif;
+  font-size:2.4rem;font-weight:300;line-height:1;
+  color:var(--t1);margin-bottom:4px;
+}
+.plan-price .kr{font-size:1rem;font-weight:300;}
+.plan-price .per{font-size:.78rem;color:var(--t3);font-weight:300;}
+
+.plan-note{color:var(--t3);font-size:.7rem;margin-bottom:18px;}
+
+.plan-feats{list-style:none;margin-bottom:24px;}
+.plan-feats li{
+  display:flex;align-items:flex-start;gap:8px;
+  font-size:.82rem;padding:4px 0;color:var(--t2);
+}
+.plan-feats li.dim{color:var(--t3);}
+.ck{color:var(--green);flex-shrink:0;font-size:.88rem;}
+.cx{color:rgba(240,120,120,.4);flex-shrink:0;font-size:.88rem;}
+
+.plan-btn{
+  display:block;width:100%;padding:13px;
+  border-radius:50px;border:none;
+  font-size:.85rem;font-weight:500;
+  font-family:'DM Sans',sans-serif;
+  cursor:pointer;text-decoration:none;text-align:center;
+  transition:opacity .2s,transform .1s;
+}
+.plan-btn:active{transform:scale(.97);}
+.plan-btn:hover{opacity:.85;}
+.plan-btn+.plan-btn{margin-top:8px;}
+
+.pb-btn-green{background:linear-gradient(135deg,var(--green),var(--green3));color:#0a1408;}
+.pb-btn-gold {background:linear-gradient(135deg,var(--gold),var(--gold3));color:#0a0805;}
+.pb-btn-out  {background:transparent;color:var(--t2);border:1px solid var(--border);}
+.pb-btn-dark {background:rgba(240,247,238,0.07);color:var(--t1);border:1px solid var(--border);}
+
+/* AI BOOKING PLANS */
+.ai-plan{
+  background:var(--mid);border:1px solid var(--border2);
+  border-radius:18px;padding:28px;position:relative;overflow:hidden;
+  transition:background .25s;
+}
+.ai-plan:hover{background:var(--lift);}
+.ai-plan.feat{
+  background:linear-gradient(155deg,#1f1408,#0e0c06);
+  border-color:rgba(201,149,106,0.4);
+}
+.ai-plan::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:2px;
+  background:linear-gradient(90deg,transparent,rgba(201,149,106,0.4),transparent);
+}
+
+.ai-plan-name{
+  font-family:'Cormorant Garamond',serif;
+  font-size:1.35rem;font-weight:400;color:var(--gold2);margin-bottom:4px;
+}
+.ai-plan-price{
+  font-family:'Cormorant Garamond',serif;
+  font-size:2.4rem;font-weight:300;color:var(--t1);line-height:1;margin-bottom:4px;
+}
+.ai-plan-per{font-size:.78rem;color:var(--t3);margin-bottom:4px;}
+.ai-plan-note{color:var(--t3);font-size:.7rem;margin-bottom:18px;}
+.ai-plan-feats{list-style:none;margin-bottom:24px;}
+.ai-plan-feats li{
+  display:flex;align-items:flex-start;gap:8px;
+  font-size:.82rem;padding:4px 0;color:var(--t2);border-bottom:1px solid var(--t4);
+}
+.ai-plan-feats li:last-child{border-bottom:none;}
+.ai-plan-feats li::before{content:'✓';color:var(--green);font-size:.78rem;flex-shrink:0;}
+
+/* TRUST ROW */
+.trust-row{
+  display:flex;justify-content:center;gap:22px;
+  margin-top:24px;flex-wrap:wrap;
+}
+.trust-item{
+  display:flex;align-items:center;gap:6px;
+  color:var(--t3);font-size:.72rem;
+}
+.tc{color:var(--green);}
+
+/* COMPARISON TABLE */
+.compare-wrap{margin:56px 0;}
+.compare-table{
+  width:100%;border-collapse:collapse;
+  font-size:.82rem;
+}
+.compare-table th{
+  font-family:'Cormorant Garamond',serif;
+  font-size:1rem;font-weight:400;
+  color:var(--green2);
+  padding:14px 16px;text-align:left;
+  border-bottom:1px solid var(--border);
+  background:var(--mid);
+}
+.compare-table th:first-child{color:var(--t3);font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;}
+.compare-table td{
+  padding:11px 16px;color:var(--t2);
+  border-bottom:1px solid var(--t4);
+  vertical-align:middle;
+}
+.compare-table tr:last-child td{border-bottom:none;}
+.compare-table td:first-child{color:var(--t3);font-size:.8rem;}
+.ct-check{color:var(--green);font-size:1rem;}
+.ct-cross{color:rgba(240,100,100,.4);font-size:.9rem;}
+.compare-table tr:hover td{background:rgba(125,186,122,0.03);}
+
+/* PARTNER FORM */
+.partner-section{margin-top:20px;}
+.form-card{
+  background:var(--mid);border:1px solid var(--border);
+  border-radius:18px;padding:36px;max-width:580px;
+}
+.form-card h3{
+  font-family:'Cormorant Garamond',serif;
+  font-size:1.5rem;font-weight:400;color:var(--green2);margin-bottom:6px;
+}
+.form-card p{color:var(--t2);font-size:.88rem;margin-bottom:24px;}
+
+.form-group{margin-bottom:16px;}
+.form-group label{
+  display:block;font-size:.75rem;font-weight:500;
+  color:var(--t3);letter-spacing:.05em;text-transform:uppercase;
+  margin-bottom:6px;
+}
+.form-input,.form-select,.form-textarea{
+  width:100%;
+  background:var(--lift);border:1px solid var(--border);
+  color:var(--t1);
+  padding:12px 16px;border-radius:12px;
+  font-size:.9rem;font-family:'DM Sans',sans-serif;
+  outline:none;transition:border-color .2s;
+  -webkit-appearance:none;
+}
+.form-input::placeholder,.form-textarea::placeholder{color:var(--t3);}
+.form-input:focus,.form-select:focus,.form-textarea:focus{border-color:rgba(125,186,122,0.45);}
+.form-select{cursor:pointer;}
+.form-select option{background:var(--lift);color:var(--t1);}
+.form-textarea{resize:vertical;min-height:80px;line-height:1.5;}
+
+.partner-type-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;}
+.type-option{
+  background:var(--lift);border:1px solid var(--border);
+  border-radius:12px;padding:14px 16px;cursor:pointer;
+  transition:all .2s;
+}
+.type-option:hover{border-color:rgba(125,186,122,0.35);}
+.type-option.selected{
+  border-color:rgba(125,186,122,0.45);
+  background:rgba(125,186,122,0.08);
+}
+.type-option input{display:none;}
+.type-option-name{
+  font-family:'Cormorant Garamond',serif;
+  font-size:1rem;font-weight:400;color:var(--green2);margin-bottom:3px;
+}
+.type-option-price{font-size:.75rem;color:var(--t3);}
+
+.submit-btn{
+  width:100%;padding:14px;border-radius:50px;border:none;
+  background:linear-gradient(135deg,var(--green),var(--green3));
+  color:#0a1408;font-size:.95rem;font-weight:600;
+  font-family:'DM Sans',sans-serif;cursor:pointer;
+  box-shadow:0 8px 24px rgba(125,186,122,0.25);
+  transition:opacity .2s,transform .1s;
+  margin-top:8px;
+}
+.submit-btn:hover{opacity:.88;}
+.submit-btn:active{transform:scale(.97);}
+
+/* SUCCESS STATE */
+.success-card{
+  display:none;
+  background:rgba(125,186,122,0.08);
+  border:1px solid rgba(125,186,122,0.25);
+  border-radius:18px;padding:36px;
+  text-align:center;max-width:580px;
+}
+.success-card.show{display:block;}
+.success-emoji{font-size:3rem;margin-bottom:16px;}
+.success-card h3{
+  font-family:'Cormorant Garamond',serif;
+  font-size:1.6rem;font-weight:400;color:var(--green2);margin-bottom:8px;
+}
+.success-card p{color:var(--t2);font-size:.9rem;}
+
+/* FOOTER */
+footer{
+  background:rgba(8,12,4,0.9);
+  border-top:1px solid var(--border);
+  padding:28px 32px;text-align:center;margin-top:80px;
+}
+footer p{color:var(--t3);font-size:.72rem;font-weight:300;}
+footer a{color:var(--green);text-decoration:none;}
+
+/* ANIMATIONS */
+@keyframes fadeUp{from{opacity:0;transform:translateY(14px);}to{opacity:1;transform:translateY(0);}}
+.fu{animation:fadeUp .55s ease both;}
+.fu1{animation-delay:.08s;}
+.fu2{animation-delay:.16s;}
+.fu3{animation-delay:.24s;}
+
+/* RESPONSIVE */
+@media(max-width:900px){
+  .plans-grid{grid-template-columns:1fr;}
+  .plans-grid-2{grid-template-columns:1fr;}
+  .partner-type-grid{grid-template-columns:1fr;}
+}
+@media(max-width:600px){
+  .wrap,.wrap-sm{padding:0 20px;}
+  .hero{padding:60px 0 50px;}
+  .hero h1{font-size:2.4rem;}
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-inner">
+    <a class="nav-logo" href="https://bonusvarsel.no">
+      <img src="https://8d6c38fd05.clvaw-cdnwnd.com/10aeb9f09a21de936b6c7e2a68f16aae/200000082-a4f79a4f7b/EFC235A9-27EB-4B76-8032-EE9DCBE1D8CE.png?ph=8d6c38fd05" alt="Bonusvarsel">
+      ✦ Bonusvarsel
+    </a>
+    <a href="https://bonusvarsel.no" class="nav-back">← Tilbake</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-orb o1"></div>
+  <div class="hero-orb o2"></div>
+  <div class="wrap-sm">
+    <div class="hero-badge fu"><span class="hero-dot"></span> Alle planer samlet</div>
+    <h1 class="fu fu1">Finn planen som<br><em>passer deg</em></h1>
+    <p class="hero-sub fu fu2">Bonusvarsel-appen, BonusShop og AI-booking — se alle abonnementer på ett sted. Start gratis, oppgrader når du vil.</p>
+  </div>
+</section>
+
+<div style="padding:0 0 80px;">
+  <div class="wrap">
+
+    <!-- ══ BONUSVARSEL APP ══ -->
+    <div class="cat-label">
+      <div class="cat-label-line"></div>
+      <div class="cat-label-text">✈️ Bonusvarsel-appen</div>
+      <div class="cat-label-line"></div>
+    </div>
+
+    <div class="plans-grid fu">
+      <!-- GRATIS -->
+      <div class="plan">
+        <div class="plan-badge pb-free">Gratis</div>
+        <div class="plan-icon">🎯</div>
+        <div class="plan-name">Gratis</div>
+        <div class="plan-price"><span class="kr">NOK </span>0<span class="per"> /mnd</span></div>
+        <p class="plan-note">Kom i gang — ingen kortinfo</p>
+        <ul class="plan-feats">
+          <li><span class="ck">✓</span> Trumf-kalkulator</li>
+          <li><span class="ck">✓</span> Dagligvare-favoritter (KIWI, MENY, SPAR)</li>
+          <li><span class="ck">✓</span> Mobiloperatør (Talkmore)</li>
+          <li><span class="ck">✓</span> Strøm (Fjordkraft)</li>
+          <li class="dim"><span class="cx">✗</span> Trumf Netthandel-favoritter</li>
+          <li class="dim"><span class="cx">✗</span> SAS Shopping-favoritter</li>
+          <li class="dim"><span class="cx">✗</span> AI-slagplan</li>
+          <li class="dim"><span class="cx">✗</span> SkyTeam-varsler</li>
+        </ul>
+        <a href="https://apps.apple.com/no/app/bonusvarsel/id6743344591" class="plan-btn pb-btn-out">🍎 Last ned for iPhone</a>
+        <a href="https://play.google.com/store/apps/details?id=com.royrotvold.bonusvarsel" class="plan-btn" style="background:rgba(46,168,74,0.15);color:#7dba7a;border:1px solid rgba(46,168,74,0.25);border-radius:50px;display:block;width:100%;padding:13px;text-align:center;text-decoration:none;font-size:.85rem;font-weight:500;margin-top:8px;transition:opacity .2s;">▶ Last ned for Android</a>
+      </div>
+
+      <!-- PREMIUM -->
+      <div class="plan featured">
+        <div class="plan-badge pb-green">Mest populær</div>
+        <div class="plan-icon">⭐</div>
+        <div class="plan-name">Premium</div>
+        <div class="plan-price"><span class="kr">NOK </span>49<span class="per"> /mnd</span></div>
+        <p class="plan-note">Inkl. moms · Ingen binding</p>
+        <ul class="plan-feats">
+          <li><span class="ck">✓</span> Alt i Gratis</li>
+          <li><span class="ck">✓</span> 5 Trumf Netthandel-favoritter</li>
+          <li><span class="ck">✓</span> 5 SAS Online Shopping-favoritter</li>
+          <li><span class="ck">✓</span> AI-slagplan ubegrenset</li>
+          <li><span class="ck">✓</span> SAS fly-tilbudsvarsler</li>
+          <li><span class="ck">✓</span> Personlige varsler</li>
+          <li class="dim"><span class="cx">✗</span> SAS Bonusreiser-oversikt</li>
+          <li class="dim"><span class="cx">✗</span> SkyTeam-varsler</li>
+        </ul>
+        <a href="https://buy.stripe.com/9B65kE28i7f44tbcrLcQU05" class="plan-btn pb-btn-green">Velg Premium – 49 kr/mnd</a>
+      </div>
+
+      <!-- ELITE -->
+      <div class="plan elite">
+        <div class="plan-badge pb-gold">Maksimal opptjening</div>
+        <div class="plan-icon">👑</div>
+        <div class="plan-name">Elite</div>
+        <div class="plan-price"><span class="kr">NOK </span>89<span class="per"> /mnd</span></div>
+        <p class="plan-note">Inkl. moms · Ingen binding</p>
+        <ul class="plan-feats">
+          <li><span class="ck">✓</span> Alt i Premium</li>
+          <li><span class="ck">✓</span> 10 Trumf Netthandel-favoritter</li>
+          <li><span class="ck">✓</span> 10 SAS Online Shopping-favoritter</li>
+          <li><span class="ck">✓</span> SAS Bonusreiser-oversikt</li>
+          <li><span class="ck">✓</span> SkyTeam-flyselskaper (Air France, KLM, Delta)</li>
+          <li><span class="ck">✓</span> VIP-varsler og concierge-support</li>
+        </ul>
+        <a href="https://buy.stripe.com/bJecN600a8j8f7P8bvcQU06" class="plan-btn pb-btn-gold">Velg Elite – 89 kr/mnd</a>
+      </div>
+    </div>
+
+    <div class="trust-row">
+      <div class="trust-item"><span class="tc">✓</span> Sikker betaling via Stripe</div>
+      <div class="trust-item"><span class="tc">✓</span> Ingen binding</div>
+      <div class="trust-item"><span class="tc">✓</span> Norsk support</div>
+      <div class="trust-item"><span class="tc">✓</span> Avslutt når som helst</div>
+    </div>
+
+    <!-- ══ BONUSSHOP PARTNER ══ -->
+    <div class="cat-label">
+      <div class="cat-label-line"></div>
+      <div class="cat-label-text">🛍️ BonusShop — Bli partner</div>
+      <div class="cat-label-line"></div>
+    </div>
+
+    <p style="color:var(--t2);font-size:.92rem;font-weight:300;max-width:560px;margin-bottom:32px;line-height:1.75;">
+      Selg produkter i BonusShop-markedsplassen uten eget lager. Velg mellom fast månedspris eller provisjonsmodell — start uansett gratis de første dagene.
+    </p>
+
+    <div class="plans-grid-2 fu fu1">
+      <!-- ABONNEMENT -->
+      <div class="plan partner-sub">
+        <div class="plan-badge pb-green">Flat pris</div>
+        <div class="plan-icon">📦</div>
+        <div class="plan-name">Partner — Abonnement</div>
+        <div class="plan-price"><span class="kr">NOK </span>150<span class="per"> /mnd</span></div>
+        <p class="plan-note">Behold alle salgsinntekter</p>
+        <ul class="plan-feats">
+          <li><span class="ck">✓</span> Flat månedspris</li>
+          <li><span class="ck">✓</span> Behold 100% av salgsinntektene</li>
+          <li><span class="ck">✓</span> Eget partner-dashboard</li>
+          <li><span class="ck">✓</span> Live salgsstatistikk</li>
+          <li><span class="ck">✓</span> Ingen provisjon per salg</li>
+        </ul>
+        <a href="#bli-partner" class="plan-btn pb-btn-green">Kom i gang →</a>
+      </div>
+
+      <!-- PROVISJON -->
+      <div class="plan partner-prov">
+        <div class="plan-badge pb-gold">Gratis start</div>
+        <div class="plan-icon">💸</div>
+        <div class="plan-name">Partner — Provisjon</div>
+        <div class="plan-price"><span class="kr"></span>10%<span class="per"> per salg</span></div>
+        <p class="plan-note">Ingen fast månedspris</p>
+        <ul class="plan-feats">
+          <li><span class="ck">✓</span> Gratis å starte</li>
+          <li><span class="ck">✓</span> Du beholder 90% av hvert salg</li>
+          <li><span class="ck">✓</span> Eget partner-dashboard</li>
+          <li><span class="ck">✓</span> Live salgsstatistikk</li>
+          <li><span class="ck">✓</span> Bygg egne partnere under deg</li>
+        </ul>
+        <a href="#bli-partner" class="plan-btn pb-btn-gold">Kom i gang →</a>
+      </div>
+    </div>
+
+    <!-- PARTNER REGISTRATION FORM -->
+    <div class="partner-section" id="bli-partner">
+      <div class="cat-label" style="margin-top:48px;">
+        <div class="cat-label-line"></div>
+        <div class="cat-label-text">📝 Registrer deg som partner</div>
+        <div class="cat-label-line"></div>
+      </div>
+
+      <div class="form-card" id="partner-form-wrap">
+        <h3>Bli BonusShop-partner</h3>
+        <p>Fyll ut skjemaet så tar vi kontakt innen 1–2 virkedager.</p>
+
+        <form id="partner-form" onsubmit="submitPartner(event)">
+          <div class="form-group">
+            <label>Fullt navn *</label>
+            <input class="form-input" type="text" placeholder="Ditt navn" required>
+          </div>
+          <div class="form-group">
+            <label>E-post *</label>
+            <input class="form-input" type="email" placeholder="din@epost.no" required>
+          </div>
+          <div class="form-group">
+            <label>Telefon</label>
+            <input class="form-input" type="tel" placeholder="+47 000 00 000">
+          </div>
+
+          <div class="form-group">
+            <label>Velg partnertype *</label>
+            <div class="partner-type-grid">
+              <label class="type-option selected" onclick="selectType(this)">
+                <input type="radio" name="type" value="abonnement" checked>
+                <div class="type-option-name">Abonnement</div>
+                <div class="type-option-price">150 kr/mnd – behold alle inntekter</div>
+              </label>
+              <label class="type-option" onclick="selectType(this)">
+                <input type="radio" name="type" value="provisjon">
+                <div class="type-option-name">Provisjon</div>
+                <div class="type-option-price">Gratis start – 10% per salg</div>
+              </label>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Hvordan planlegger du å promotere? (valgfritt)</label>
+            <textarea class="form-textarea" placeholder="Fortell oss litt om produktene dine og kanaler du bruker..."></textarea>
+          </div>
+
+          <button type="submit" class="submit-btn">Send søknad →</button>
+        </form>
+      </div>
+
+      <div class="success-card" id="success-card">
+        <div class="success-emoji">🎉</div>
+        <h3>Søknad mottatt!</h3>
+        <p>Vi behandler søknaden din og tar kontakt innen 1–2 virkedager på e-posten du oppga.<br><br>
+        Spørsmål? <a href="mailto:support@bonusvarsel.no" style="color:var(--green);">support@bonusvarsel.no</a></p>
+      </div>
+    </div>
+
+    <!-- ══ AI BOOKING ══ -->
+    <div class="cat-label">
+      <div class="cat-label-line"></div>
+      <div class="cat-label-text">💬 AI-booking — For salonger og spa</div>
+      <div class="cat-label-line"></div>
+    </div>
+
+    <p style="color:var(--t2);font-size:.92rem;font-weight:300;max-width:560px;margin-bottom:32px;line-height:1.75;">
+      Norsk AI som svarer kunder på Messenger og Instagram 24/7 og sender bookingen rett inn i Fixit eller Timma. 14 dager gratis — ingen oppsett-kostnad.
+    </p>
+
+    <div class="plans-grid-2 fu fu1">
+      <div class="ai-plan">
+        <div class="plan-icon">🌱</div>
+        <div class="ai-plan-name">Starter</div>
+        <div class="ai-plan-price">3 990</div>
+        <div class="ai-plan-per">kr per måned</div>
+        <p class="ai-plan-note">1 lokasjon · 14 dager gratis</p>
+        <ul class="ai-plan-feats">
+          <li>AI svarer på Messenger og Instagram</li>
+          <li>Opptil 200 samtaler per måned</li>
+          <li>Fixit, Timma eller ingen system</li>
+          <li>SMS-bekreftelse til kunden</li>
+          <li>14 dager gratis — ingen binding</li>
+        </ul>
+        <a href="mailto:royrotvold@gmail.com?subject=Gratis test AI Booking Starter" class="plan-btn pb-btn-dark">Start gratis →</a>
+      </div>
+
+      <div class="ai-plan feat">
+        <div class="plan-badge pb-gold">Mest populær</div>
+        <div class="plan-icon">🚀</div>
+        <div class="ai-plan-name">Pro</div>
+        <div class="ai-plan-price">5 990</div>
+        <div class="ai-plan-per">kr per måned</div>
+        <p class="ai-plan-note">Ubegrenset · 14 dager gratis</p>
+        <ul class="ai-plan-feats">
+          <li>Alt i Starter</li>
+          <li>Ubegrenset samtaler</li>
+          <li>Multi-stylist støtte</li>
+          <li>No-show oppfølging automatisk</li>
+          <li>Statistikk-dashboard</li>
+        </ul>
+        <a href="mailto:royrotvold@gmail.com?subject=Gratis test AI Booking Pro" class="plan-btn pb-btn-gold">Start gratis →</a>
+      </div>
+    </div>
+
+    <p style="color:var(--t3);font-size:.75rem;text-align:center;margin-top:18px;">
+      Ingen bindingstid · Ingen oppsett-kostnad · Jeg setter opp alt for deg
+    </p>
+
+    <!-- ══ COMPARE TABLE ══ -->
+    <div class="compare-wrap">
+      <div class="cat-label">
+        <div class="cat-label-line"></div>
+        <div class="cat-label-text">📊 Sammenlign app-planene</div>
+        <div class="cat-label-line"></div>
+      </div>
+
+      <table class="compare-table">
+        <thead>
+          <tr>
+            <th>Funksjon</th>
+            <th>Gratis</th>
+            <th>Premium</th>
+            <th>Elite</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>Trumf-kalkulator</td><td><span class="ct-check">✓</span></td><td><span class="ct-check">✓</span></td><td><span class="ct-check">✓</span></td></tr>
+          <tr><td>Dagligvare-favoritter</td><td><span class="ct-check">✓</span></td><td><span class="ct-check">✓</span></td><td><span class="ct-check">✓</span></td></tr>
+          <tr><td>Mobiloperatør og strøm</td><td><span class="ct-check">✓</span></td><td><span class="ct-check">✓</span></td><td><span class="ct-check">✓</span></td></tr>
+          <tr><td>Trumf Netthandel-favoritter</td><td><span class="ct-cross">✗</span></td><td>5 stk</td><td>10 stk</td></tr>
+          <tr><td>SAS Online Shopping-favoritter</td><td><span class="ct-cross">✗</span></td><td>5 stk</td><td>10 stk</td></tr>
+          <tr><td>AI-slagplan</td><td><span class="ct-cross">✗</span></td><td><span class="ct-check">✓</span></td><td><span class="ct-check">✓</span></td></tr>
+          <tr><td>SAS fly-tilbudsvarsler</td><td><span class="ct-cross">✗</span></td><td><span class="ct-check">✓</span></td><td><span class="ct-check">✓</span></td></tr>
+          <tr><td>Personlige varsler</td><td><span class="ct-cross">✗</span></td><td><span class="ct-check">✓</span></td><td><span class="ct-check">✓</span></td></tr>
+          <tr><td>SAS Bonusreiser-oversikt</td><td><span class="ct-cross">✗</span></td><td><span class="ct-cross">✗</span></td><td><span class="ct-check">✓</span></td></tr>
+          <tr><td>SkyTeam-flyselskaper</td><td><span class="ct-cross">✗</span></td><td><span class="ct-cross">✗</span></td><td><span class="ct-check">✓</span></td></tr>
+          <tr><td>VIP-varsler og support</td><td><span class="ct-cross">✗</span></td><td><span class="ct-cross">✗</span></td><td><span class="ct-check">✓</span></td></tr>
+          <tr>
+            <td>Pris</td>
+            <td style="color:var(--green);">0 kr</td>
+            <td style="color:var(--green);">49 kr/mnd</td>
+            <td style="color:var(--gold2);">89 kr/mnd</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+</div>
+
+<footer>
+  <p>© 2026 Bonusvarsel AS · Lillehammer · <a href="mailto:support@bonusvarsel.no">support@bonusvarsel.no</a> · <a href="https://bonusvarsel.no/privacy-policy/">Personvern</a></p>
+</footer>
+
+<script>
+function selectType(el) {
+  document.querySelectorAll('.type-option').forEach(o => o.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+function submitPartner(e) {
+  e.preventDefault();
+  document.getElementById('partner-form-wrap').style.display = 'none';
+  document.getElementById('success-card').classList.add('show');
+  window.scrollTo({top: document.getElementById('bli-partner').offsetTop - 80, behavior:'smooth'});
+}
+</script>
+</body>
+</html>

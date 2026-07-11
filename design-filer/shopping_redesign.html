@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:#0a0f1e; font-family:-apple-system,sans-serif; max-width:390px; margin:0 auto; color:#fff; }
+
+.hero {
+  background: linear-gradient(135deg, #0A4FD4 0%, #0D6E44 100%);
+  padding: 24px 20px 20px;
+  border-radius: 0 0 24px 24px;
+}
+.hero-label { font-size:11px; font-weight:700; letter-spacing:.1em; color:rgba(255,255,255,.6); margin-bottom:6px; }
+.hero-title { font-size:26px; font-weight:900; color:#fff; line-height:1.2; margin-bottom:8px; }
+.hero-sub { font-size:14px; color:rgba(255,255,255,.75); line-height:1.5; }
+.hero-chips { display:flex; gap:8px; margin-top:14px; flex-wrap:wrap; }
+.hero-chip { background:rgba(255,255,255,.2); border-radius:20px; padding:6px 12px; font-size:12px; font-weight:600; }
+
+.section { padding: 20px 16px 0; }
+.sec-label { font-size:10px; font-weight:800; letter-spacing:.1em; color:#6b7280; margin-bottom:10px; text-transform:uppercase; }
+.sec-title { font-size:18px; font-weight:900; margin-bottom:4px; }
+.sec-sub { font-size:13px; color:#9ca3af; line-height:1.5; margin-bottom:14px; }
+
+/* Steg-kort */
+.steps { display:flex; flex-direction:column; gap:10px; margin-bottom:20px; }
+.step { 
+  background: rgba(255,255,255,.05); 
+  border-radius:14px; 
+  padding:14px;
+  display:flex; gap:12px; align-items:flex-start;
+  border: 1px solid rgba(255,255,255,.08);
+}
+.step-num { 
+  width:28px; height:28px; border-radius:50%; 
+  background: linear-gradient(135deg, #0A4FD4, #0D6E44);
+  display:flex; align-items:center; justify-content:center;
+  font-size:13px; font-weight:800; flex-shrink:0;
+}
+.step-title { font-size:14px; font-weight:700; margin-bottom:3px; }
+.step-desc { font-size:12px; color:#9ca3af; line-height:1.4; }
+
+/* Combo-kort */
+.combo {
+  background: linear-gradient(135deg, rgba(10,79,212,.2), rgba(13,110,68,.2));
+  border: 1.5px solid rgba(74,222,128,.3);
+  border-radius:16px; padding:16px; margin-bottom:20px;
+}
+.combo-title { font-size:15px; font-weight:800; color:#4ADE80; margin-bottom:8px; }
+.combo-row { display:flex; gap:8px; margin-bottom:6px; align-items:center; }
+.combo-badge { 
+  background:rgba(74,222,128,.15); color:#4ADE80; 
+  border-radius:8px; padding:6px 10px; 
+  font-size:12px; font-weight:700; flex:1; text-align:center;
+}
+.combo-plus { font-size:18px; font-weight:900; color:#6b7280; }
+.combo-result { 
+  background:rgba(74,222,128,.2); border:1px solid #4ADE80;
+  border-radius:10px; padding:10px; margin-top:8px; text-align:center;
+}
+.combo-result-num { font-size:22px; font-weight:900; color:#4ADE80; }
+.combo-result-sub { font-size:11px; color:rgba(255,255,255,.6); }
+
+/* Kategori-kort */
+.cats { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:20px; }
+.cat { 
+  background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.08);
+  border-radius:14px; padding:14px; cursor:pointer;
+}
+.cat.active { background:rgba(10,79,212,.2); border-color:rgba(10,79,212,.5); }
+.cat-icon { font-size:24px; margin-bottom:6px; }
+.cat-name { font-size:13px; font-weight:700; }
+.cat-desc { font-size:11px; color:#9ca3af; margin-top:2px; }
+
+/* Butikk-rad */
+.shop { 
+  background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.08);
+  border-radius:12px; padding:12px 14px; margin-bottom:8px;
+  display:flex; align-items:center; gap:12px;
+}
+.shop-icon { 
+  width:36px; height:36px; border-radius:10px; 
+  background:linear-gradient(135deg,#1a8a5c,#166534);
+  display:flex; align-items:center; justify-content:center;
+  font-size:16px; font-weight:800; color:#4ADE80; flex-shrink:0;
+}
+.shop-name { font-size:14px; font-weight:700; }
+.shop-pts { font-size:12px; color:#4ADE80; font-weight:600; }
+.shop-btn { 
+  margin-left:auto; background:rgba(10,79,212,.3);
+  border:1px solid rgba(10,79,212,.5); border-radius:8px;
+  padding:6px 10px; font-size:11px; color:#93c5fd; font-weight:600;
+  flex-shrink:0;
+}
+.shop.campaign { border-color:rgba(74,222,128,.3); }
+.shop-camp { font-size:9px; background:#1a8a5c; color:#fff; border-radius:4px; padding:1px 5px; font-weight:700; margin-left:6px; }
+
+.tip-box {
+  background:rgba(255,191,0,.08); border:1px solid rgba(255,191,0,.2);
+  border-radius:14px; padding:14px; margin-bottom:20px;
+}
+.tip-title { font-size:13px; font-weight:700; color:#fbbf24; margin-bottom:6px; }
+.tip-text { font-size:12px; color:#d1d5db; line-height:1.5; }
+</style>
+</head>
+<body>
+
+<!-- Hero -->
+<div class="hero">
+  <div class="hero-label">✈️ BONUSVARSEL</div>
+  <div class="hero-title">Spar til ferien –<br>uten å spare penger</div>
+  <div class="hero-sub">Du handler mat uansett. Du betaler strøm uansett. La oss hjelpe deg å tjene flypoeng på hverdagen.</div>
+  <div class="hero-chips">
+    <span class="hero-chip">🛒 Dagligvare</span>
+    <span class="hero-chip">✈️ Fly</span>
+    <span class="hero-chip">🏨 Hotell</span>
+    <span class="hero-chip">🛍️ Netthandel</span>
+  </div>
+</div>
+
+<!-- Slik gjør du det -->
+<div class="section">
+  <div class="sec-label">Kom i gang</div>
+  <div class="sec-title">3 enkle steg 👇</div>
+  <div class="sec-sub">Bestemor på 80 klarer dette. Vi lover.</div>
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">1</div>
+      <div>
+        <div class="step-title">Registrer kortet ditt i Trumf-appen</div>
+        <div class="step-desc">Gjøres én gang. Deretter får du 1% bonus automatisk hver gang du betaler med det kortet i KIWI, MENY eller SPAR – uten å gjøre noe i kassen.</div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div>
+        <div class="step-title">Scan QR-koden i Trumf-appen i kassen</div>
+        <div class="step-desc">Åpne Trumf-appen og vis QR-koden til kassapersonalet. Du dobler bonusen til 2% – helt gratis. Betaler du med SAS Amex-kort etterpå? Da får du bonus i begge programmer!</div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div>
+        <div class="step-title">Sjekk Varsler-siden jevnlig</div>
+        <div class="step-desc">Vi sender deg varsel når dine favorittbutikker har ekstra bonus. Da er det bare å handle som vanlig – og poengene hoper seg opp.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Dobbel dip -->
+<div class="section">
+  <div class="sec-label">💡 Pro-tips</div>
+  <div class="sec-title">Dobbel dip – det store trikset</div>
+  <div class="sec-sub">Kombiner Trumf og SAS på samme handletur</div>
+  <div class="combo">
+    <div class="combo-title">🔥 Slik gjør du det på storhandelen</div>
+    <div class="combo-row">
+      <div class="combo-badge">📱 Scan QR<br><small>2% Trumf</small></div>
+      <div class="combo-plus">+</div>
+      <div class="combo-badge">💳 Betal med<br>SAS Amex<br><small>20p/100kr</small></div>
+    </div>
+    <div class="combo-result">
+      <div class="combo-result-num">= 270 EuroBonus-poeng</div>
+      <div class="combo-result-sub">på 1 000 kr handletur · tilsvarer ca. 27 kr i flyverdi</div>
+    </div>
+  </div>
+</div>
+
+<!-- Kategorier -->
+<div class="section">
+  <div class="sec-label">Finn butikker</div>
+  <div class="sec-title">Hvor handler du?</div>
+  <div class="sec-sub">Velg kategori for å se butikker med bonus</div>
+  <div class="cats">
+    <div class="cat active">
+      <div class="cat-icon">🛒</div>
+      <div class="cat-name">Dagligvare</div>
+      <div class="cat-desc">KIWI, MENY, SPAR</div>
+    </div>
+    <div class="cat">
+      <div class="cat-icon">✈️</div>
+      <div class="cat-name">Reise</div>
+      <div class="cat-desc">Hotell, fly, leiebil</div>
+    </div>
+    <div class="cat">
+      <div class="cat-icon">👗</div>
+      <div class="cat-name">Klær & mote</div>
+      <div class="cat-desc">H&M, Zalando, ASOS</div>
+    </div>
+    <div class="cat">
+      <div class="cat-icon">📱</div>
+      <div class="cat-name">Elektronikk</div>
+      <div class="cat-desc">Elkjøp, Apple</div>
+    </div>
+  </div>
+</div>
+
+<!-- Topp butikker -->
+<div class="section">
+  <div class="sec-label">🔥 Kampanjer akkurat nå</div>
+  <div class="shop campaign">
+    <div class="shop-icon">O</div>
+    <div>
+      <div class="shop-name">Outnorth <span class="shop-camp">KAMPANJE</span></div>
+      <div class="shop-pts">50 poeng/100kr · Sport</div>
+    </div>
+    <div class="shop-btn">Gå til →</div>
+  </div>
+  <div class="shop campaign">
+    <div class="shop-icon">G</div>
+    <div>
+      <div class="shop-name">Gina Tricot <span class="shop-camp">KAMPANJE</span></div>
+      <div class="shop-pts">60 poeng/100kr · Mote</div>
+    </div>
+    <div class="shop-btn">Gå til →</div>
+  </div>
+  <div class="shop">
+    <div class="shop-icon" style="background:linear-gradient(135deg,#1d4ed8,#1e40af)">S</div>
+    <div>
+      <div class="shop-name">Scandic Hotels</div>
+      <div class="shop-pts">40 poeng/100kr · Reise</div>
+    </div>
+    <div class="shop-btn">Gå til →</div>
+  </div>
+</div>
+
+<!-- Tips-boks -->
+<div class="section" style="padding-bottom:32px">
+  <div class="tip-box">
+    <div class="tip-title">💡 Visste du at poengene ikke utløper?</div>
+    <div class="tip-text">EuroBonus-poeng er gyldige i opptil 5 år. Du kan bruke dem på flyreiser, hotell, leiebil, oppgraderinger og mye mer. Bonusreiser gir vanligvis best verdi – en tur til London kan koste under 15 000 poeng!</div>
+  </div>
+</div>
+
+</body>
+</html>

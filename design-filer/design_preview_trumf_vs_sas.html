@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;600;700&display=swap');
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:#0a0f1e; font-family:'DM Sans',sans-serif; padding:20px; max-width:400px; margin:0 auto; }
+
+  /* ── TRUMF ── lys grønn/teal */
+  .trumf-section { 
+    background: linear-gradient(135deg, #0d2a1a 0%, #0a1e2a 100%);
+    border-radius: 20px; padding: 18px; margin-bottom: 16px;
+    border: 1.5px solid #1a5c3a;
+  }
+  .trumf-header { display:flex; align-items:center; gap:10px; margin-bottom:6px; }
+  .trumf-logo { 
+    width:36px; height:36px; border-radius:10px;
+    background: linear-gradient(135deg, #1a8a5c, #0d6e44);
+    display:flex; align-items:center; justify-content:center; font-size:18px;
+  }
+  .trumf-title { font-size:16px; font-weight:700; color:#4ADE80; }
+  .trumf-sub { font-size:11px; color:#2a9d6e; margin-bottom:12px; }
+  .trumf-cats { display:flex; gap:6px; overflow-x:auto; padding-bottom:4px; }
+  .trumf-cat {
+    background: rgba(26,138,92,0.15);
+    border: 1px solid rgba(26,138,92,0.4);
+    border-radius: 20px; padding: 6px 12px;
+    font-size:12px; font-weight:600; color:#4ADE80;
+    white-space:nowrap; cursor:pointer;
+    display:flex; align-items:center; gap:5px;
+  }
+  .trumf-cat.active { background: #1a8a5c; color:#fff; }
+  .trumf-shop { 
+    background: rgba(26,138,92,0.08);
+    border: 1px solid rgba(26,138,92,0.2);
+    border-radius:12px; padding:12px 14px; margin-top:10px;
+    display:flex; align-items:center; gap:10px;
+  }
+  .trumf-shop-icon {
+    width:32px; height:32px; border-radius:8px;
+    background: rgba(26,138,92,0.25);
+    display:flex; align-items:center; justify-content:center;
+    font-size:14px; font-weight:800; color:#4ADE80;
+  }
+  .trumf-shop-name { font-size:13px; font-weight:600; color:#fff; }
+  .trumf-shop-pts { font-size:11px; color:#2a9d6e; }
+  .trumf-shop-pts span { color:#4ADE80; font-weight:700; }
+  .trumf-divider { height:1px; background: rgba(26,138,92,0.2); margin:12px 0; }
+
+  /* ── SAS ── lilla/indigo */
+  .sas-section {
+    background: linear-gradient(135deg, #1a0d2e 0%, #0d1535 100%);
+    border-radius: 20px; padding: 18px; margin-bottom: 16px;
+    border: 1.5px solid #4a2080;
+  }
+  .sas-header { display:flex; align-items:center; gap:10px; margin-bottom:6px; }
+  .sas-logo {
+    width:36px; height:36px; border-radius:10px;
+    background: linear-gradient(135deg, #6b21d4, #4a0ea8);
+    display:flex; align-items:center; justify-content:center; font-size:18px;
+  }
+  .sas-title { font-size:16px; font-weight:700; color:#c084fc; }
+  .sas-sub { font-size:11px; color:#7c3aed; margin-bottom:12px; }
+  .sas-cats { display:flex; gap:6px; overflow-x:auto; padding-bottom:4px; }
+  .sas-cat {
+    background: rgba(107,33,212,0.2);
+    border: 1px solid rgba(107,33,212,0.5);
+    border-radius: 20px; padding: 6px 12px;
+    font-size:12px; font-weight:600; color:#c084fc;
+    white-space:nowrap; cursor:pointer;
+    display:flex; align-items:center; gap:5px;
+  }
+  .sas-cat.active { background: #6b21d4; color:#fff; }
+  .sas-shop {
+    background: rgba(107,33,212,0.1);
+    border: 1px solid rgba(107,33,212,0.25);
+    border-radius:12px; padding:12px 14px; margin-top:10px;
+    display:flex; align-items:center; gap:10px;
+  }
+  .sas-shop-icon {
+    width:32px; height:32px; border-radius:8px;
+    background: rgba(107,33,212,0.3);
+    display:flex; align-items:center; justify-content:center;
+    font-size:14px; font-weight:800; color:#c084fc;
+  }
+  .sas-shop-name { font-size:13px; font-weight:600; color:#fff; }
+  .sas-shop-pts { font-size:11px; color:#7c3aed; }
+  .sas-shop-pts span { color:#c084fc; font-weight:700; }
+  .sas-badge {
+    background: linear-gradient(135deg, #6b21d4, #4a0ea8);
+    color:#fff; font-size:9px; font-weight:700;
+    padding:2px 6px; border-radius:4px; margin-left:6px;
+  }
+
+  /* Checkbox */
+  .chk { width:20px; height:20px; border-radius:5px; border:2px solid rgba(255,255,255,0.2); margin-left:auto; }
+  .chk.checked { background:#1a8a5c; border-color:#1a8a5c; display:flex; align-items:center; justify-content:center; }
+  .chk.checked::after { content:'✓'; color:#fff; font-size:12px; }
+
+  /* Se alle-knapp */
+  .see-all {
+    display:flex; align-items:center; justify-content:center; gap:8px;
+    padding:10px; border-radius:10px; margin-top:10px; cursor:pointer;
+    font-size:12px; font-weight:600;
+  }
+  .see-all.trumf { background:rgba(26,138,92,0.1); color:#2a9d6e; border:1px solid rgba(26,138,92,0.2); }
+  .see-all.sas { background:rgba(107,33,212,0.1); color:#9333ea; border:1px solid rgba(107,33,212,0.2); }
+
+  .section-label {
+    font-size:10px; font-weight:700; letter-spacing:.1em; text-transform:uppercase;
+    margin-bottom:8px; padding: 4px 10px; border-radius:6px; display:inline-block;
+  }
+  .section-label.trumf { background:rgba(26,138,92,0.2); color:#4ADE80; }
+  .section-label.sas { background:rgba(107,33,212,0.2); color:#c084fc; }
+</style>
+</head>
+<body>
+
+<!-- TRUMF -->
+<div class="section-label trumf">🛒 Trumf Netthandel</div>
+<div class="trumf-section">
+  <div class="trumf-header">
+    <div class="trumf-logo">🛒</div>
+    <div>
+      <div class="trumf-title">Trumf Netthandel</div>
+    </div>
+  </div>
+  <div class="trumf-sub">250+ butikker · Tjen Trumf-bonus · Overføres til EuroBonus</div>
+  <div class="trumf-cats">
+    <div class="trumf-cat active">⭐ Kampanjer 3</div>
+    <div class="trumf-cat">🌍 Reise 6</div>
+    <div class="trumf-cat">👗 Mote 4</div>
+    <div class="trumf-cat">📱 Elektronikk 3</div>
+  </div>
+  <div class="trumf-shop">
+    <div class="trumf-shop-icon">O</div>
+    <div style="flex:1">
+      <div class="trumf-shop-name">Outnorth</div>
+      <div class="trumf-shop-pts"><s>25 p</s> <span>50 p/100kr</span></div>
+    </div>
+    <div style="font-size:14px; color:#4ADE80; margin-right:8px">↗</div>
+    <div class="chk"></div>
+  </div>
+  <div class="trumf-shop">
+    <div class="trumf-shop-icon">G</div>
+    <div style="flex:1">
+      <div class="trumf-shop-name">Gina Tricot</div>
+      <div class="trumf-shop-pts"><s>30 p</s> <span>60 p/100kr</span></div>
+    </div>
+    <div style="font-size:14px; color:#4ADE80; margin-right:8px">↗</div>
+    <div class="chk checked"></div>
+  </div>
+  <div class="see-all trumf">↗ Se alle butikker på Trumf Netthandel</div>
+</div>
+
+<!-- SAS -->
+<div class="section-label sas">✈️ SAS Online Shopping</div>
+<div class="sas-section">
+  <div class="sas-header">
+    <div class="sas-logo">✈️</div>
+    <div>
+      <div class="sas-title">SAS Online Shopping</div>
+    </div>
+  </div>
+  <div class="sas-sub">400+ butikker · Tjen EuroBonus-poeng direkte</div>
+  <div class="sas-cats">
+    <div class="sas-cat active">⭐ Kampanjer</div>
+    <div class="sas-cat">🌍 Reise</div>
+    <div class="sas-cat">👗 Mote</div>
+    <div class="sas-cat">🏅 Sport</div>
+    <div class="sas-cat">📱 Elektronikk</div>
+  </div>
+  <div class="sas-shop">
+    <div class="sas-shop-icon">B</div>
+    <div style="flex:1">
+      <div class="sas-shop-name">Booking.com <span class="sas-badge">POPULÆR</span></div>
+      <div class="sas-shop-pts"><span>15 p/100kr</span></div>
+    </div>
+    <div style="font-size:14px; color:#c084fc; margin-right:8px">↗</div>
+    <div class="chk"></div>
+  </div>
+  <div class="sas-shop">
+    <div class="sas-shop-icon">S</div>
+    <div style="flex:1">
+      <div class="sas-shop-name">Scandic Hotels</div>
+      <div class="sas-shop-pts"><span>20 p/100kr</span></div>
+    </div>
+    <div style="font-size:14px; color:#c084fc; margin-right:8px">↗</div>
+    <div class="chk checked" style="background:#6b21d4; border-color:#6b21d4;"></div>
+  </div>
+  <div class="see-all sas">↗ Se alle 400+ butikker på SAS Online Shopping</div>
+</div>
+
+</body>
+</html>

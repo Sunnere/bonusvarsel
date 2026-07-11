@@ -1,0 +1,937 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bonusvarsel – Smart bonus siden 2024</title>
+<meta name="description" content="Bonusvarsel hjelper deg å samle SAS EuroBonus og Trumf-poeng smartere – med AI-analyse, varsler, reisekalkulator og mer.">
+<meta name="theme-color" content="#faf5ee">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:       #faf5ee;
+  --surface:  #ffffff;
+  --surface2: #f5ede0;
+  --border:   #e8d8c8;
+  --dark:     #2a1a0e;
+  --dark2:    #1e1820;
+  --gold:     #c9956a;
+  --gold2:    #e8c4a0;
+  --gold3:    #9a6840;
+  --green:    #7dba7a;
+  --purple:   #8c6c9a;
+  --rose:     #c4889a;
+  --muted:    #9a8070;
+  --text:     #3d2c1e;
+  --radius:   18px;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:'DM Sans',sans-serif;
+  font-size:16px;
+  line-height:1.6;
+  overflow-x:hidden;
+  -webkit-font-smoothing:antialiased;
+}
+
+/* ── LAYOUT ── */
+.wrap{max-width:1100px;margin:0 auto;padding:0 32px;position:relative;z-index:1;}
+.wrap-sm{max-width:700px;margin:0 auto;padding:0 32px;}
+
+/* ── NAV ── */
+nav{
+  background:rgba(250,245,238,0.92);
+  backdrop-filter:blur(20px);
+  border-bottom:1px solid var(--border);
+  position:sticky;top:0;z-index:100;
+}
+.nav-top{
+  max-width:1100px;margin:0 auto;padding:0 32px;
+  display:flex;align-items:center;justify-content:space-between;
+  height:64px;
+}
+.nav-logo{
+  display:flex;align-items:center;gap:10px;
+  font-family:'Cormorant Garamond',serif;
+  font-size:1.4rem;font-weight:600;
+  text-decoration:none;color:var(--text);
+  letter-spacing:.3px;
+}
+.nav-logo img{width:34px;height:34px;border-radius:9px;}
+.nav-logo .star{color:var(--gold);margin-right:2px;}
+.nav-main-links{
+  display:flex;align-items:center;gap:6px;flex-wrap:wrap;
+}
+.nav-main-links a{
+  font-size:0.82rem;color:var(--muted);text-decoration:none;
+  padding:6px 12px;border-radius:8px;
+  transition:color .2s,background .2s;
+  white-space:nowrap;
+}
+.nav-main-links a:hover{color:var(--text);background:rgba(201,149,106,0.08);}
+.nav-cta{
+  background:linear-gradient(135deg,var(--gold),var(--gold3));
+  color:#faf5ee;padding:9px 20px;border-radius:50px;
+  font-size:0.82rem;font-weight:500;
+  text-decoration:none;white-space:nowrap;
+  box-shadow:0 4px 14px rgba(201,149,106,0.3);
+  transition:opacity .2s;
+}
+.nav-cta:hover{opacity:.85;}
+
+/* ── HERO ── */
+.hero{
+  background:linear-gradient(150deg,#2a1608 0%,#1e1820 55%,#2a1a0e 100%);
+  padding:90px 32px 80px;
+  text-align:center;
+  position:relative;overflow:hidden;
+}
+.hero::before{
+  content:'';position:absolute;inset:0;pointer-events:none;
+  background:
+    radial-gradient(ellipse 60% 55% at 20% 20%,rgba(201,149,106,0.18),transparent),
+    radial-gradient(ellipse 50% 60% at 80% 80%,rgba(140,108,154,0.12),transparent);
+}
+.hero-eyebrow{
+  display:inline-flex;align-items:center;gap:6px;
+  background:rgba(201,149,106,0.15);
+  border:1px solid rgba(201,149,106,0.3);
+  color:var(--gold2);font-size:0.72rem;font-weight:500;
+  padding:6px 16px;border-radius:999px;
+  margin-bottom:28px;letter-spacing:.1em;text-transform:uppercase;
+  position:relative;z-index:1;
+}
+.hero-dot{width:6px;height:6px;border-radius:50%;background:var(--green);}
+.hero h1{
+  font-family:'Cormorant Garamond',serif;
+  font-size:clamp(2.8rem,6vw,5rem);
+  font-weight:300;line-height:1.1;
+  color:#faf5ee;
+  letter-spacing:-.02em;margin-bottom:20px;
+  position:relative;z-index:1;
+}
+.hero h1 em{font-style:italic;color:var(--gold2);}
+.hero-sub{
+  color:rgba(250,245,238,0.55);font-size:1.05rem;
+  max-width:540px;margin:0 auto 40px;
+  font-weight:300;line-height:1.75;
+  position:relative;z-index:1;
+}
+.hero-btns{
+  display:flex;gap:14px;justify-content:center;flex-wrap:wrap;
+  margin-bottom:60px;position:relative;z-index:1;
+}
+.btn-gold{
+  background:linear-gradient(135deg,var(--gold),var(--gold3));
+  color:#faf5ee;padding:15px 32px;border-radius:50px;
+  font-size:0.95rem;font-weight:500;text-decoration:none;
+  box-shadow:0 8px 24px rgba(201,149,106,0.35);
+  transition:opacity .2s;
+}
+.btn-gold:hover{opacity:.88;}
+.btn-ghost-light{
+  background:transparent;color:rgba(250,245,238,0.7);
+  border:1px solid rgba(250,245,238,0.2);
+  padding:15px 32px;border-radius:50px;
+  font-size:0.95rem;font-weight:300;text-decoration:none;
+  transition:border-color .2s,color .2s;
+}
+.btn-ghost-light:hover{border-color:var(--gold2);color:var(--gold2);}
+
+/* HERO STATS */
+.hero-stats{
+  display:grid;grid-template-columns:repeat(4,1fr);
+  gap:1px;max-width:800px;margin:0 auto;
+  background:rgba(201,149,106,0.15);
+  border-radius:16px;overflow:hidden;
+  position:relative;z-index:1;
+}
+.hstat{
+  background:rgba(42,26,14,0.6);
+  backdrop-filter:blur(10px);
+  padding:22px 16px;text-align:center;
+}
+.hstat-num{
+  font-family:'Cormorant Garamond',serif;
+  font-size:2rem;font-weight:300;
+  color:var(--gold2);line-height:1;margin-bottom:5px;
+}
+.hstat-lbl{color:rgba(250,245,238,0.38);font-size:.72rem;font-weight:300;letter-spacing:.05em;}
+
+/* ── SECTION COMMON ── */
+.section-tag{
+  font-size:.72rem;font-weight:600;
+  letter-spacing:.12em;text-transform:uppercase;
+  color:var(--gold3);margin-bottom:12px;
+}
+.section-title{
+  font-family:'Cormorant Garamond',serif;
+  font-size:clamp(2rem,4vw,3.2rem);
+  font-weight:300;line-height:1.15;margin-bottom:14px;
+}
+.section-title em{font-style:italic;color:var(--gold3);}
+.section-sub{
+  color:var(--muted);font-size:.95rem;
+  font-weight:300;line-height:1.75;
+  max-width:500px;
+}
+
+/* ── PRODUCT SECTIONS ── */
+.product-section{padding:90px 0;}
+.product-section+.product-section{border-top:1px solid var(--border);}
+
+/* HOW IT WORKS */
+.steps-grid{
+  display:grid;grid-template-columns:repeat(3,1fr);
+  gap:1px;margin-top:48px;
+  border-radius:var(--radius);overflow:hidden;
+  background:var(--border);
+}
+.step-item{
+  background:var(--surface);
+  padding:38px 30px;position:relative;
+  transition:background .3s;
+}
+.step-item:hover{background:#fdf8f2;}
+.step-num{
+  font-family:'Cormorant Garamond',serif;
+  font-size:56px;font-weight:300;
+  color:#ede5da;line-height:1;margin-bottom:12px;
+}
+.step-icon{font-size:22px;margin-bottom:10px;}
+.step-item h3{
+  font-family:'Cormorant Garamond',serif;
+  font-size:1.25rem;font-weight:400;margin-bottom:7px;
+}
+.step-item p{font-size:.85rem;font-weight:300;color:var(--muted);line-height:1.7;}
+
+/* APP FEATURES */
+.app-grid{
+  display:grid;grid-template-columns:1fr 1fr;
+  gap:56px;align-items:start;margin-top:50px;
+}
+.feature-list{list-style:none;margin:20px 0 28px;}
+.feature-list li{
+  display:flex;align-items:flex-start;gap:12px;
+  padding:13px 0;border-bottom:1px solid var(--border);
+  font-size:.88rem;
+}
+.feature-list li:last-child{border-bottom:none;}
+.fi-icon{
+  width:36px;height:36px;
+  background:var(--surface2);border-radius:10px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:.95rem;flex-shrink:0;
+}
+.fi-title{font-weight:500;font-size:.88rem;margin-bottom:2px;}
+.fi-desc{color:var(--muted);font-size:.78rem;line-height:1.5;}
+.dl-btns{display:flex;gap:10px;flex-wrap:wrap;}
+.btn-appstore{
+  display:inline-flex;align-items:center;gap:8px;
+  background:var(--dark);color:#faf5ee;
+  padding:12px 20px;border-radius:50px;
+  font-size:.82rem;font-weight:500;text-decoration:none;
+  transition:opacity .2s;
+}
+.btn-appstore:hover{opacity:.85;}
+.btn-android{
+  background:var(--green);color:#fff;
+  display:inline-flex;align-items:center;gap:8px;
+  padding:12px 20px;border-radius:50px;
+  font-size:.82rem;font-weight:500;text-decoration:none;
+}
+
+/* PLANS */
+.plans-grid{
+  display:grid;grid-template-columns:repeat(3,1fr);
+  gap:14px;margin-top:32px;
+}
+.plan-card{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  padding:24px;position:relative;
+}
+.plan-card.featured{
+  border-color:var(--gold);
+  box-shadow:0 12px 40px rgba(201,149,106,0.1);
+}
+.plan-card.elite{
+  background:linear-gradient(155deg,#2d1f0f,#1a1208);
+  border-color:rgba(201,149,106,0.3);
+}
+.plan-badge{
+  position:absolute;top:14px;right:14px;
+  font-size:.6rem;font-weight:700;
+  padding:3px 9px;border-radius:999px;
+  letter-spacing:.06em;text-transform:uppercase;
+}
+.badge-pop{background:rgba(201,149,106,0.15);border:1px solid rgba(201,149,106,0.3);color:var(--gold3);}
+.badge-elite{background:rgba(201,149,106,0.1);border:1px solid rgba(201,149,106,0.2);color:var(--gold2);}
+.plan-name{
+  font-family:'Cormorant Garamond',serif;
+  font-size:1.3rem;font-weight:400;margin-bottom:4px;
+}
+.plan-card.elite .plan-name{color:var(--gold2);}
+.plan-price{
+  font-family:'Cormorant Garamond',serif;
+  font-size:2.2rem;font-weight:300;line-height:1;margin-bottom:4px;
+}
+.plan-card.elite .plan-price{color:#faf5ee;}
+.plan-price .kr{font-size:1rem;font-weight:400;}
+.plan-price .period{font-size:.78rem;color:var(--muted);font-weight:300;}
+.plan-card.elite .plan-price .period{color:rgba(250,245,238,.35);}
+.plan-note{color:var(--muted);font-size:.72rem;margin-bottom:16px;}
+.plan-card.elite .plan-note{color:rgba(250,245,238,.3);}
+.plan-feats{list-style:none;margin-bottom:20px;}
+.plan-feats li{
+  display:flex;align-items:flex-start;gap:7px;
+  font-size:.82rem;padding:4px 0;color:var(--text);
+}
+.plan-card.elite .plan-feats li{color:rgba(250,245,238,.6);}
+.plan-feats li.dim{color:var(--muted);}
+.plan-card.elite .plan-feats li.dim{color:rgba(250,245,238,.25);}
+.pf-ck{color:var(--green);flex-shrink:0;font-size:.9rem;}
+.pf-cx{color:#e88a8a;flex-shrink:0;font-size:.9rem;}
+.plan-btn{
+  display:block;width:100%;padding:12px;
+  border-radius:50px;border:none;
+  font-size:.88rem;font-weight:500;
+  font-family:'DM Sans',sans-serif;
+  cursor:pointer;text-decoration:none;text-align:center;
+  transition:opacity .2s;
+}
+.plan-btn:hover{opacity:.85;}
+.plan-btn+.plan-btn{margin-top:8px;}
+.pb-gold{background:linear-gradient(135deg,var(--gold),var(--gold3));color:#faf5ee;}
+.pb-dark{background:var(--dark);color:#faf5ee;}
+.pb-outline{background:transparent;color:var(--text);border:1px solid var(--border);}
+.trust-row{
+  display:flex;justify-content:center;gap:24px;
+  margin-top:24px;flex-wrap:wrap;
+}
+.trust-item{
+  display:flex;align-items:center;gap:6px;
+  color:var(--muted);font-size:.75rem;
+}
+.trust-item .tc{color:var(--green);}
+
+/* ── COMING SOON BADGE ── */
+.cs-badge{
+  display:inline-flex;align-items:center;gap:6px;
+  background:rgba(140,108,154,0.1);
+  border:1px solid rgba(140,108,154,0.2);
+  color:var(--purple);font-size:.7rem;font-weight:600;
+  padding:5px 12px;border-radius:999px;
+  letter-spacing:.06em;text-transform:uppercase;
+  margin-bottom:14px;
+}
+
+/* BONUSSHOP */
+.shop-grid{
+  display:grid;grid-template-columns:1fr 1fr;
+  gap:18px;margin-top:40px;
+}
+.shop-card{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--radius);padding:28px;
+}
+.shop-card.dark{
+  background:linear-gradient(155deg,#2d1f0f,#1a1208);
+  border-color:rgba(201,149,106,0.2);
+}
+.shop-card h3{
+  font-family:'Cormorant Garamond',serif;
+  font-size:1.2rem;font-weight:400;margin-bottom:8px;
+}
+.shop-card.dark h3{color:var(--gold2);}
+.shop-card p{color:var(--muted);font-size:.88rem;line-height:1.65;}
+.shop-card.dark p{color:rgba(250,245,238,.4);}
+.shop-price{
+  font-family:'Cormorant Garamond',serif;
+  font-size:2rem;font-weight:300;
+  margin:14px 0 5px;
+}
+.shop-card.dark .shop-price{color:var(--gold2);}
+.shop-split{font-size:.8rem;color:var(--muted);margin-bottom:10px;}
+.shop-card.dark .shop-split{color:rgba(250,245,238,.3);}
+.shop-card.dark .shop-split b{color:rgba(250,245,238,.7);}
+
+/* ── AI BOOKING ── */
+.ai-section{
+  background:linear-gradient(150deg,#2a1608,#1e1820);
+  padding:90px 0;
+  border-top:1px solid var(--border);
+  border-bottom:1px solid var(--border);
+}
+.ai-grid{
+  display:grid;grid-template-columns:repeat(3,1fr);
+  gap:14px;margin-top:40px;
+}
+.ai-card{
+  background:rgba(255,255,255,0.04);
+  border:1px solid rgba(201,149,106,0.18);
+  border-radius:16px;padding:22px 18px;
+}
+.ai-card-icon{font-size:24px;margin-bottom:10px;}
+.ai-card h4{font-size:.88rem;font-weight:500;color:var(--gold2);margin-bottom:6px;}
+.ai-card p{font-size:.78rem;color:rgba(250,245,238,.38);line-height:1.6;font-weight:300;}
+.ai-pricing{
+  display:grid;grid-template-columns:1fr 1fr;
+  gap:16px;margin-top:36px;max-width:620px;
+}
+.ai-price-card{
+  background:rgba(255,255,255,0.04);
+  border:1px solid rgba(201,149,106,0.18);
+  border-radius:16px;padding:24px;
+}
+.ai-price-card.feat{
+  background:linear-gradient(135deg,rgba(201,149,106,0.12),rgba(42,26,14,0.8));
+  border-color:rgba(201,149,106,0.35);
+}
+.ai-plan-badge{
+  font-size:.62rem;font-weight:700;color:var(--gold);
+  letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px;
+}
+.ai-plan-name{
+  font-family:'Cormorant Garamond',serif;
+  font-size:1.2rem;font-weight:400;color:var(--gold2);margin-bottom:4px;
+}
+.ai-price-amt{
+  font-family:'Cormorant Garamond',serif;
+  font-size:2rem;font-weight:300;color:#faf5ee;line-height:1;margin-bottom:4px;
+}
+.ai-price-per{font-size:.72rem;color:rgba(250,245,238,.3);margin-bottom:16px;}
+.ai-feats{list-style:none;}
+.ai-feats li{
+  font-size:.8rem;color:rgba(250,245,238,.5);
+  padding:5px 0;
+  border-bottom:1px solid rgba(255,255,255,.05);
+  display:flex;align-items:center;gap:7px;
+}
+.ai-feats li::before{content:'✓';color:var(--green);font-size:.7rem;flex-shrink:0;}
+.ai-feats li:last-child{border-bottom:none;}
+.btn-ai{
+  display:inline-flex;align-items:center;gap:8px;
+  background:linear-gradient(135deg,var(--gold),var(--gold3));
+  color:#faf5ee;padding:14px 30px;border-radius:50px;
+  font-size:.9rem;font-weight:500;
+  text-decoration:none;margin-top:32px;
+  box-shadow:0 8px 24px rgba(201,149,106,0.3);
+}
+.ai-sub-note{font-size:.72rem;color:rgba(250,245,238,.25);margin-top:10px;}
+
+/* ── REGNSKAP ── */
+.regnskap-section{padding:90px 0;}
+.regnskap-feats{
+  display:grid;grid-template-columns:repeat(2,1fr);
+  gap:14px;margin-top:40px;
+}
+.rf-item{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:16px;padding:22px;
+  display:flex;align-items:flex-start;gap:14px;
+}
+.rf-icon{
+  width:40px;height:40px;
+  background:var(--surface2);border-radius:12px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:1rem;flex-shrink:0;
+}
+.rf-title{font-weight:500;font-size:.9rem;margin-bottom:3px;}
+.rf-desc{color:var(--muted);font-size:.8rem;line-height:1.5;}
+.notify-box{
+  margin-top:40px;
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--radius);padding:32px;
+  display:flex;align-items:center;justify-content:space-between;
+  gap:24px;flex-wrap:wrap;
+}
+.notify-box h3{
+  font-family:'Cormorant Garamond',serif;
+  font-size:1.3rem;font-weight:400;margin-bottom:4px;
+}
+.notify-box p{color:var(--muted);font-size:.85rem;}
+.notify-form{display:flex;gap:10px;flex-wrap:wrap;}
+.notify-input{
+  background:var(--surface2);
+  border:1px solid var(--border);
+  color:var(--text);
+  padding:12px 18px;border-radius:50px;
+  font-size:.88rem;font-family:'DM Sans',sans-serif;
+  min-width:220px;outline:none;
+  transition:border-color .2s;
+}
+.notify-input:focus{border-color:var(--gold);}
+.notify-btn{
+  background:linear-gradient(135deg,var(--gold),var(--gold3));
+  color:#faf5ee;padding:12px 24px;border-radius:50px;
+  border:none;font-size:.88rem;font-weight:500;
+  font-family:'DM Sans',sans-serif;cursor:pointer;
+  white-space:nowrap;
+}
+
+/* ── PARTNERS ── */
+.partners-section{
+  padding:50px 0;
+  border-top:1px solid var(--border);
+  text-align:center;
+}
+.partners-label{
+  font-size:.7rem;letter-spacing:.12em;text-transform:uppercase;
+  color:#b0a090;margin-bottom:22px;
+}
+.partners-row{
+  display:flex;justify-content:center;align-items:center;
+  gap:32px;flex-wrap:wrap;
+}
+.partner-name{
+  font-family:'Cormorant Garamond',serif;
+  font-size:1.2rem;font-weight:600;
+  color:#c0b0a0;letter-spacing:.05em;
+}
+
+/* ── FOOTER ── */
+footer{
+  background:var(--dark);
+  padding:56px 0 32px;
+}
+.footer-grid{
+  display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr 1fr;
+  gap:40px;margin-bottom:40px;
+}
+.footer-brand{
+  font-family:'Cormorant Garamond',serif;
+  font-size:1.3rem;font-weight:600;
+  color:var(--gold2);margin-bottom:10px;
+}
+.footer-tagline{
+  color:rgba(250,245,238,.3);
+  font-size:.82rem;line-height:1.65;
+  font-weight:300;max-width:200px;
+}
+.footer-col h4{
+  font-size:.7rem;font-weight:600;
+  text-transform:uppercase;letter-spacing:.1em;
+  color:rgba(250,245,238,.3);margin-bottom:14px;
+}
+.footer-col a{
+  display:block;color:rgba(250,245,238,.45);
+  font-size:.82rem;text-decoration:none;
+  margin-bottom:8px;font-weight:300;
+  transition:color .2s;
+}
+.footer-col a:hover{color:var(--gold2);}
+.footer-bottom{
+  padding-top:24px;
+  border-top:1px solid rgba(255,255,255,.06);
+  display:flex;justify-content:space-between;
+  align-items:center;flex-wrap:wrap;gap:12px;
+}
+.footer-bottom p{
+  color:rgba(250,245,238,.2);font-size:.72rem;font-weight:300;
+}
+.footer-bottom a{color:var(--gold2);text-decoration:none;font-size:.72rem;}
+
+/* ── ANIMATIONS ── */
+@keyframes fadeUp{
+  from{opacity:0;transform:translateY(16px);}
+  to{opacity:1;transform:translateY(0);}
+}
+.fade-up{animation:fadeUp .6s ease both;}
+.delay-1{animation-delay:.1s;}
+.delay-2{animation-delay:.2s;}
+.delay-3{animation-delay:.3s;}
+
+/* ── RESPONSIVE ── */
+@media(max-width:960px){
+  .nav-main-links{display:none;}
+  .app-grid{grid-template-columns:1fr;}
+  .plans-grid{grid-template-columns:1fr;}
+  .ai-grid{grid-template-columns:1fr;}
+  .ai-pricing{grid-template-columns:1fr;}
+  .shop-grid{grid-template-columns:1fr;}
+  .regnskap-feats{grid-template-columns:1fr;}
+  .footer-grid{grid-template-columns:1fr 1fr;}
+  .hero-stats{grid-template-columns:repeat(2,1fr);}
+  .steps-grid{grid-template-columns:1fr;}
+}
+@media(max-width:600px){
+  .hero{padding:60px 24px 50px;}
+  .hero h1{font-size:2.4rem;}
+  .hero-btns{flex-direction:column;align-items:center;}
+  .hero-stats{grid-template-columns:1fr 1fr;}
+  .wrap,.wrap-sm{padding:0 20px;}
+  .notify-box{flex-direction:column;}
+  .footer-grid{grid-template-columns:1fr;}
+  .footer-bottom{flex-direction:column;text-align:center;}
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-top">
+    <a class="nav-logo" href="/">
+      <img src="https://8d6c38fd05.clvaw-cdnwnd.com/10aeb9f09a21de936b6c7e2a68f16aae/200000082-a4f79a4f7b/EFC235A9-27EB-4B76-8032-EE9DCBE1D8CE.png?ph=8d6c38fd05" alt="Bonusvarsel logo">
+      ✦ Bonusvarsel
+    </a>
+    <div class="nav-main-links">
+      <a href="https://www.bonusvarsel.no/om-oss/">Om oss</a>
+      <a href="https://www.bonusvarsel.no/tjenester/">Tjenester</a>
+      <a href="https://www.bonusvarsel.no/vart-arbeid/">Vårt arbeid</a>
+      <a href="https://www.bonusvarsel.no/teamet/">Teamet</a>
+      <a href="#abonnementer">Abonnementer</a>
+      <a href="https://www.bonusvarsel.no/support/">Support</a>
+      <a href="https://www.bonusvarsel.no/kontakt-oss/">Kontakt</a>
+    </div>
+    <a href="https://apps.apple.com/no/app/bonusvarsel/id6743344591" class="nav-cta">Last ned appen</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-eyebrow fade-up"><span class="hero-dot"></span> Smart bonus siden 2024</div>
+  <h1 class="fade-up delay-1">Én plattform for<br><em>smart bonus</em></h1>
+  <p class="hero-sub fade-up delay-2">Bonusvarsel-appen, BonusShop, AI-booking og Bonusvarsel Regnskap — fire produkter som hjelper deg å tjene mer, bruke smartere og ha full kontroll.</p>
+  <div class="hero-btns fade-up delay-3">
+    <a href="#app" class="btn-gold">✈️ Se Bonusvarsel-appen</a>
+    <a href="#ai-booking" class="btn-ghost-light">AI-booking for salonger</a>
+  </div>
+  <div class="hero-stats fade-up delay-3">
+    <div class="hstat"><div class="hstat-num">8 000+</div><div class="hstat-lbl">Ekstra poeng/mnd med Elite</div></div>
+    <div class="hstat"><div class="hstat-num">200+</div><div class="hstat-lbl">Butikker og partnere</div></div>
+    <div class="hstat"><div class="hstat-num">0 kr</div><div class="hstat-lbl">Gratis å komme i gang</div></div>
+    <div class="hstat"><div class="hstat-num">AI</div><div class="hstat-lbl">Personlig reiseslagplan</div></div>
+  </div>
+</section>
+
+<!-- BONUSVARSEL APP -->
+<section class="product-section" id="app">
+  <div class="wrap">
+    <div class="section-tag">Hoved-produkt</div>
+    <h2 class="section-title">Bonusvarsel<br><em>— appen</em></h2>
+    <p class="section-sub">Samle SAS EuroBonus og Trumf-poeng smartere med AI-analyse, varsler og reisekalkulator.</p>
+
+    <div class="app-grid">
+      <div>
+        <ul class="feature-list">
+          <li>
+            <div class="fi-icon">✈️</div>
+            <div><div class="fi-title">Reisekalkulator</div><div class="fi-desc">Se nøyaktig hvor mange poeng du trenger til Bangkok, New York eller London for hele familien.</div></div>
+          </li>
+          <li>
+            <div class="fi-icon">🤖</div>
+            <div><div class="fi-title">AI-slagplan</div><div class="fi-desc">Personlig plan for å nå drømmereisen raskere basert på kortene dine og forbruket ditt.</div></div>
+          </li>
+          <li>
+            <div class="fi-icon">🛍️</div>
+            <div><div class="fi-title">Favorittbutikker</div><div class="fi-desc">Velg butikkene du bruker og få varsel når de har ekstra bonus i Trumf og SAS Shopping.</div></div>
+          </li>
+          <li>
+            <div class="fi-icon">🔔</div>
+            <div><div class="fi-title">Smarte varsler</div><div class="fi-desc">Få varsel på e-post og Telegram når kampanjer og bonusmuligheter dukker opp.</div></div>
+          </li>
+        </ul>
+        <div class="dl-btns">
+          <a href="https://apps.apple.com/no/app/bonusvarsel/id6743344591" class="btn-appstore">🍎 App Store</a>
+          <a href="https://play.google.com/store/apps/details?id=com.royrotvold.bonusvarsel" class="btn-android">▶ Google Play</a>
+        </div>
+      </div>
+
+      <div id="abonnementer">
+        <h3 style="font-family:'Cormorant Garamond',serif;font-size:1.3rem;font-weight:400;margin-bottom:6px;">Velg din plan</h3>
+        <p style="color:var(--muted);font-size:.82rem;margin-bottom:20px;">Ingen binding · Avslutt når som helst</p>
+        <div class="plans-grid">
+          <div class="plan-card">
+            <div class="plan-name">Gratis</div>
+            <div class="plan-price"><span class="kr">NOK </span>0<span class="period"> /mnd</span></div>
+            <p class="plan-note">Kom i gang gratis</p>
+            <ul class="plan-feats">
+              <li><span class="pf-ck">✓</span> Trumf-kalkulator</li>
+              <li><span class="pf-ck">✓</span> Dagligvare-favoritter</li>
+              <li><span class="pf-ck">✓</span> Mobiloperatør</li>
+              <li><span class="pf-ck">✓</span> Strøm (Fjordkraft)</li>
+              <li class="dim"><span class="pf-cx">✗</span> Trumf Netthandel</li>
+              <li class="dim"><span class="pf-cx">✗</span> SAS Shopping</li>
+              <li class="dim"><span class="pf-cx">✗</span> AI-slagplan</li>
+            </ul>
+            <a href="https://apps.apple.com/no/app/bonusvarsel/id6743344591" class="plan-btn pb-outline">🍎 iPhone</a>
+            <a href="https://play.google.com/store/apps/details?id=com.royrotvold.bonusvarsel" class="plan-btn" style="background:#2ea84a;color:#fff;border-radius:50px;display:block;width:100%;padding:12px;text-align:center;text-decoration:none;font-size:.88rem;font-weight:500;margin-top:8px;">▶ Android</a>
+          </div>
+          <div class="plan-card featured">
+            <div class="plan-badge badge-pop">Mest populær</div>
+            <div class="plan-name">Premium</div>
+            <div class="plan-price"><span class="kr">NOK </span>49<span class="period"> /mnd</span></div>
+            <p class="plan-note">Inkl. moms · Ingen binding</p>
+            <ul class="plan-feats">
+              <li><span class="pf-ck">✓</span> Alt i Gratis</li>
+              <li><span class="pf-ck">✓</span> 5 Trumf Netthandel</li>
+              <li><span class="pf-ck">✓</span> 5 SAS Shopping</li>
+              <li><span class="pf-ck">✓</span> AI-slagplan ubegrenset</li>
+              <li><span class="pf-ck">✓</span> SAS fly-tilbudsvarsler</li>
+              <li><span class="pf-ck">✓</span> Personlige varsler</li>
+              <li class="dim"><span class="pf-cx">✗</span> SkyTeam-varsler</li>
+            </ul>
+            <a href="https://buy.stripe.com/9B65kE28i7f44tbcrLcQU05" class="plan-btn pb-gold">Velg Premium – 49 kr</a>
+          </div>
+          <div class="plan-card elite">
+            <div class="plan-badge badge-elite">Maksimal</div>
+            <div class="plan-name">Elite</div>
+            <div class="plan-price"><span class="kr">NOK </span>89<span class="period"> /mnd</span></div>
+            <p class="plan-note">Inkl. moms · Ingen binding</p>
+            <ul class="plan-feats">
+              <li><span class="pf-ck">✓</span> Alt i Premium</li>
+              <li><span class="pf-ck">✓</span> 10 Trumf Netthandel</li>
+              <li><span class="pf-ck">✓</span> 10 SAS Shopping</li>
+              <li><span class="pf-ck">✓</span> SAS Bonusreiser</li>
+              <li><span class="pf-ck">✓</span> SkyTeam-flyselskaper</li>
+              <li><span class="pf-ck">✓</span> VIP-varsler og support</li>
+            </ul>
+            <a href="https://buy.stripe.com/bJecN600a8j8f7P8bvcQU06" class="plan-btn pb-gold">Velg Elite – 89 kr</a>
+          </div>
+        </div>
+        <div class="trust-row">
+          <div class="trust-item"><span class="tc">✓</span> Sikker betaling via Stripe</div>
+          <div class="trust-item"><span class="tc">✓</span> Ingen binding</div>
+          <div class="trust-item"><span class="tc">✓</span> Norsk support</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section style="padding:90px 0;background:var(--surface2);border-top:1px solid var(--border);border-bottom:1px solid var(--border);">
+  <div class="wrap" style="text-align:center;">
+    <div class="section-tag">Slik fungerer det</div>
+    <h2 class="section-title">Tre steg. <em>Én gang.</em><br>Deretter automatisk.</h2>
+    <p class="section-sub" style="margin:0 auto;">Koble til kontoene dine én gang — så gjør Bonusvarsel resten for deg, dag og natt.</p>
+    <div class="steps-grid">
+      <div class="step-item">
+        <div class="step-num">01</div>
+        <div class="step-icon">🔗</div>
+        <h3>Koble til SAS &amp; Trumf</h3>
+        <p>Logger inn én gang med SAS EuroBonus og Trumf-kontoen din. Tar 3 minutter.</p>
+      </div>
+      <div class="step-item">
+        <div class="step-num">02</div>
+        <div class="step-icon">🤖</div>
+        <h3>AI analyserer tilbud</h3>
+        <p>Vi scanner automatisk alle butikker, nettbutikker og reiser for de beste bonusmulighetene.</p>
+      </div>
+      <div class="step-item">
+        <div class="step-num">03</div>
+        <div class="step-icon">🔔</div>
+        <h3>Du får varsel</h3>
+        <p>Når du kan tjene ekstra poeng — får du beskjed. Du handler som vanlig, vi teller poeng.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- BONUSSHOP -->
+<section class="product-section" id="bonusshop">
+  <div class="wrap">
+    <div class="cs-badge">🛍️ Kommer snart</div>
+    <h2 class="section-title">BonusShop</h2>
+    <p class="section-sub">Norges første AI-drevne bonusmarkedsplass. Handle hos utvalgte partnere og tjen maksimalt med poeng.</p>
+    <div class="shop-grid">
+      <div class="shop-card">
+        <div style="font-size:2rem;margin-bottom:12px;">🎯</div>
+        <h3>For kjøpere</h3>
+        <p style="margin-bottom:16px;">AI finner de beste tilbudene basert på kortene dine. Eksklusive bonus-deals og personlige anbefalinger.</p>
+        <ul style="list-style:none;font-size:.85rem;margin-bottom:20px;">
+          <li style="padding:5px 0;color:var(--muted);display:flex;gap:8px;"><span style="color:var(--green);">✓</span> AI-drevne personlige anbefalinger</li>
+          <li style="padding:5px 0;color:var(--muted);display:flex;gap:8px;"><span style="color:var(--green);">✓</span> Eksklusive bonus-deals fra partnere</li>
+          <li style="padding:5px 0;color:var(--muted);display:flex;gap:8px;"><span style="color:var(--green);">✓</span> Integrert med Bonusvarsel-appen</li>
+          <li style="padding:5px 0;color:var(--muted);display:flex;gap:8px;"><span style="color:var(--green);">✓</span> AI kundeservice 24/7</li>
+        </ul>
+        <a href="https://marketplace-app-f5152.web.app" class="plan-btn pb-gold" style="display:block;text-align:center;text-decoration:none;">Åpne BonusShop →</a>
+      </div>
+      <div>
+        <div class="shop-card" style="margin-bottom:16px;">
+          <h3>Bli partner — Medlem</h3>
+          <div class="shop-price">NOK 150<span style="font-size:1rem;color:var(--muted);"> /mnd</span></div>
+          <div class="shop-split">Selg varer i BonusShop — behold fortjenesten selv.</div>
+          <p>Legg ut produkter og tjenester. All fortjeneste fra solgte varer går direkte til deg.</p>
+        </div>
+        <div class="shop-card dark">
+          <h3>Bli partner — Partner</h3>
+          <div class="shop-price">10% / 90%</div>
+          <div class="shop-split"><b>10%</b> til BonusShop · <b>90%</b> til deg</div>
+          <p>Bygg egne partnere under deg og tjen provisjon på hele nettverket ditt.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- AI BOOKING -->
+<section class="ai-section" id="ai-booking">
+  <div class="wrap">
+    <div style="font-size:.72rem;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--gold);margin-bottom:12px;">For salonger og spa</div>
+    <h2 class="section-title" style="color:#faf5ee;">Bonusvarsel<br><em>AI-booking</em></h2>
+    <p class="section-sub" style="color:rgba(250,245,238,.45);">Norsk AI som svarer kunder på Messenger og Instagram 24/7 — og sender bookingen rett inn i Fixit eller Timma.</p>
+    <div class="ai-grid">
+      <div class="ai-card">
+        <div class="ai-card-icon">💬</div>
+        <h4>Svarer 24/7</h4>
+        <p>AI svarer på norsk på Messenger og Instagram hele døgnet.</p>
+      </div>
+      <div class="ai-card">
+        <div class="ai-card-icon">📅</div>
+        <h4>Booker automatisk</h4>
+        <p>Sender bookingen rett inn i Fixit, Timma eller ditt system.</p>
+      </div>
+      <div class="ai-card">
+        <div class="ai-card-icon">📊</div>
+        <h4>Dashboard og statistikk</h4>
+        <p>Full oversikt over bookinger, omsetning og kundevekst.</p>
+      </div>
+    </div>
+    <div class="ai-pricing">
+      <div class="ai-price-card">
+        <div class="ai-plan-name">Starter</div>
+        <div class="ai-price-amt">3 990</div>
+        <div class="ai-price-per">kr per måned · 1 lokasjon</div>
+        <ul class="ai-feats">
+          <li>AI på Messenger og Instagram</li>
+          <li>Opptil 200 samtaler/mnd</li>
+          <li>Fixit, Timma eller ingen system</li>
+          <li>SMS-bekreftelse til kunden</li>
+          <li>14 dager gratis</li>
+        </ul>
+      </div>
+      <div class="ai-price-card feat">
+        <div class="ai-plan-badge">Mest populær</div>
+        <div class="ai-plan-name">Pro</div>
+        <div class="ai-price-amt">5 990</div>
+        <div class="ai-price-per">kr per måned · ubegrenset</div>
+        <ul class="ai-feats">
+          <li>Alt i Starter</li>
+          <li>Ubegrenset samtaler</li>
+          <li>Multi-stylist støtte</li>
+          <li>No-show oppfølging</li>
+          <li>Statistikk-dashboard</li>
+        </ul>
+      </div>
+    </div>
+    <div>
+      <a href="mailto:royrotvold@gmail.com?subject=Gratis test AI Booking" class="btn-ai">✦ Start gratis i 14 dager</a>
+      <div class="ai-sub-note">Ingen bindingstid · Ingen oppsett-kostnad · Jeg setter opp alt</div>
+    </div>
+  </div>
+</section>
+
+<!-- REGNSKAP -->
+<section class="regnskap-section" id="regnskap">
+  <div class="wrap">
+    <div class="cs-badge">🧠 Kommer snart</div>
+    <h2 class="section-title">Bonusvarsel<br><em>Regnskap</em></h2>
+    <p class="section-sub">En AI-drevet økonomiassistent som hjelper deg å forstå, forbedre og kontrollere økonomien din.</p>
+    <div class="regnskap-feats">
+      <div class="rf-item">
+        <div class="rf-icon">🧠</div>
+        <div><div class="rf-title">AI analyserer transaksjoner</div><div class="rf-desc">Automatisk kategorisering og innsikt i forbruksmønster.</div></div>
+      </div>
+      <div class="rf-item">
+        <div class="rf-icon">📄</div>
+        <div><div class="rf-title">Oppdager manglende bilag</div><div class="rf-desc">Varsler deg når noe mangler og hjelper deg holde regnskapet ryddig.</div></div>
+      </div>
+      <div class="rf-item">
+        <div class="rf-icon">💰</div>
+        <div><div class="rf-title">Finner forbedringer og fradrag</div><div class="rf-desc">AI foreslår fradrag du kan ha oversett og muligheter for å spare skatt.</div></div>
+      </div>
+      <div class="rf-item">
+        <div class="rf-icon">✈️</div>
+        <div><div class="rf-title">Optimaliserer bonus og cashback</div><div class="rf-desc">Kobler utgifter til bonusprogrammer og viser hva du tjener per kjøp.</div></div>
+      </div>
+      <div class="rf-item">
+        <div class="rf-icon">📊</div>
+        <div><div class="rf-title">Klar for Skatteetaten</div><div class="rf-desc">Hjelper deg samle og strukturere dokumentasjon klar for innsending.</div></div>
+      </div>
+      <div class="rf-item">
+        <div class="rf-icon">🔗</div>
+        <div><div class="rf-title">Integrert med Bonusvarsel</div><div class="rf-desc">Én plattform for bonus, cashback og økonomi — alt henger sammen.</div></div>
+      </div>
+    </div>
+    <div class="notify-box">
+      <div>
+        <h3>Bli varslet ved lansering</h3>
+        <p>Legg igjen e-postadressen din så gir vi deg tidlig tilgang.</p>
+      </div>
+      <div class="notify-form">
+        <input class="notify-input" type="email" placeholder="din@epost.no">
+        <button class="notify-btn">Varsle meg 🚀</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PARTNERS -->
+<section class="partners-section">
+  <div class="wrap">
+    <div class="partners-label">Fungerer med</div>
+    <div class="partners-row">
+      <span class="partner-name">SAS</span>
+      <span class="partner-name">Trumf</span>
+      <span class="partner-name">Amex</span>
+      <span class="partner-name">Mastercard</span>
+      <span class="partner-name">Visa</span>
+      <span class="partner-name">Fixit</span>
+      <span class="partner-name">Timma</span>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="wrap">
+    <div class="footer-grid">
+      <div>
+        <div class="footer-brand">✦ Bonusvarsel</div>
+        <p class="footer-tagline">Smart bonus siden 2024. Fire produkter — én plattform.</p>
+      </div>
+      <div class="footer-col">
+        <h4>Selskapet</h4>
+        <a href="https://www.bonusvarsel.no/om-oss/">Om oss</a>
+        <a href="https://www.bonusvarsel.no/teamet/">Teamet</a>
+        <a href="https://www.bonusvarsel.no/vart-arbeid/">Vårt arbeid</a>
+        <a href="https://www.bonusvarsel.no/kontakt-oss/">Kontakt oss</a>
+      </div>
+      <div class="footer-col">
+        <h4>Produkter</h4>
+        <a href="#app">Bonusvarsel-appen</a>
+        <a href="#bonusshop">BonusShop</a>
+        <a href="#ai-booking">AI-booking</a>
+        <a href="#regnskap">Regnskap</a>
+      </div>
+      <div class="footer-col">
+        <h4>Tjenester</h4>
+        <a href="https://www.bonusvarsel.no/tjenester/">Tjenester</a>
+        <a href="https://www.bonusvarsel.no/abonnementer/">Abonnementer</a>
+        <a href="https://www.bonusvarsel.no/support/">Support</a>
+      </div>
+      <div class="footer-col">
+        <h4>Juridisk</h4>
+        <a href="https://www.bonusvarsel.no/privacy-policy/">Privacy Policy</a>
+        <a href="https://bonusvarsel.no/terms">Vilkår</a>
+        <a href="mailto:support@bonusvarsel.no">support@bonusvarsel.no</a>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>© 2026 Bonusvarsel AS · Lillehammer, Norge</p>
+      <p>Siden inneholder lenker til samarbeidspartnere. Se vår <a href="https://www.bonusvarsel.no/privacy-policy/">personvernerklæring</a>.</p>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

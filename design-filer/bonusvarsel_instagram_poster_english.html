@@ -1,0 +1,343 @@
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap');
+  
+  .poster {
+    background: linear-gradient(160deg, #0F2340 0%, #152B4A 50%, #0F2340 100%);
+    border-radius: 24px;
+    padding: 40px 32px 36px;
+    max-width: 520px;
+    margin: 0 auto;
+    font-family: 'Inter', sans-serif;
+    position: relative;
+    overflow: hidden;
+    border: 1px solid #2E5080;
+  }
+
+  .glow {
+    position: absolute;
+    top: -80px;
+    right: -80px;
+    width: 280px;
+    height: 280px;
+    background: radial-gradient(circle, rgba(96,165,250,0.12) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .glow2 {
+    position: absolute;
+    bottom: -60px;
+    left: -60px;
+    width: 220px;
+    height: 220px;
+    background: radial-gradient(circle, rgba(212,175,55,0.08) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(96,165,250,0.15);
+    border: 1px solid rgba(96,165,250,0.35);
+    border-radius: 99px;
+    padding: 5px 14px;
+    font-size: 11px;
+    font-weight: 700;
+    color: #60A5FA;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 18px;
+  }
+
+  .dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #60A5FA;
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  h1 {
+    font-size: 32px;
+    font-weight: 900;
+    color: #F8F6F0;
+    line-height: 1.1;
+    margin: 0 0 8px;
+    letter-spacing: -0.5px;
+  }
+
+  h1 span { color: #60A5FA; }
+
+  .sub {
+    font-size: 14px;
+    color: #C8D8E8;
+    margin: 0 0 28px;
+    line-height: 1.5;
+  }
+
+  .section-label {
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin: 0 0 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .section-label.trumf { color: #34D399; }
+  .section-label.sas { color: #60A5FA; }
+
+  .section-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    opacity: 0.2;
+  }
+  .section-label.trumf::after { background: #34D399; }
+  .section-label.sas::after { background: #60A5FA; }
+
+  .deals-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 20px;
+  }
+
+  .deal-card {
+    background: rgba(255,255,255,0.05);
+    border-radius: 12px;
+    padding: 12px 14px;
+    border: 1px solid rgba(255,255,255,0.08);
+    position: relative;
+  }
+
+  .deal-card.campaign {
+    border-color: rgba(52,211,153,0.25);
+    background: rgba(52,211,153,0.06);
+  }
+
+  .deal-card.sas-card {
+    border-color: rgba(96,165,250,0.2);
+    background: rgba(96,165,250,0.05);
+  }
+
+  .deal-name {
+    font-size: 13px;
+    font-weight: 700;
+    color: #F8F6F0;
+    margin-bottom: 3px;
+  }
+
+  .deal-pts {
+    font-size: 18px;
+    font-weight: 900;
+    line-height: 1;
+    margin-bottom: 2px;
+  }
+
+  .deal-pts.green { color: #34D399; }
+  .deal-pts.blue { color: #60A5FA; }
+
+  .deal-sub {
+    font-size: 10px;
+    color: #8BA5C0;
+    font-weight: 500;
+  }
+
+  .camp-badge {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: #34D399;
+    color: #0A2010;
+    font-size: 8px;
+    font-weight: 800;
+    padding: 2px 6px;
+    border-radius: 4px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .camp-badge.sas-b {
+    background: #60A5FA;
+    color: #0A1828;
+  }
+
+  .alert-box {
+    background: linear-gradient(135deg, rgba(212,175,55,0.12) 0%, rgba(212,175,55,0.05) 100%);
+    border: 1px solid rgba(212,175,55,0.3);
+    border-radius: 14px;
+    padding: 16px 18px;
+    margin: 20px 0;
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+  }
+
+  .bell-icon {
+    font-size: 28px;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  .alert-title {
+    font-size: 14px;
+    font-weight: 800;
+    color: #D4AF37;
+    margin-bottom: 4px;
+  }
+
+  .alert-text {
+    font-size: 12px;
+    color: #C8D8E8;
+    line-height: 1.5;
+  }
+
+  .cta-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-top: 20px;
+  }
+
+  .cta-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    border-radius: 12px;
+    padding: 13px 10px;
+    font-size: 13px;
+    font-weight: 800;
+    cursor: pointer;
+    text-decoration: none;
+    transition: opacity 0.2s;
+  }
+
+  .cta-btn:hover { opacity: 0.85; }
+
+  .cta-primary {
+    background: #60A5FA;
+    color: #0F2340;
+  }
+
+  .cta-secondary {
+    background: transparent;
+    border: 1.5px solid #60A5FA;
+    color: #60A5FA;
+  }
+
+  .footer {
+    margin-top: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .logo {
+    font-size: 15px;
+    font-weight: 900;
+    color: #F8F6F0;
+    letter-spacing: -0.3px;
+  }
+
+  .logo span { color: #60A5FA; }
+
+  .url {
+    font-size: 11px;
+    color: #8BA5C0;
+    font-weight: 500;
+  }
+</style>
+
+<div class="poster">
+  <div class="glow"></div>
+  <div class="glow2"></div>
+
+  <div class="badge">
+    <div class="dot"></div>
+    Live deals right now
+  </div>
+
+  <h1>Earn <span>flight points</span><br>on everyday spending</h1>
+  <p class="sub">250+ online stores with bonus — we alert you the moment your favourites run a campaign.</p>
+
+  <div class="section-label trumf">🛒 Trumf online shopping</div>
+  <div class="deals-grid">
+    <div class="deal-card campaign">
+      <div class="camp-badge">Campaign</div>
+      <div class="deal-name">SmartBuyGlasses</div>
+      <div class="deal-pts green">80p</div>
+      <div class="deal-sub">per 100 NOK</div>
+    </div>
+    <div class="deal-card campaign">
+      <div class="camp-badge">Campaign</div>
+      <div class="deal-name">Gina Tricot</div>
+      <div class="deal-pts green">60p</div>
+      <div class="deal-sub">per 100 NOK</div>
+    </div>
+    <div class="deal-card campaign">
+      <div class="camp-badge">Campaign</div>
+      <div class="deal-name">Outnorth</div>
+      <div class="deal-pts green">50p</div>
+      <div class="deal-sub">per 100 NOK</div>
+    </div>
+    <div class="deal-card">
+      <div class="deal-name">Blivakker</div>
+      <div class="deal-pts green">30p</div>
+      <div class="deal-sub">per 100 NOK</div>
+    </div>
+  </div>
+
+  <div class="section-label sas">✈️ SAS Online Shopping</div>
+  <div class="deals-grid">
+    <div class="deal-card sas-card">
+      <div class="camp-badge sas-b">Popular</div>
+      <div class="deal-name">Scandic Hotels</div>
+      <div class="deal-pts blue">20p</div>
+      <div class="deal-sub">per 100 NOK</div>
+    </div>
+    <div class="deal-card sas-card">
+      <div class="camp-badge sas-b">Popular</div>
+      <div class="deal-name">Booking.com</div>
+      <div class="deal-pts blue">15p</div>
+      <div class="deal-sub">per 100 NOK</div>
+    </div>
+    <div class="deal-card sas-card">
+      <div class="deal-name">Hotels.com</div>
+      <div class="deal-pts blue">15p</div>
+      <div class="deal-sub">per 100 NOK</div>
+    </div>
+    <div class="deal-card sas-card">
+      <div class="deal-name">Expedia</div>
+      <div class="deal-pts blue">20p</div>
+      <div class="deal-sub">per 100 NOK</div>
+    </div>
+  </div>
+
+  <div class="alert-box">
+    <div class="bell-icon">🔔</div>
+    <div>
+      <div class="alert-title">Never miss a great deal again</div>
+      <div class="alert-text">Pick your favourite stores — we notify you instantly when they run extra bonus campaigns. Automatic, personal, free.</div>
+    </div>
+  </div>
+
+  <div class="cta-row">
+    <a href="https://bonusvarsel.no" class="cta-btn cta-primary">🌐 bonusvarsel.no</a>
+    <a href="https://apps.apple.com/app/id6746456298" class="cta-btn cta-secondary">📲 Download app</a>
+  </div>
+
+  <div class="footer">
+    <div class="logo">Bonus<span>varsel</span></div>
+    <div class="url">bonusvarsel.no</div>
+  </div>
+</div>

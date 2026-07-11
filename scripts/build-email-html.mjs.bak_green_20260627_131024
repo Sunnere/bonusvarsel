@@ -1,0 +1,94 @@
+// scripts/build-email-html.mjs
+// Bygger proff HTML-e-post med bilder (navy + gull, som SAS/Trumf)
+// Eksporterer buildEmailHtml(campaigns, tier, favs)
+import fs from "node:fs";
+import path from "node:path";
+
+const DATA_DIR = process.env.DATA_DIR || "data";
+const TODAY = new Date().toISOString().slice(0, 10);
+const SAS_BASE = "https://onlineshopping.flysas.com/nb-NO/butikk/";
+const NAVY = "#0F2340", GOLD = "#D4AF37", ELITE_BG = "#110A28";
+
+function readJson(p) {
+  if (!fs.existsSync(p)) return null;
+  try { return JSON.parse(fs.readFileSync(p, "utf8")); } catch { return null; }
+}
+
+function fmtDate(iso) { if (!iso) return ""; const [y,m,d]=iso.split("-"); return `${d}.${m}`; }
+
+function offerCard(c) {
+  const ends = c.campaign_ends_iso ? `Gyldig t.o.m. ${fmtDate(c.campaign_ends_iso)}` : "";
+  const img = c.image_url || "";
+  const initial = (c.name || "?")[0];
+  const imgCell = img
+    ? `<img src="${img}" width="50" height="50" style="border-radius:8px;object-fit:cover" alt="${c.name}">`
+    : `<div style="width:50px;height:50px;border-radius:8px;background:${NAVY};color:${GOLD};text-align:center;line-height:50px;font-weight:700;font-size:20px">${initial}</div>`;
+  return `
+  <tr><td style="padding:14px 0;border-bottom:1px solid #eee">
+    <table width="100%" cellpadding="0" cellspacing="0"><tr>
+      <td width="60" style="vertical-align:top">${imgCell}</td>
+      <td style="vertical-align:top;padding-left:12px">
+        <div style="font-size:16px;font-weight:700;color:${NAVY}">${c.name}</div>
+        <div style="font-size:14px">
+          ${c.points > 0 ? `<span style="text-decoration:line-through;color:#999">${c.points}p</span> ` : ""}
+          <span style="color:${GOLD};font-weight:700">${c.points_campaign}p/100kr</span>
+        </div>
+        <div style="font-size:12px;color:#999">${ends}</div>
+      </td>
+      <td width="90" style="vertical-align:middle;text-align:right">
+        <a href="${SAS_BASE}${c.slug}" style="background:${GOLD};color:${NAVY};padding:9px 14px;border-radius:6px;text-decoration:none;font-weight:700;font-size:13px;display:inline-block">Handle →</a>
+      </td>
+    </tr></table>
+  </td></tr>`;
+}
+
+export function buildEmailHtml(campaigns, tier = "Premium", isElite = false) {
+  const headerBg = isElite ? ELITE_BG : NAVY;
+  const cards = campaigns.map(offerCard).join("");
+
+  const skyteamSection = isElite ? `
+    <tr><td style="padding:16px 24px;background:#F8F6FF">
+      <div style="font-size:13px;font-weight:700;color:${NAVY};margin-bottom:8px">✈️ SkyTeam & Luksus</div>
+      <div style="font-size:13px;color:#555;line-height:1.8">
+        • <a href="https://www.sas.no/eurobonus/bonusreiser" style="color:${NAVY}">SAS Bonusreiser</a> – fast poengpris<br>
+        • <a href="https://www.sas.no/eurobonus" style="color:${NAVY}">Hotell med poeng</a> – 250 000+ hoteller<br>
+        • SkyTeam-lounger med Gull/Diamant 🌍
+      </div>
+    </td></tr>` : "";
+
+  return `<!DOCTYPE html><html><body style="margin:0;background:#f4f4f4;font-family:Arial,Helvetica,sans-serif">
+  <table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:20px">
+    <table width="540" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,0.08)">
+      <tr><td style="background:${headerBg};padding:24px;text-align:center">
+        <div style="color:${GOLD};font-size:26px;font-weight:800;letter-spacing:0.5px">🔔 Bonusvarsel</div>
+        <div style="color:#fff;font-size:14px;margin-top:4px">${tier} · Ukens topptilbud</div>
+      </td></tr>
+      <tr><td style="padding:8px 24px 24px">
+        <table width="100%" cellpadding="0" cellspacing="0">${cards}</table>
+      </td></tr>
+      ${skyteamSection}
+      <tr><td style="background:${headerBg};padding:18px;text-align:center">
+        <div style="color:#fff;font-size:12px;line-height:1.6">
+          Du mottar dette fordi du har registrert e-posten i Bonusvarsel-appen.<br>
+          <a href="mailto:support@bonusvarsel.no?subject=Avmeld" style="color:${GOLD}">Avmeld deg</a>
+        </div>
+      </td></tr>
+    </table>
+    <div style="font-size:11px;color:#aaa;margin-top:12px">Bonusvarsel · Sunnere Helse Hub</div>
+  </td></tr></table></body></html>`;
+}
+
+// CLI: bygg og lagre forhåndsvisning
+if (import.meta.url === `file://${process.argv[1]}`) {
+  const campaigns = readJson(path.join(DATA_DIR, "campaigns.normalized.json")) || [];
+  const active = campaigns
+    .filter(c => c.has_campaign === 1 && c.points_campaign > 0)
+    .filter(c => !c.campaign_ends_iso || c.campaign_ends_iso >= TODAY)
+    .sort((a, b) => b.points_campaign - a.points_campaign)
+    .slice(0, 4);
+
+  const eliteHtml = buildEmailHtml(active, "👑 Elite", true);
+  fs.writeFileSync(path.join(DATA_DIR, "email-elite-preview.html"), eliteHtml);
+  console.log(`✅ E-post bygget: ${eliteHtml.length} tegn, ${active.length} tilbud`);
+  console.log(`   Lagret: ${DATA_DIR}/email-elite-preview.html`);
+}

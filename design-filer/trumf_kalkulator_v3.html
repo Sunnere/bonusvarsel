@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Trumf-kalkulator – BonusVarsel</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;600&display=swap');
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:linear-gradient(160deg,#e8f4f0 0%,#ddeef8 100%);font-family:'DM Sans',sans-serif;min-height:100vh;}
+
+  /* NAV */
+  .topnav{background:#fff;border-bottom:1px solid #d0e8e0;display:flex;gap:0;padding:0 12px;position:sticky;top:0;z-index:20;}
+  .tab{padding:13px 14px;font-size:13px;font-weight:600;color:#7aaa99;cursor:pointer;border-bottom:3px solid transparent;transition:all .2s;white-space:nowrap;}
+  .tab.active{color:#1a8a5c;border-bottom-color:#1a8a5c;}
+
+  /* PAGES */
+  .page{display:none;padding:14px;max-width:480px;margin:0 auto;}
+  .page.active{display:block;}
+
+  /* CARDS */
+  .card{background:#fff;border-radius:18px;padding:18px;margin-bottom:14px;box-shadow:0 2px 12px rgba(26,138,92,.07);border:1px solid #d8efe8;}
+  .card-label{font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:#2a9d6e;margin-bottom:14px;}
+
+  /* SLIDERS */
+  .slider-row{margin-bottom:16px;}
+  .slider-row:last-child{margin-bottom:0;}
+  .slider-top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:7px;}
+  .slider-name{font-size:14px;color:#2a4a3a;}
+  .slider-val{font-family:'DM Serif Display',serif;font-size:18px;color:#1a3a2a;}
+  .slider-val span{font-size:11px;color:#7aaa99;font-family:'DM Sans',sans-serif;}
+  input[type=range]{-webkit-appearance:none;width:100%;height:5px;background:linear-gradient(to right,#1a8a5c var(--pct,50%),#c8e8dc var(--pct,50%));border-radius:3px;outline:none;}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;border-radius:50%;background:#1a8a5c;cursor:pointer;box-shadow:0 0 0 4px rgba(26,138,92,.15);}
+
+  /* TOGGLES */
+  .toggle-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+  .tog{background:#f0faf6;border:1.5px solid #c8e8dc;border-radius:12px;padding:10px 12px;cursor:pointer;transition:all .2s;}
+  .tog.active{background:#e0f5ec;border-color:#1a8a5c;}
+  .tog.full{grid-column:span 2;}
+  .tog .t-icon{font-size:18px;margin-bottom:4px;}
+  .tog .t-name{font-size:12px;color:#2a4a3a;font-weight:600;}
+  .tog .t-pct{font-size:11px;color:#7aaa99;margin-top:2px;}
+  .tog.active .t-pct{color:#1a8a5c;}
+
+  /* RESULT */
+  .result-card{background:linear-gradient(135deg,#0d6e44 0%,#0a5236 100%);border-radius:20px;padding:20px;margin-bottom:14px;box-shadow:0 6px 24px rgba(13,110,68,.25);position:relative;overflow:hidden;}
+  .result-card::before{content:'';position:absolute;top:-40px;right:-40px;width:160px;height:160px;border-radius:50%;background:rgba(255,255,255,.05);}
+  .result-top{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:16px;}
+  .r-label{font-size:11px;color:#6dcca0;font-weight:700;letter-spacing:.08em;text-transform:uppercase;}
+  .r-amount{font-family:'DM Serif Display',serif;font-size:46px;color:#fff;line-height:1;margin-top:3px;}
+  .r-amount span{font-size:18px;color:#6dcca0;font-family:'DM Sans',sans-serif;}
+  .r-year{font-size:12px;color:#6dcca0;margin-top:3px;}
+  .r-sats{font-family:'DM Serif Display',serif;font-size:30px;color:#a8f0cc;text-align:right;}
+  .r-div{height:1px;background:rgba(255,255,255,.12);margin:14px 0;}
+  .euro-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .euro-box{background:rgba(0,0,0,.15);border-radius:12px;padding:12px;border:1px solid rgba(255,255,255,.1);}
+  .euro-box.best{border-color:rgba(109,204,160,.5);background:rgba(109,204,160,.12);}
+  .e-label{font-size:10px;color:#6dcca0;font-weight:700;text-transform:uppercase;letter-spacing:.07em;margin-bottom:5px;}
+  .e-badge{display:inline-block;background:#1a8a5c;color:#fff;font-size:8px;padding:1px 5px;border-radius:4px;margin-left:3px;}
+  .e-pts{font-family:'DM Serif Display',serif;font-size:24px;color:#fff;}
+  .e-rate{font-size:10px;color:#6dcca0;margin-top:2px;}
+
+  /* TIPS */
+  .tip{background:#fff;border-radius:14px;padding:13px 14px;margin-bottom:10px;border:1.5px solid #d8efe8;display:flex;align-items:flex-start;gap:11px;box-shadow:0 1px 6px rgba(26,138,92,.06);}
+  .t-ico{width:36px;height:36px;min-width:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:17px;}
+  .t-ico.g{background:#e8f9f0;} .t-ico.b{background:#e8f0ff;} .t-ico.o{background:#fff4e8;}
+  .t-title{font-size:13px;font-weight:600;color:#1a3a2a;margin-bottom:2px;}
+  .t-desc{font-size:12px;color:#6a8a7a;line-height:1.45;}
+  .t-gain{margin-left:auto;min-width:fit-content;font-family:'DM Serif Display',serif;font-size:14px;color:#1a8a5c;}
+
+  /* SECTION LBL */
+  .section-lbl{font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:#2a9d6e;margin:18px 0 10px;padding-left:2px;}
+
+  /* FAV STRIP */
+  .fav-strip{background:#e0f5ec;border:1.5px solid #b8e8d0;border-radius:12px;padding:10px 14px;margin-bottom:14px;font-size:12px;color:#1a6a44;}
+
+  /* PAYWALL OVERLAY */
+  .paywall{background:rgba(255,255,255,.96);border:2px solid #1a8a5c;border-radius:18px;padding:24px 20px;text-align:center;margin-bottom:14px;}
+  .paywall-icon{font-size:36px;margin-bottom:8px;}
+  .paywall h3{font-family:'DM Serif Display',serif;font-size:20px;color:#1a3a2a;margin-bottom:6px;}
+  .paywall p{font-size:13px;color:#6a8a7a;line-height:1.5;margin-bottom:16px;}
+  .pw-btn{display:block;width:100%;padding:13px;border-radius:12px;font-size:14px;font-weight:600;cursor:pointer;border:none;font-family:'DM Sans',sans-serif;margin-bottom:8px;}
+  .pw-btn.premium{background:linear-gradient(135deg,#1a8a5c,#0d6e44);color:#fff;box-shadow:0 4px 14px rgba(13,110,68,.25);}
+  .pw-btn.elite{background:linear-gradient(135deg,#0a4fd4,#0835a0);color:#fff;box-shadow:0 4px 14px rgba(10,79,212,.25);}
+  .pw-btn.cancel{background:transparent;color:#7aaa99;font-size:12px;padding:6px;}
+
+  /* FAVORITES */
+  .fav-section{margin-bottom:20px;}
+  .fav-title{font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:#2a9d6e;margin-bottom:10px;padding-left:2px;display:flex;align-items:center;gap:6px;}
+  .tier-badge{display:inline-block;font-size:9px;padding:2px 7px;border-radius:6px;font-weight:700;letter-spacing:.04em;vertical-align:middle;}
+  .tier-badge.free{background:#e8f9f0;color:#1a8a5c;border:1px solid #b8e8d0;}
+  .tier-badge.premium{background:#fff0e0;color:#b06000;border:1px solid #ffd080;}
+  .tier-badge.elite{background:#e8eeff;color:#0a4fd4;border:1px solid #b0c8ff;}
+  .fav-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;}
+  .fav-item{background:#fff;border-radius:14px;padding:10px 8px;text-align:center;cursor:pointer;border:1.5px solid #d8efe8;box-shadow:0 1px 4px rgba(26,138,92,.06);transition:all .2s;position:relative;}
+  .fav-item.selected{border-color:#1a8a5c;background:#e8f9f0;}
+  .fav-item.locked{opacity:.5;cursor:default;filter:grayscale(.4);}
+  .fav-item .check{position:absolute;top:5px;right:5px;width:14px;height:14px;border-radius:50%;background:#1a8a5c;color:#fff;font-size:9px;display:none;align-items:center;justify-content:center;}
+  .fav-item.selected .check{display:flex;}
+  .fav-item .lock-ico{position:absolute;top:5px;right:5px;font-size:11px;}
+  .f-icon{font-size:22px;margin-bottom:4px;}
+  .f-name{font-size:11px;font-weight:600;color:#2a4a3a;}
+  .f-pct{font-size:10px;color:#7aaa99;margin-top:1px;}
+  .fav-item.selected .f-pct{color:#1a8a5c;}
+
+  /* TIER SWITCHER (demo) */
+  .tier-switch{display:flex;background:#fff;border-radius:12px;padding:4px;gap:4px;margin-bottom:16px;border:1px solid #d8efe8;}
+  .ts-btn{flex:1;padding:8px;border-radius:9px;border:none;font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;background:transparent;color:#7aaa99;transition:all .2s;}
+  .ts-btn.active{background:#1a8a5c;color:#fff;}
+  .ts-btn.active.premium{background:linear-gradient(135deg,#c07000,#a05000);}
+  .ts-btn.active.elite{background:linear-gradient(135deg,#0a4fd4,#0835a0);}
+
+  .save-btn{width:100%;background:linear-gradient(135deg,#1a8a5c,#0d6e44);color:#fff;border:none;border-radius:14px;padding:15px;font-size:15px;font-weight:600;cursor:pointer;margin-top:8px;box-shadow:0 4px 16px rgba(13,110,68,.25);font-family:'DM Sans',sans-serif;}
+
+  /* UPGRADE PROMPT inline */
+  .upgrade-row{background:#fff8f0;border:1.5px dashed #ffd080;border-radius:12px;padding:11px 14px;margin-bottom:8px;display:flex;align-items:center;gap:10px;cursor:pointer;}
+  .upgrade-row .u-text{font-size:12px;color:#8a5000;flex:1;}
+  .upgrade-row .u-arrow{font-size:16px;color:#c07000;}
+</style>
+</head>
+<body>
+
+<div class="topnav">
+  <div class="tab active" onclick="showPage('kalk')">🧮 Kalkulator</div>
+  <div class="tab" onclick="showPage('fav')">⭐ Favoritter</div>
+  <div class="tab" onclick="showPage('abonnement')">👑 Abonnement</div>
+</div>
+
+<!-- ══════ KALKULATOR ══════ -->
+<div class="page active" id="page-kalk">
+  <div style="padding:14px 2px 6px">
+    <div style="font-family:'DM Serif Display',serif;font-size:22px;color:#1a3a2a">Trumf-kalkulator</div>
+    <div style="font-size:12px;color:#7aaa99;margin-top:2px">Basert på dine favoritter</div>
+  </div>
+
+  <div class="fav-strip" id="favStrip">Ingen favoritter valgt – gå til <strong>Favoritter</strong>.</div>
+
+  <div class="card">
+    <div class="card-label">Forbruk per måned</div>
+    <div class="slider-row">
+      <div class="slider-top">
+        <span class="slider-name" id="butikkNavn">Dagligvarer</span>
+        <span class="slider-val" id="dagVal">8 000 <span>kr/mnd</span></span>
+      </div>
+      <input type="range" id="dagSlider" min="500" max="30000" step="500" value="8000" oninput="update()">
+    </div>
+    <div class="slider-row" id="mobRow">
+      <div class="slider-top">
+        <span class="slider-name" id="mobNavn">Mobilregning</span>
+        <span class="slider-val" id="mobVal">400 <span>kr/mnd</span></span>
+      </div>
+      <input type="range" id="mobSlider" min="0" max="2000" step="50" value="400" oninput="update()">
+    </div>
+    <div class="slider-row" id="stromRow">
+      <div class="slider-top">
+        <span class="slider-name">Strøm (Fjordkraft)</span>
+        <span class="slider-val" id="stromVal">1 200 <span>kr/mnd</span></span>
+      </div>
+      <input type="range" id="stromSlider" min="0" max="5000" step="100" value="1200" oninput="update()">
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-label">Betalingsmåte</div>
+    <div class="toggle-grid">
+      <div class="tog" id="togKort" onclick="toggleBtn('kort')">
+        <div class="t-icon">💳</div>
+        <div class="t-name">Trumf Kredittkort</div>
+        <div class="t-pct">+1% dagligvare</div>
+      </div>
+      <div class="tog" id="togPay" onclick="toggleBtn('pay')">
+        <div class="t-icon">📱</div>
+        <div class="t-name">Trumf Pay</div>
+        <div class="t-pct">+1% alle kjøp</div>
+      </div>
+      <div class="tog full" id="togTrippel" onclick="toggleBtn('trippel')">
+        <div class="t-icon">🔥</div>
+        <div class="t-name">Trippel-Trumf Torsdag</div>
+        <div class="t-pct">+2% på torsdager</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="result-card">
+    <div class="result-top">
+      <div>
+        <div class="r-label">Månedlig bonus</div>
+        <div class="r-amount" id="rMnd">– <span>kr</span></div>
+        <div class="r-year" id="rAar">– kr per år</div>
+      </div>
+      <div>
+        <div class="r-label" style="text-align:right">Sats</div>
+        <div class="r-sats" id="rSats">–%</div>
+      </div>
+    </div>
+    <div class="r-div"></div>
+    <div class="r-label" style="margin-bottom:10px">Verdi i SAS EuroBonus</div>
+    <div class="euro-grid">
+      <div class="euro-box">
+        <div class="e-label">Engangsoverføring</div>
+        <div class="e-pts" id="eEngang">–</div>
+        <div class="e-rate">poeng/år · 10 p/kr</div>
+      </div>
+      <div class="euro-box best">
+        <div class="e-label">Automatisk <span class="e-badge">✓</span></div>
+        <div class="e-pts" id="eAuto">–</div>
+        <div class="e-rate">poeng/år · 13,5 p/kr</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-lbl">Råd for deg</div>
+  <div id="tipsWrap"></div>
+</div>
+
+<!-- ══════ FAVORITTER ══════ -->
+<div class="page" id="page-fav">
+  <div style="padding:14px 2px 10px">
+    <div style="font-family:'DM Serif Display',serif;font-size:22px;color:#1a3a2a">Mine favoritter</div>
+    <div style="font-size:12px;color:#7aaa99;margin-top:2px">Kalkulatoren oppdateres automatisk</div>
+  </div>
+
+  <!-- Demo tier switcher -->
+  <div class="tier-switch">
+    <button class="ts-btn active" id="ts-free" onclick="setDemoTier('free')">Gratis</button>
+    <button class="ts-btn premium" id="ts-premium" onclick="setDemoTier('premium')">Premium</button>
+    <button class="ts-btn elite" id="ts-elite" onclick="setDemoTier('elite')">Elite</button>
+  </div>
+
+  <!-- Dagligvare – alle tiers -->
+  <div class="fav-section">
+    <div class="fav-title">🛒 Dagligvare <span class="tier-badge free">Gratis</span></div>
+    <div class="fav-grid" id="gridDag"></div>
+  </div>
+
+  <!-- Mobil – alle tiers -->
+  <div class="fav-section">
+    <div class="fav-title">📱 Mobiloperatør <span class="tier-badge free">Gratis</span></div>
+    <div class="fav-grid" id="gridMob"></div>
+  </div>
+
+  <!-- Strøm – alle tiers -->
+  <div class="fav-section">
+    <div class="fav-title">⚡ Strøm <span class="tier-badge free">Gratis</span></div>
+    <div class="fav-grid" id="gridStrom"></div>
+  </div>
+
+  <!-- Trumf Netthandel – premium/elite -->
+  <div class="fav-section">
+    <div class="fav-title">🛍️ Trumf Netthandel <span class="tier-badge premium">Premium: 5 valg</span> <span class="tier-badge elite">Elite: 10 valg</span></div>
+    <div id="trumfNettWrap"></div>
+  </div>
+
+  <!-- SAS Shopping – premium/elite -->
+  <div class="fav-section">
+    <div class="fav-title">✈️ SAS Online Shopping <span class="tier-badge premium">Premium: 5 valg</span> <span class="tier-badge elite">Elite: 10 valg</span></div>
+    <div id="sasShoppingWrap"></div>
+  </div>
+
+  <!-- SAS Bonusreiser – elite -->
+  <div class="fav-section">
+    <div class="fav-title">🌍 SAS Bonusreiser <span class="tier-badge elite">Elite</span></div>
+    <div id="sasBonusWrap"></div>
+  </div>
+
+  <!-- SkyTeam – elite -->
+  <div class="fav-section">
+    <div class="fav-title">🌐 SkyTeam-flyselskaper <span class="tier-badge elite">Elite</span></div>
+    <div id="skyteamWrap"></div>
+  </div>
+
+  <button class="save-btn" onclick="saveFavorites()">Lagre favoritter</button>
+</div>
+
+<!-- ══════ ABONNEMENT ══════ -->
+<div class="page" id="page-abonnement">
+  <div style="padding:14px 2px 14px">
+    <div style="font-family:'DM Serif Display',serif;font-size:22px;color:#1a3a2a">Abonnement</div>
+    <div style="font-size:12px;color:#7aaa99;margin-top:2px">Velg planen som passer deg</div>
+  </div>
+
+  <!-- Free -->
+  <div class="card" style="border-color:#b8e8d0">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <div style="font-family:'DM Serif Display',serif;font-size:18px;color:#1a3a2a">Gratis</div>
+      <div style="font-size:20px;font-family:'DM Serif Display',serif;color:#1a8a5c">0 kr</div>
+    </div>
+    <div style="font-size:12px;color:#6a8a7a;line-height:1.7">
+      ✅ Trumf-kalkulator<br>
+      ✅ Dagligvare-favoritter (KIWI, MENY, SPAR osv)<br>
+      ✅ Mobiloperatør (Talkmore)<br>
+      ✅ Strøm (Fjordkraft)<br>
+      ❌ Trumf Netthandel-favoritter<br>
+      ❌ SAS Online Shopping-favoritter<br>
+      ❌ SAS Bonusreiser<br>
+      ❌ SkyTeam-varsler
+    </div>
+    <div id="freeBtn"></div>
+  </div>
+
+  <!-- Premium -->
+  <div class="card" style="border-color:#ffd080">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <div>
+        <div style="font-family:'DM Serif Display',serif;font-size:18px;color:#1a3a2a">Premium</div>
+        <span class="tier-badge premium">Mest populær</span>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:20px;font-family:'DM Serif Display',serif;color:#c07000">49 kr/mnd</div>
+      </div>
+    </div>
+    <div style="font-size:12px;color:#6a8a7a;line-height:1.7">
+      ✅ Alt i Gratis<br>
+      ✅ 5 Trumf Netthandel-favoritter<br>
+      ✅ 5 SAS Online Shopping-favoritter<br>
+      ✅ SAS fly-tilbudsvarsler<br>
+      ❌ SAS Bonusreiser<br>
+      ❌ SkyTeam-varsler<br>
+      ❌ 10 valgslots netthandel
+    </div>
+    <button class="pw-btn premium" style="margin-top:14px" onclick="setDemoTier('premium');showPage('fav')">Velg Premium</button>
+  </div>
+
+  <!-- Elite -->
+  <div class="card" style="border-color:#b0c8ff">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <div>
+        <div style="font-family:'DM Serif Display',serif;font-size:18px;color:#1a3a2a">Elite</div>
+        <span class="tier-badge elite">Maksimal opptjening</span>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:20px;font-family:'DM Serif Display',serif;color:#0a4fd4">99 kr/mnd</div>
+      </div>
+    </div>
+    <div style="font-size:12px;color:#6a8a7a;line-height:1.7">
+      ✅ Alt i Premium<br>
+      ✅ 10 Trumf Netthandel-favoritter<br>
+      ✅ 10 SAS Online Shopping-favoritter<br>
+      ✅ SAS Bonusreiser-oversikt<br>
+      ✅ SkyTeam-flyselskaper (Air France, KLM, Delta osv)<br>
+      ✅ Varsler på bonusreiser og tilbud
+    </div>
+    <button class="pw-btn elite" style="margin-top:14px" onclick="setDemoTier('elite');showPage('fav')">Velg Elite</button>
+  </div>
+</div>
+
+<!-- ══════ PAYWALL MODAL ══════ -->
+<div id="paywallModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:100;align-items:center;justify-content:center;padding:20px;">
+  <div style="background:#fff;border-radius:24px;padding:28px 22px;max-width:360px;width:100%;text-align:center">
+    <div style="font-size:40px;margin-bottom:10px" id="pwIcon">🔒</div>
+    <div style="font-family:'DM Serif Display',serif;font-size:22px;color:#1a3a2a;margin-bottom:8px" id="pwTitle">Oppgrader for å fortsette</div>
+    <div style="font-size:13px;color:#6a8a7a;line-height:1.55;margin-bottom:20px" id="pwDesc">Denne funksjonen krever Premium eller Elite.</div>
+    <button class="pw-btn premium" onclick="upgradeTo('premium')">✨ Premium – 49 kr/mnd</button>
+    <button class="pw-btn elite" onclick="upgradeTo('elite')">👑 Elite – 99 kr/mnd</button>
+    <button class="pw-btn cancel" onclick="closePaywall()">Ikke nå</button>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════
+// DATA
+// ══════════════════════════
+const TIERS = { free:0, premium:1, elite:2 };
+let currentTier = 'free'; // demo – bytt med setDemoTier()
+
+const PARTNERS = {
+  dag:[
+    {id:'kiwi',    name:'KIWI',        icon:'🟡',pct:1,  txt:'1% Trumf'},
+    {id:'meny',    name:'MENY',        icon:'🔴',pct:1,  txt:'1% Trumf'},
+    {id:'spar',    name:'SPAR',        icon:'🟢',pct:1,  txt:'1% Trumf'},
+    {id:'joker',   name:'Joker',       icon:'🃏',pct:1,  txt:'1% Trumf'},
+    {id:'jacobs',  name:"Jacob's",     icon:'🏪',pct:1,  txt:'1% Trumf'},
+    {id:'naer',    name:'Nærbutikken', icon:'🏘️',pct:1,  txt:'1% Trumf'},
+  ],
+  mob:[
+    {id:'talkmore',name:'Talkmore',    icon:'📞',pct:4,  txt:'4% Trumf'},
+    {id:'annet_mob',name:'Annen',      icon:'📵',pct:0,  txt:'Ingen'},
+  ],
+  strom:[
+    {id:'fjordkraft',name:'Fjordkraft',icon:'💡',pct:1,  txt:'1% Trumf'},
+    {id:'annet_str', name:'Annen',     icon:'🔌',pct:0,  txt:'Ingen'},
+  ],
+  trumfNett:[
+    {id:'tn_hm',      name:'H&M',       icon:'👗',pct:3, txt:'~3%'},
+    {id:'tn_adlib',   name:'Adlibris',  icon:'📚',pct:4, txt:'~4%'},
+    {id:'tn_blivak',  name:'Blivakker', icon:'💄',pct:5, txt:'~5%'},
+    {id:'tn_hotels',  name:'Hotels.com',icon:'🏨',pct:5, txt:'~5%'},
+    {id:'tn_expedia', name:'Expedia',   icon:'✈️',pct:5, txt:'~5%'},
+    {id:'tn_zalando', name:'Zalando',   icon:'👠',pct:3, txt:'~3%'},
+    {id:'tn_komplett',name:'Komplett',  icon:'💻',pct:2, txt:'~2%'},
+    {id:'tn_power',   name:'Power',     icon:'🖥️',pct:2, txt:'~2%'},
+    {id:'tn_boozt',   name:'Boozt',     icon:'🧥',pct:4, txt:'~4%'},
+    {id:'tn_farmasiet',name:'Farmasiet',icon:'💊',pct:4, txt:'~4%'},
+  ],
+  sasShopping:[
+    {id:'ss_booking', name:'Booking.com',icon:'🛎️',pct:3, txt:'~3 p/kr'},
+    {id:'ss_airbnb',  name:'Airbnb',     icon:'🏡',pct:2, txt:'~2 p/kr'},
+    {id:'ss_hertz',   name:'Hertz',      icon:'🚗',pct:3, txt:'~3 p/kr'},
+    {id:'ss_eurocar', name:'Europcar',   icon:'🚙',pct:3, txt:'~3 p/kr'},
+    {id:'ss_scandic', name:'Scandic',    icon:'🏨',pct:5, txt:'~5 p/kr'},
+    {id:'ss_rezidor', name:'Radisson',   icon:'⭐',pct:4, txt:'~4 p/kr'},
+    {id:'ss_expedia', name:'Expedia',    icon:'✈️',pct:5, txt:'~5 p/kr'},
+    {id:'ss_hotels',  name:'Hotels.com', icon:'🛏️',pct:5, txt:'~5 p/kr'},
+    {id:'ss_h&m',     name:'H&M',        icon:'👗',pct:3, txt:'~3 p/kr'},
+    {id:'ss_apple',   name:'Apple',      icon:'🍎',pct:2, txt:'~2 p/kr'},
+  ],
+  sasBonusreiser:[
+    {id:'sb_oslo',    name:'Oslo–London', icon:'🇬🇧',pct:0, txt:'Fra 15 000p'},
+    {id:'sb_kbh',     name:'Oslo–København',icon:'🇩🇰',pct:0,txt:'Fra 8 000p'},
+    {id:'sb_sthlm',   name:'Oslo–Stockholm',icon:'🇸🇪',pct:0,txt:'Fra 8 000p'},
+    {id:'sb_bcn',     name:'Oslo–Barcelona',icon:'🇪🇸',pct:0,txt:'Fra 20 000p'},
+    {id:'sb_usa',     name:'Oslo–New York', icon:'🇺🇸',pct:0,txt:'Fra 50 000p'},
+    {id:'sb_thai',    name:'Oslo–Bangkok',  icon:'🇹🇭',pct:0,txt:'Fra 60 000p'},
+  ],
+  skyteam:[
+    {id:'st_airfrance',name:'Air France', icon:'🇫🇷',pct:0,txt:'SkyTeam'},
+    {id:'st_klm',      name:'KLM',        icon:'🇳🇱',pct:0,txt:'SkyTeam'},
+    {id:'st_delta',    name:'Delta',      icon:'🇺🇸',pct:0,txt:'SkyTeam'},
+    {id:'st_korean',   name:'Korean Air', icon:'🇰🇷',pct:0,txt:'SkyTeam'},
+    {id:'st_tarom',    name:'ITA Airways',icon:'🇮🇹',pct:0,txt:'SkyTeam'},
+    {id:'st_tap',      name:'TAP',        icon:'🇵🇹',pct:0,txt:'SkyTeam'},
+  ],
+};
+
+// MAX SLOTS per tier
+const MAX_SLOTS = {
+  trumfNett:  {free:0, premium:5, elite:10},
+  sasShopping:{free:0, premium:5, elite:10},
+  sasBonusreiser:{free:0,premium:0,elite:6},
+  skyteam:    {free:0, premium:0, elite:6},
+};
+
+let selected = {dag:'kiwi',mob:null,strom:null,trumfNett:[],sasShopping:[],sasBonusreiser:[],skyteam:[]};
+let toggles = {kort:false,pay:false,trippel:false};
+
+try{const s=localStorage.getItem('bv_fav_v3');if(s)selected={...selected,...JSON.parse(s)};}catch(e){}
+
+// ══════════════════════════
+// TIER
+// ══════════════════════════
+function setDemoTier(t){
+  currentTier=t;
+  ['free','premium','elite'].forEach(x=>{
+    document.getElementById('ts-'+x).classList.toggle('active',x===t);
+  });
+  renderAllFavGrids();
+}
+
+function canUse(feature){return TIERS[currentTier]>=TIERS[feature==='trumfNett'||feature==='sasShopping'?'premium':'elite'];}
+function maxSlots(cat){return MAX_SLOTS[cat]?.[currentTier]??0;}
+
+// ══════════════════════════
+// RENDER GRIDS
+// ══════════════════════════
+function renderSingleGrid(containerId,cat){
+  const el=document.getElementById(containerId);
+  el.innerHTML=PARTNERS[cat].map(p=>`
+    <div class="fav-item ${selected[cat]===p.id?'selected':''}" onclick="selectSingle('${cat}','${p.id}')">
+      <div class="check">✓</div>
+      <div class="f-icon">${p.icon}</div>
+      <div class="f-name">${p.name}</div>
+      <div class="f-pct">${p.txt}</div>
+    </div>`).join('');
+}
+
+function renderMultiGrid(containerId,cat,max){
+  const wrap=document.getElementById(containerId);
+  if(max===0){
+    // Show paywall prompt
+    const needTier = (cat==='trumfNett'||cat==='sasShopping')?'premium':'elite';
+    wrap.innerHTML=`
+      <div class="upgrade-row" onclick="showPaywall('${cat}')">
+        <div style="font-size:22px">🔒</div>
+        <div class="u-text">Krever ${needTier==='premium'?'Premium':'Elite'} – trykk for å oppgradere</div>
+        <div class="u-arrow">›</div>
+      </div>`;
+    return;
+  }
+  const sel = selected[cat]||[];
+  const slots = `${sel.length}/${max} valgt`;
+  wrap.innerHTML=`
+    <div style="font-size:11px;color:#7aaa99;margin-bottom:8px">${slots}</div>
+    <div class="fav-grid">
+    ${PARTNERS[cat].map(p=>{
+      const isSel=sel.includes(p.id);
+      const isLocked=!isSel&&sel.length>=max;
+      return `<div class="fav-item ${isSel?'selected':''} ${isLocked?'locked':''}"
+        onclick="${isLocked?`showSlotsFull(${max})`:`selectMulti('${cat}','${p.id}',${max})`}">
+        <div class="check">✓</div>
+        ${isLocked?'<div class="lock-ico">🔒</div>':''}
+        <div class="f-icon">${p.icon}</div>
+        <div class="f-name">${p.name}</div>
+        <div class="f-pct">${p.txt}</div>
+      </div>`;
+    }).join('')}
+    </div>`;
+}
+
+function renderAllFavGrids(){
+  renderSingleGrid('gridDag','dag');
+  renderSingleGrid('gridMob','mob');
+  renderSingleGrid('gridStrom','strom');
+  renderMultiGrid('trumfNettWrap','trumfNett',maxSlots('trumfNett'));
+  renderMultiGrid('sasShoppingWrap','sasShopping',maxSlots('sasShopping'));
+  renderMultiGrid('sasBonusWrap','sasBonusreiser',maxSlots('sasBonusreiser'));
+  renderMultiGrid('skyteamWrap','skyteam',maxSlots('skyteam'));
+}
+
+function selectSingle(cat,id){
+  selected[cat]=selected[cat]===id?null:id;
+  renderSingleGrid('grid'+cat.charAt(0).toUpperCase()+cat.slice(1),cat);
+}
+
+function selectMulti(cat,id,max){
+  if(!Array.isArray(selected[cat]))selected[cat]=[];
+  const idx=selected[cat].indexOf(id);
+  if(idx>=0)selected[cat].splice(idx,1);
+  else if(selected[cat].length<max)selected[cat].push(id);
+  renderMultiGrid(
+    cat==='trumfNett'?'trumfNettWrap':cat==='sasShopping'?'sasShoppingWrap':cat==='sasBonusreiser'?'sasBonusWrap':'skyteamWrap',
+    cat,max);
+}
+
+function showSlotsFull(max){
+  alert(`Du har allerede valgt ${max} favoritter. Fjern én for å legge til en annen.`);
+}
+
+// ══════════════════════════
+// PAYWALL
+// ══════════════════════════
+const PAYWALL_COPY={
+  trumfNett:{icon:'🛍️',title:'Trumf Netthandel-favoritter',desc:'Velg opptil 5 (Premium) eller 10 (Elite) nettbutikker og få varsel når du handler.'},
+  sasShopping:{icon:'✈️',title:'SAS Online Shopping',desc:'Velg opptil 5 (Premium) eller 10 (Elite) SAS Shopping-partnere og spor bonusopptjeningen.'},
+  sasBonusreiser:{icon:'🌍',title:'SAS Bonusreiser',desc:'Se og følg med på bonusreiser fra sas.no – kun tilgjengelig i Elite.'},
+  skyteam:{icon:'🌐',title:'SkyTeam-flyselskaper',desc:'Følg med på Air France, KLM, Delta og andre SkyTeam-partnere. Kun Elite.'},
+};
+function showPaywall(cat){
+  const c=PAYWALL_COPY[cat]||{icon:'🔒',title:'Oppgrader',desc:'Denne funksjonen krever en betalt plan.'};
+  document.getElementById('pwIcon').textContent=c.icon;
+  document.getElementById('pwTitle').textContent=c.title;
+  document.getElementById('pwDesc').textContent=c.desc;
+  document.getElementById('paywallModal').style.display='flex';
+}
+function closePaywall(){document.getElementById('paywallModal').style.display='none';}
+function upgradeTo(tier){closePaywall();setDemoTier(tier);showPage('fav');}
+
+// ══════════════════════════
+// SAVE + STRIP
+// ══════════════════════════
+function saveFavorites(){
+  try{localStorage.setItem('bv_fav_v3',JSON.stringify(selected));}catch(e){}
+  updateFavStrip();
+  update();
+  showPage('kalk');
+}
+
+function updateFavStrip(){
+  const parts=[];
+  const dag=PARTNERS.dag.find(x=>x.id===selected.dag);
+  if(dag)parts.push(`${dag.icon} ${dag.name}`);
+  const mob=PARTNERS.mob.find(x=>x.id===selected.mob);
+  if(mob&&mob.pct>0)parts.push(`${mob.icon} ${mob.name}`);
+  const str=PARTNERS.strom.find(x=>x.id===selected.strom);
+  if(str&&str.pct>0)parts.push(`${str.icon} ${str.name}`);
+  const tnCount=(selected.trumfNett||[]).length;
+  if(tnCount>0)parts.push(`🛍️ ${tnCount} Trumf Netthandel`);
+  const ssCount=(selected.sasShopping||[]).length;
+  if(ssCount>0)parts.push(`✈️ ${ssCount} SAS Shopping`);
+  const strip=document.getElementById('favStrip');
+  strip.innerHTML=parts.length?('<strong>Aktive:</strong> '+parts.join(' · ')):'Ingen favoritter valgt – gå til <strong>Favoritter</strong>.';
+  const dbn=PARTNERS.dag.find(x=>x.id===selected.dag);
+  if(dbn)document.getElementById('butikkNavn').textContent=dbn.name;
+  const mbn=PARTNERS.mob.find(x=>x.id===selected.mob);
+  document.getElementById('mobNavn').textContent=mbn?mbn.name+' (mobil)':'Mobilregning';
+}
+
+// ══════════════════════════
+// KALKULATOR
+// ══════════════════════════
+function toggleBtn(key){
+  toggles[key]=!toggles[key];
+  document.getElementById('tog'+key[0].toUpperCase()+key.slice(1)).classList.toggle('active',toggles[key]);
+  update();
+}
+function fmt(n){return Math.round(n).toLocaleString('nb-NO');}
+function updateTrack(el){
+  const p=((el.value-el.min)/(el.max-el.min))*100;
+  el.style.setProperty('--pct',p+'%');
+}
+function update(){
+  ['dagSlider','mobSlider','stromSlider'].forEach(id=>updateTrack(document.getElementById(id)));
+  const dag=parseInt(document.getElementById('dagSlider').value);
+  const mob=parseInt(document.getElementById('mobSlider').value);
+  const strom=parseInt(document.getElementById('stromSlider').value);
+  document.getElementById('dagVal').innerHTML=fmt(dag)+' <span>kr/mnd</span>';
+  document.getElementById('mobVal').innerHTML=fmt(mob)+' <span>kr/mnd</span>';
+  document.getElementById('stromVal').innerHTML=fmt(strom)+' <span>kr/mnd</span>';
+  let sats=0.01;
+  if(toggles.kort&&toggles.pay)sats+=0.02;
+  else if(toggles.kort)sats+=0.01;
+  else if(toggles.pay)sats+=0.01;
+  const dagBonus=toggles.trippel?(dag*.75*sats)+(dag*.25*(sats+.02)):dag*sats;
+  const mobP=PARTNERS.mob.find(x=>x.id===selected.mob);
+  const strP=PARTNERS.strom.find(x=>x.id===selected.strom);
+  const total=dagBonus+(mob*(mobP?.pct??0)/100)+(strom*(strP?.pct??0)/100);
+  const aarlig=total*12;
+  document.getElementById('rMnd').innerHTML=fmt(total)+' <span>kr</span>';
+  document.getElementById('rAar').textContent=fmt(aarlig)+' kr per år';
+  document.getElementById('rSats').textContent=dag>0?(dagBonus/dag*100).toFixed(1)+'%':'–%';
+  document.getElementById('eEngang').textContent=fmt(aarlig*10);
+  document.getElementById('eAuto').textContent=fmt(aarlig*13.5);
+  renderTips(dag,mob,strom,aarlig,mobP?.pct??0,strP?.pct??0);
+}
+function renderTips(dag,mob,strom,aarlig,mobPct,strPct){
+  const tips=[];
+  if(!toggles.kort)tips.push({ico:'💳',cls:'b',title:'Aktiver Trumf Kredittkort',desc:'Dobler bonus på dagligvarer. Maks 5% på Trippel-Torsdag.',gain:'+'+fmt(dag*.01*12)+' kr/år'});
+  if(!selected.mob||mobPct===0)tips.push({ico:'📱',cls:'g',title:'Bytt til Talkmore',desc:'4% Trumf-bonus på mobilregningen.',gain:'+'+fmt(400*.04*12)+' kr/år'});
+  if(!selected.strom||strPct===0)tips.push({ico:'⚡',cls:'o',title:'Koble til Fjordkraft',desc:'1% Trumf-bonus på strøm.',gain:'+'+fmt(1200*.01*12)+' kr/år'});
+  if(!toggles.trippel)tips.push({ico:'🔥',cls:'o',title:'Utnytt Trippel-Trumf Torsdag',desc:'Legg storhandelen til torsdag for +2% ekstra.',gain:''});
+  if(tips.length===0)tips.push({ico:'✅',cls:'g',title:'Du er godt optimalisert!',desc:'Sett opp automatisk overføring til EuroBonus (13,5 p/kr).',gain:''});
+  document.getElementById('tipsWrap').innerHTML=tips.map(t=>`
+    <div class="tip">
+      <div class="t-ico ${t.cls}">${t.ico}</div>
+      <div style="flex:1"><div class="t-title">${t.title}</div><div class="t-desc">${t.desc}</div></div>
+      ${t.gain?`<div class="t-gain">${t.gain}</div>`:''}
+    </div>`).join('');
+}
+
+// ══════════════════════════
+// NAV
+// ══════════════════════════
+function showPage(id){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  const tabs={kalk:0,fav:1,abonnement:2};
+  document.querySelectorAll('.tab')[tabs[id]].classList.add('active');
+  if(id==='fav')renderAllFavGrids();
+}
+
+// Init
+updateFavStrip();
+update();
+</script>
+</body>
+</html>

@@ -1,0 +1,125 @@
+#!/bin/bash
+set -e
+TARGET="scripts/build-tier-messages.mjs"
+cp "$TARGET" "$TARGET.bak_links_$(date +%Y%m%d_%H%M%S)"
+echo "🔒 Backup lagret"
+
+cat > "$TARGET" << 'MJS'
+// scripts/build-tier-messages.mjs
+import fs from "node:fs";
+import path from "node:path";
+import { getInsightForShop } from "./history-insights.mjs";
+
+const DATA_DIR = process.env.DATA_DIR || "data";
+const PROGRAM_NAME = process.env.DISPLAY_NAME || "SAS EuroBonus";
+const TODAY = new Date().toISOString().slice(0, 10);
+const SAS_BASE = "https://onlineshopping.flysas.com/nb-NO/butikk/";
+
+function readJson(p) {
+  if (!fs.existsSync(p)) return null;
+  try { return JSON.parse(fs.readFileSync(p, "utf8")); } catch { return null; }
+}
+
+const campaigns = readJson(path.join(DATA_DIR, "campaigns.normalized.json")) || [];
+const activeCampaigns = campaigns
+  .filter(c => c.has_campaign === 1 && c.points_campaign > 0)
+  .filter(c => !c.campaign_ends_iso || c.campaign_ends_iso >= TODAY)
+  .sort((a, b) => b.points_campaign - a.points_campaign);
+const totalCount = activeCampaigns.length;
+
+function fmtDate(iso) { if (!iso) return ""; const [y,m,d]=iso.split("-"); return `${d}.${m}`; }
+
+function offerLine(c, withLink = true) {
+  const ends = c.campaign_ends_iso ? ` (t.o.m. ${fmtDate(c.campaign_ends_iso)})` : "";
+  const normal = c.points > 0 ? ` ${c.points}p →` : "";
+  const name = withLink ? `[${c.name}](${SAS_BASE}${c.slug})` : `*${c.name}*`;
+  return `🏆 ${name}:${normal} ${c.points_campaign}p/100kr${ends}\n`;
+}
+
+function filterByFavs(list, favs) {
+  if (!favs || favs.length === 0) return [];
+  return list.filter(c => favs.some(f =>
+    c.name.toLowerCase().includes(f.toLowerCase()) ||
+    c.slug.toLowerCase().includes(f.toLowerCase())));
+}
+
+// ── FREE ──
+export function buildFree() {
+  let msg = `🔔 *Bonusvarsel – ${PROGRAM_NAME}*\n\n`;
+  msg += `📦 ${totalCount} aktive kampanjer denne uken!\n\n`;
+  if (activeCampaigns.length > 0) {
+    msg += `🔒 Topptilbud akkurat nå:\n`;
+    msg += `• ${activeCampaigns[0].name} – skjult 🔒\n`;
+    if (activeCampaigns[1]) msg += `• ${activeCampaigns[1].name} – skjult 🔒\n`;
+  }
+  msg += `\n💎 *Oppgrader til Premium* for å se alle tilbud + handle i butikkene du vil!\n`;
+  msg += `👉 Åpne Bonusvarsel-appen`;
+  return msg;
+}
+
+// ── PREMIUM ──
+export function buildPremium(favs = []) {
+  const favMatches = filterByFavs(activeCampaigns, favs);
+  const hasFavs = favMatches.length > 0;
+  let msg = `💙 *PREMIUM – ${PROGRAM_NAME}*\n\n`;
+  if (hasFavs) {
+    msg += `⭐ *Dine favoritter denne uken:*\n\n`;
+    for (const c of favMatches.slice(0, 5)) msg += offerLine(c);
+    msg += `\n👉 Handle via Bonusvarsel-appen`;
+  } else {
+    const picks = activeCampaigns.slice(0, 3);
+    msg += `📦 *Siden du ikke har valgt favoritter, får du ukens ${picks.length} nyeste kampanjer:*\n\n`;
+    for (const c of picks) msg += offerLine(c);
+    msg += `\n💡 Velg opptil 5 favoritter for å få varsler i nettbutikkene du vil handle mer i!\n`;
+    msg += `👉 Bonusvarsel → Varsler → Velg favoritter`;
+  }
+  return msg;
+}
+
+// ── ELITE ──
+export function buildElite(favs = []) {
+  const favMatches = filterByFavs(activeCampaigns, favs);
+  const hasFavs = favMatches.length > 0;
+  const picks = hasFavs ? favMatches.slice(0, 10) : activeCampaigns.slice(0, 4);
+  let msg = `👑 *ELITE – ${PROGRAM_NAME}*\n\n`;
+
+  msg += hasFavs
+    ? `⭐ *Dine favoritter med smart innsikt:*\n\n`
+    : `📦 *Ukens ${picks.length} nyeste kampanjer:*\n\n`;
+
+  for (const c of picks) {
+    msg += offerLine(c);
+    const insight = getInsightForShop(c.slug, c.points_campaign);
+    if (insight) {
+      msg += `   ${insight.headline}\n   💡 ${insight.recommendation}\n`;
+    }
+  }
+
+  // SkyTeam & luksus-seksjon (kun Elite)
+  msg += `\n✈️ *SkyTeam & Luksus:*\n`;
+  msg += `• [SAS Bonusreiser](https://www.sas.no/eurobonus/bonusreiser) – fast poengpris\n`;
+  msg += `• [Bestill hotell med poeng](https://www.sas.no/eurobonus) – 250 000+ hoteller\n`;
+  msg += `• SkyTeam-lounger: tilgang med Gull/Diamant 🌍\n`;
+
+  if (!hasFavs) {
+    msg += `\n💡 Velg opptil 10 favoritter for varsler i butikkene du vil handle mer i!\n`;
+    msg += `👉 Bonusvarsel → Varsler → Velg favoritter\n`;
+  }
+  msg += `\n👉 Eksklusiv innsikt fra Bonusvarsel Elite`;
+  return msg;
+}
+
+const output = {
+  generatedAt: new Date().toISOString(),
+  program: PROGRAM_NAME,
+  totalCount,
+  free: buildFree(),
+  premium: buildPremium([]),
+  elite: buildElite([]),
+};
+const outPath = path.join(DATA_DIR, "tier-messages.json");
+fs.writeFileSync(outPath, JSON.stringify(output, null, 2) + "\n", "utf8");
+console.log(`✅ Tier-meldinger bygget → ${outPath}`);
+console.log(`   Free: ${output.free.length} | Premium: ${output.premium.length} | Elite: ${output.elite.length} tegn`);
+MJS
+echo "✅ build-tier-messages.mjs med linker + SkyTeam"

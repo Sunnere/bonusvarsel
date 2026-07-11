@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Trumf-kalkulator – BonusVarsel</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;600&display=swap');
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    background: linear-gradient(160deg, #e8f4f0 0%, #ddeef8 100%);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    padding: 0;
+  }
+
+  /* ── TOP NAV ── */
+  .topnav {
+    background: #fff;
+    border-bottom: 1px solid #d0e8e0;
+    display: flex;
+    gap: 0;
+    padding: 0 16px;
+    position: sticky; top: 0; z-index: 10;
+  }
+  .tab {
+    padding: 14px 18px;
+    font-size: 13px; font-weight: 600;
+    color: #7aaa99;
+    cursor: pointer;
+    border-bottom: 3px solid transparent;
+    transition: all 0.2s;
+  }
+  .tab.active { color: #1a8a5c; border-bottom-color: #1a8a5c; }
+
+  /* ── PAGES ── */
+  .page { display: none; padding: 16px; max-width: 480px; margin: 0 auto; }
+  .page.active { display: block; }
+
+  /* ── CARDS ── */
+  .card {
+    background: #fff;
+    border-radius: 18px;
+    padding: 18px;
+    margin-bottom: 14px;
+    box-shadow: 0 2px 12px rgba(26,138,92,0.07);
+    border: 1px solid #d8efe8;
+  }
+  .card-label {
+    font-size: 11px; font-weight: 700;
+    letter-spacing: 0.09em; text-transform: uppercase;
+    color: #2a9d6e; margin-bottom: 14px;
+  }
+
+  /* ── SLIDERS ── */
+  .slider-row { margin-bottom: 16px; }
+  .slider-row:last-child { margin-bottom: 0; }
+  .slider-top { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:7px; }
+  .slider-name { font-size: 14px; color: #2a4a3a; }
+  .slider-val { font-family:'DM Serif Display',serif; font-size:18px; color:#1a3a2a; }
+  .slider-val span { font-size:11px; color:#7aaa99; font-family:'DM Sans',sans-serif; }
+  input[type=range] {
+    -webkit-appearance:none; width:100%; height:5px;
+    background: linear-gradient(to right, #1a8a5c var(--pct,50%), #c8e8dc var(--pct,50%));
+    border-radius:3px; outline:none;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance:none; width:20px; height:20px;
+    border-radius:50%; background:#1a8a5c; cursor:pointer;
+    box-shadow: 0 0 0 4px rgba(26,138,92,0.15);
+  }
+
+  /* ── TOGGLES ── */
+  .toggle-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .tog {
+    background: #f0faf6;
+    border: 1.5px solid #c8e8dc;
+    border-radius: 12px; padding:10px 12px;
+    cursor:pointer; transition:all 0.2s;
+  }
+  .tog.active { background: #e0f5ec; border-color:#1a8a5c; }
+  .tog .t-icon { font-size:18px; margin-bottom:4px; }
+  .tog .t-name { font-size:12px; color:#2a4a3a; font-weight:600; }
+  .tog .t-pct { font-size:11px; color:#7aaa99; margin-top:2px; }
+  .tog.active .t-pct { color:#1a8a5c; }
+  .tog.full { grid-column: span 2; }
+
+  /* ── RESULT CARD ── */
+  .result-card {
+    background: linear-gradient(135deg, #0d6e44 0%, #0a5236 100%);
+    border-radius: 20px; padding: 20px; margin-bottom: 14px;
+    box-shadow: 0 6px 24px rgba(13,110,68,0.25);
+    position:relative; overflow:hidden;
+  }
+  .result-card::before {
+    content:''; position:absolute; top:-40px; right:-40px;
+    width:160px; height:160px; border-radius:50%;
+    background:rgba(255,255,255,0.05);
+  }
+  .result-card::after {
+    content:''; position:absolute; bottom:-20px; left:-20px;
+    width:100px; height:100px; border-radius:50%;
+    background:rgba(255,255,255,0.04);
+  }
+  .result-top { display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:16px; }
+  .r-label { font-size:11px; color:#6dcca0; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; }
+  .r-amount { font-family:'DM Serif Display',serif; font-size:46px; color:#fff; line-height:1; margin-top:3px; }
+  .r-amount span { font-size:18px; color:#6dcca0; font-family:'DM Sans',sans-serif; }
+  .r-year { font-size:12px; color:#6dcca0; margin-top:3px; }
+  .r-sats { font-family:'DM Serif Display',serif; font-size:30px; color:#a8f0cc; text-align:right; }
+  .r-divider { height:1px; background:rgba(255,255,255,0.12); margin:14px 0; }
+  .euro-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .euro-box {
+    background:rgba(0,0,0,0.15); border-radius:12px;
+    padding:12px; border:1px solid rgba(255,255,255,0.1);
+  }
+  .euro-box.best { border-color:rgba(109,204,160,0.5); background:rgba(109,204,160,0.12); }
+  .e-label { font-size:10px; color:#6dcca0; font-weight:700; text-transform:uppercase; letter-spacing:0.07em; margin-bottom:5px; }
+  .e-badge {
+    display:inline-block; background:#1a8a5c; color:#fff;
+    font-size:8px; padding:1px 5px; border-radius:4px; margin-left:3px;
+  }
+  .e-pts { font-family:'DM Serif Display',serif; font-size:24px; color:#fff; }
+  .e-rate { font-size:10px; color:#6dcca0; margin-top:2px; }
+
+  /* ── TIPS ── */
+  .tip {
+    background:#fff; border-radius:14px; padding:13px 14px;
+    margin-bottom:10px; border:1.5px solid #d8efe8;
+    display:flex; align-items:flex-start; gap:11px;
+    box-shadow:0 1px 6px rgba(26,138,92,0.06);
+  }
+  .t-ico {
+    width:36px; height:36px; min-width:36px;
+    border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:17px;
+  }
+  .t-ico.g { background:#e8f9f0; }
+  .t-ico.b { background:#e8f0ff; }
+  .t-ico.o { background:#fff4e8; }
+  .t-title { font-size:13px; font-weight:600; color:#1a3a2a; margin-bottom:2px; }
+  .t-desc { font-size:12px; color:#6a8a7a; line-height:1.45; }
+  .t-gain { margin-left:auto; min-width:fit-content; font-family:'DM Serif Display',serif; font-size:14px; color:#1a8a5c; }
+
+  /* ── FAVORITES PAGE ── */
+  .fav-section { margin-bottom:20px; }
+  .fav-title {
+    font-size:11px; font-weight:700; letter-spacing:0.09em;
+    text-transform:uppercase; color:#2a9d6e;
+    margin-bottom:10px; padding-left:2px;
+  }
+  .fav-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; }
+  .fav-item {
+    background:#fff; border-radius:14px; padding:10px 8px;
+    text-align:center; cursor:pointer;
+    border:1.5px solid #d8efe8;
+    box-shadow:0 1px 4px rgba(26,138,92,0.06);
+    transition:all 0.2s;
+    position:relative;
+  }
+  .fav-item.selected { border-color:#1a8a5c; background:#e8f9f0; }
+  .fav-item .f-icon { font-size:22px; margin-bottom:4px; }
+  .fav-item .f-name { font-size:11px; font-weight:600; color:#2a4a3a; }
+  .fav-item .f-pct { font-size:10px; color:#7aaa99; margin-top:1px; }
+  .fav-item.selected .f-pct { color:#1a8a5c; }
+  .fav-item .check {
+    position:absolute; top:5px; right:5px;
+    width:14px; height:14px; border-radius:50%;
+    background:#1a8a5c; color:#fff;
+    font-size:9px; display:none;
+    align-items:center; justify-content:center;
+  }
+  .fav-item.selected .check { display:flex; }
+
+  .save-btn {
+    width:100%; background:linear-gradient(135deg,#1a8a5c,#0d6e44);
+    color:#fff; border:none; border-radius:14px;
+    padding:15px; font-size:15px; font-weight:600;
+    cursor:pointer; margin-top:8px;
+    box-shadow:0 4px 16px rgba(13,110,68,0.25);
+    font-family:'DM Sans',sans-serif;
+  }
+  .save-btn:active { transform:scale(0.98); }
+
+  .section-lbl {
+    font-size:11px; font-weight:700; letter-spacing:0.09em;
+    text-transform:uppercase; color:#2a9d6e;
+    margin:18px 0 10px; padding-left:2px;
+  }
+
+  .fav-active-strip {
+    background:#e0f5ec; border:1.5px solid #b8e8d0;
+    border-radius:12px; padding:10px 14px;
+    margin-bottom:14px; font-size:12px; color:#1a6a44;
+  }
+  .fav-active-strip strong { font-weight:700; }
+</style>
+</head>
+<body>
+
+<div class="topnav">
+  <div class="tab active" onclick="showPage('kalk')">🧮 Kalkulator</div>
+  <div class="tab" onclick="showPage('fav')">⭐ Favoritter</div>
+</div>
+
+<!-- ══════════════ KALKULATOR ══════════════ -->
+<div class="page active" id="page-kalk">
+
+  <div style="padding:14px 2px 6px">
+    <div style="font-family:'DM Serif Display',serif;font-size:22px;color:#1a3a2a">Trumf-kalkulator</div>
+    <div style="font-size:12px;color:#7aaa99;margin-top:2px">Basert på dine favoritter</div>
+  </div>
+
+  <!-- Favoritter aktive -->
+  <div class="fav-active-strip" id="favStrip">
+    Ingen favoritter valgt – gå til <strong>Favoritter</strong> for å sette opp din profil.
+  </div>
+
+  <!-- Forbruk -->
+  <div class="card">
+    <div class="card-label">Forbruk per måned</div>
+    <div class="slider-row">
+      <div class="slider-top">
+        <span class="slider-name" id="butikkNavn">Dagligvarer</span>
+        <span class="slider-val" id="dagVal">8 000 <span>kr/mnd</span></span>
+      </div>
+      <input type="range" id="dagSlider" min="500" max="30000" step="500" value="8000" oninput="update()">
+    </div>
+    <div class="slider-row" id="mobRow">
+      <div class="slider-top">
+        <span class="slider-name" id="mobNavn">Mobilregning</span>
+        <span class="slider-val" id="mobVal">400 <span>kr/mnd</span></span>
+      </div>
+      <input type="range" id="mobSlider" min="0" max="2000" step="50" value="400" oninput="update()">
+    </div>
+    <div class="slider-row" id="stromRow">
+      <div class="slider-top">
+        <span class="slider-name">Strøm (Fjordkraft)</span>
+        <span class="slider-val" id="stromVal">1 200 <span>kr/mnd</span></span>
+      </div>
+      <input type="range" id="stromSlider" min="0" max="5000" step="100" value="1200" oninput="update()">
+    </div>
+  </div>
+
+  <!-- Betalingsmåte -->
+  <div class="card">
+    <div class="card-label">Betalingsmåte</div>
+    <div class="toggle-grid">
+      <div class="tog" id="togKort" onclick="toggleBtn('kort')">
+        <div class="t-icon">💳</div>
+        <div class="t-name">Trumf Kredittkort</div>
+        <div class="t-pct">+1% dagligvare</div>
+      </div>
+      <div class="tog" id="togPay" onclick="toggleBtn('pay')">
+        <div class="t-icon">📱</div>
+        <div class="t-name">Trumf Pay</div>
+        <div class="t-pct">+1% alle kjøp</div>
+      </div>
+      <div class="tog full" id="togTrippel" onclick="toggleBtn('trippel')">
+        <div class="t-icon">🔥</div>
+        <div class="t-name">Trippel-Trumf Torsdag</div>
+        <div class="t-pct">+2% på torsdager</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Resultat -->
+  <div class="result-card">
+    <div class="result-top">
+      <div>
+        <div class="r-label">Månedlig bonus</div>
+        <div class="r-amount" id="rMnd">– <span>kr</span></div>
+        <div class="r-year" id="rAar">– kr per år</div>
+      </div>
+      <div>
+        <div class="r-label" style="text-align:right">Sats</div>
+        <div class="r-sats" id="rSats">–%</div>
+      </div>
+    </div>
+    <div class="r-divider"></div>
+    <div class="r-label" style="margin-bottom:10px">Verdi i SAS EuroBonus</div>
+    <div class="euro-grid">
+      <div class="euro-box">
+        <div class="e-label">Engangsoverføring</div>
+        <div class="e-pts" id="eEngang">–</div>
+        <div class="e-rate">poeng/år · 10 p/kr</div>
+      </div>
+      <div class="euro-box best">
+        <div class="e-label">Automatisk <span class="e-badge">✓</span></div>
+        <div class="e-pts" id="eAuto">–</div>
+        <div class="e-rate">poeng/år · 13,5 p/kr</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-lbl">Råd for deg</div>
+  <div id="tipsWrap"></div>
+</div>
+
+<!-- ══════════════ FAVORITTER ══════════════ -->
+<div class="page" id="page-fav">
+
+  <div style="padding:14px 2px 14px">
+    <div style="font-family:'DM Serif Display',serif;font-size:22px;color:#1a3a2a">Mine favoritter</div>
+    <div style="font-size:12px;color:#7aaa99;margin-top:2px">Velg dine butikker og partnere – kalkulatoren oppdateres automatisk</div>
+  </div>
+
+  <!-- Dagligvare -->
+  <div class="fav-section">
+    <div class="fav-title">🛒 Dagligvare (velg én)</div>
+    <div class="fav-grid" id="gridDag"></div>
+  </div>
+
+  <!-- Mobil -->
+  <div class="fav-section">
+    <div class="fav-title">📱 Mobiloperatør</div>
+    <div class="fav-grid" id="gridMob"></div>
+  </div>
+
+  <!-- Strøm -->
+  <div class="fav-section">
+    <div class="fav-title">⚡ Strøm</div>
+    <div class="fav-grid" id="gridStrom"></div>
+  </div>
+
+  <!-- Drivstoff -->
+  <div class="fav-section">
+    <div class="fav-title">⛽ Drivstoff</div>
+    <div class="fav-grid" id="gridDrivstoff"></div>
+  </div>
+
+  <!-- Netthandel -->
+  <div class="fav-section">
+    <div class="fav-title">🛍️ Netthandel (Trumf Netthandel-partnere)</div>
+    <div class="fav-grid" id="gridNett"></div>
+  </div>
+
+  <button class="save-btn" onclick="saveFavorites()">Lagre favoritter</button>
+</div>
+
+<script>
+// ══════════════════════════════════════════
+// DATA
+// ══════════════════════════════════════════
+const PARTNERS = {
+  dag: [
+    { id:'kiwi',     name:'KIWI',       icon:'🟡', pct:1, pctTxt:'1% Trumf' },
+    { id:'meny',     name:'MENY',       icon:'🔴', pct:1, pctTxt:'1% Trumf' },
+    { id:'spar',     name:'SPAR',       icon:'🟢', pct:1, pctTxt:'1% Trumf' },
+    { id:'joker',    name:'Joker',      icon:'🃏', pct:1, pctTxt:'1% Trumf' },
+    { id:'jacobs',   name:"Jacob's",    icon:'🏪', pct:1, pctTxt:'1% Trumf' },
+    { id:'naer',     name:'Nærbutikken',icon:'🏘️', pct:1, pctTxt:'1% Trumf' },
+  ],
+  mob: [
+    { id:'talkmore', name:'Talkmore',   icon:'📞', pct:4, pctTxt:'4% Trumf' },
+    { id:'annet_mob',name:'Annen',      icon:'📵', pct:0, pctTxt:'Ingen bonus' },
+  ],
+  strom: [
+    { id:'fjordkraft',name:'Fjordkraft',icon:'💡', pct:1, pctTxt:'1% Trumf' },
+    { id:'annet_str', name:'Annen',     icon:'🔌', pct:0, pctTxt:'Ingen bonus' },
+  ],
+  drivstoff: [
+    { id:'shell',    name:'Shell',      icon:'🐢', pct:1, pctTxt:'1% Trumf' },
+    { id:'st1',      name:'ST1',        icon:'⛽', pct:1, pctTxt:'1% Trumf' },
+    { id:'ingo',     name:'INGO',       icon:'🅿️', pct:1, pctTxt:'1% Trumf' },
+    { id:'ingen_driv',name:'Ingen',     icon:'❌', pct:0, pctTxt:'Ingen bonus' },
+  ],
+  nett: [
+    { id:'hm',       name:'H&M',        icon:'👗', pct:3,  pctTxt:'~3%' },
+    { id:'adlibris', name:'Adlibris',   icon:'📚', pct:4,  pctTxt:'~4%' },
+    { id:'hotels',   name:'Hotels.com', icon:'🏨', pct:5,  pctTxt:'~5%' },
+    { id:'expedia',  name:'Expedia',    icon:'✈️', pct:5,  pctTxt:'~5%' },
+    { id:'blivakker',name:'Blivakker',  icon:'💄', pct:5,  pctTxt:'~5%' },
+    { id:'ingen_nett',name:'Ingen',     icon:'❌', pct:0,  pctTxt:'Ingen' },
+  ],
+};
+
+// State
+let selected = {
+  dag: 'kiwi',
+  mob: null,
+  strom: null,
+  drivstoff: null,
+  nett: null,
+};
+let toggles = { kort: false, pay: false, trippel: false };
+
+// Load from localStorage if available
+try {
+  const saved = localStorage.getItem('bv_trumf_fav');
+  if (saved) selected = {...selected, ...JSON.parse(saved)};
+} catch(e) {}
+
+// ══════════════════════════════════════════
+// RENDER FAVORITES
+// ══════════════════════════════════════════
+function renderFavGrid(containerId, category, singleSelect=true) {
+  const el = document.getElementById(containerId);
+  el.innerHTML = PARTNERS[category].map(p => `
+    <div class="fav-item ${selected[category]===p.id?'selected':''}"
+         onclick="selectFav('${category}','${p.id}',${singleSelect})">
+      <div class="check">✓</div>
+      <div class="f-icon">${p.icon}</div>
+      <div class="f-name">${p.name}</div>
+      <div class="f-pct">${p.pctTxt}</div>
+    </div>`).join('');
+}
+
+function selectFav(cat, id, single) {
+  if (single) {
+    selected[cat] = selected[cat]===id ? null : id;
+  } else {
+    if (!Array.isArray(selected[cat])) selected[cat] = [];
+    const idx = selected[cat].indexOf(id);
+    if (idx>=0) selected[cat].splice(idx,1); else selected[cat].push(id);
+  }
+  renderFavGrid('grid'+cat.charAt(0).toUpperCase()+cat.slice(1),
+    cat, single);
+}
+
+function saveFavorites() {
+  try { localStorage.setItem('bv_trumf_fav', JSON.stringify(selected)); } catch(e) {}
+  updateFavStrip();
+  update();
+  showPage('kalk');
+}
+
+function renderAllFavGrids() {
+  renderFavGrid('gridDag',      'dag');
+  renderFavGrid('gridMob',      'mob');
+  renderFavGrid('gridStrom',    'strom');
+  renderFavGrid('gridDrivstoff','drivstoff');
+  renderFavGrid('gridNett',     'nett');
+}
+
+// ══════════════════════════════════════════
+// FAV STRIP
+// ══════════════════════════════════════════
+function updateFavStrip() {
+  const parts = [];
+  const cats = ['dag','mob','strom','drivstoff','nett'];
+  cats.forEach(c => {
+    const id = selected[c];
+    if (!id) return;
+    const p = PARTNERS[c].find(x=>x.id===id);
+    if (p && p.pct>0) parts.push(`${p.icon} ${p.name} (${p.pctTxt})`);
+  });
+  const strip = document.getElementById('favStrip');
+  if (parts.length===0) {
+    strip.innerHTML = 'Ingen favoritter valgt – gå til <strong>Favoritter</strong> for å sette opp din profil.';
+  } else {
+    strip.innerHTML = '<strong>Aktive:</strong> ' + parts.join(' · ');
+  }
+
+  // Update butikk label
+  const dag = PARTNERS.dag.find(x=>x.id===selected.dag);
+  if (dag) document.getElementById('butikkNavn').textContent = dag.name;
+
+  // Mob label
+  const mob = PARTNERS.mob.find(x=>x.id===selected.mob);
+  document.getElementById('mobNavn').textContent = mob ? mob.name+' (mobil)' : 'Mobilregning';
+  document.getElementById('mobRow').style.opacity = (mob&&mob.pct>0)?'1':'0.4';
+
+  // Strøm row
+  const str = PARTNERS.strom.find(x=>x.id===selected.strom);
+  document.getElementById('stromRow').style.opacity = (str&&str.pct>0)?'1':'0.4';
+}
+
+// ══════════════════════════════════════════
+// KALKULATOR
+// ══════════════════════════════════════════
+function toggleBtn(key) {
+  toggles[key] = !toggles[key];
+  document.getElementById('tog'+key.charAt(0).toUpperCase()+key.slice(1))
+    .classList.toggle('active', toggles[key]);
+  update();
+}
+
+function fmt(n) { return Math.round(n).toLocaleString('nb-NO'); }
+
+function updateSliderTrack(el) {
+  const pct = ((el.value - el.min) / (el.max - el.min)) * 100;
+  el.style.setProperty('--pct', pct + '%');
+}
+
+function update() {
+  ['dagSlider','mobSlider','stromSlider'].forEach(id => {
+    updateSliderTrack(document.getElementById(id));
+  });
+
+  const dag = parseInt(document.getElementById('dagSlider').value);
+  const mob = parseInt(document.getElementById('mobSlider').value);
+  const strom = parseInt(document.getElementById('stromSlider').value);
+
+  document.getElementById('dagVal').innerHTML = fmt(dag)+' <span>kr/mnd</span>';
+  document.getElementById('mobVal').innerHTML = fmt(mob)+' <span>kr/mnd</span>';
+  document.getElementById('stromVal').innerHTML = fmt(strom)+' <span>kr/mnd</span>';
+
+  // Dagligvare-sats
+  let sats = 0.01; // grunnbonus alltid
+  if (toggles.kort && toggles.pay) sats += 0.02;
+  else if (toggles.kort) sats += 0.01;
+  else if (toggles.pay) sats += 0.01;
+
+  const dagBonus = toggles.trippel
+    ? (dag * 0.75 * sats) + (dag * 0.25 * (sats + 0.02))
+    : dag * sats;
+
+  // Mob-sats fra favoritter
+  const mobP = PARTNERS.mob.find(x=>x.id===selected.mob);
+  const mobSats = mobP ? mobP.pct/100 : 0;
+
+  // Strøm-sats fra favoritter
+  const strP = PARTNERS.strom.find(x=>x.id===selected.strom);
+  const strSats = strP ? strP.pct/100 : 0;
+
+  const total = dagBonus + (mob * mobSats) + (strom * strSats);
+  const aarlig = total * 12;
+  const displaySats = dag > 0 ? (dagBonus/dag*100) : 0;
+
+  document.getElementById('rMnd').innerHTML = fmt(total)+' <span>kr</span>';
+  document.getElementById('rAar').textContent = fmt(aarlig)+' kr per år';
+  document.getElementById('rSats').textContent = displaySats.toFixed(1)+'%';
+  document.getElementById('eEngang').textContent = fmt(aarlig * 10);
+  document.getElementById('eAuto').textContent = fmt(aarlig * 13.5);
+
+  renderTips(dag, mob, strom, aarlig, mobSats, strSats);
+}
+
+function renderTips(dag, mob, strom, aarlig, mobSats, strSats) {
+  const tips = [];
+
+  if (!toggles.kort) {
+    tips.push({ico:'💳',cls:'b',
+      title:'Aktiver Trumf Kredittkort',
+      desc:'Dobler bonusen på dagligvarer. Maks 5% på Trippel-Trumf Torsdag.',
+      gain:'+'+fmt(dag*0.01*12)+' kr/år'});
+  }
+  if (!selected.mob || mobSats===0) {
+    tips.push({ico:'📱',cls:'g',
+      title:'Bytt til Talkmore',
+      desc:'4% Trumf-bonus på hele mobilregningen – høyeste sats.',
+      gain:'+'+fmt(400*0.04*12)+' kr/år'});
+  }
+  if (!selected.strom || strSats===0) {
+    tips.push({ico:'⚡',cls:'o',
+      title:'Koble til Fjordkraft',
+      desc:'1% Trumf-bonus på strøm. Aktiveres i Trumf-appen.',
+      gain:'+'+fmt(1200*0.01*12)+' kr/år'});
+  }
+  if (!toggles.trippel) {
+    tips.push({ico:'🔥',cls:'o',
+      title:'Utnytt Trippel-Trumf Torsdag',
+      desc:'Legg storhandelen til torsdag for +2% ekstra bonus.',
+      gain:''});
+  }
+  if (tips.length===0) {
+    tips.push({ico:'✅',cls:'g',
+      title:'Du er godt optimalisert!',
+      desc:'Sett opp automatisk overføring til EuroBonus (13,5 p/kr vs. 10 p/kr ved engang).',
+      gain:''});
+  }
+
+  document.getElementById('tipsWrap').innerHTML = tips.map(t=>`
+    <div class="tip">
+      <div class="t-ico ${t.cls}">${t.ico}</div>
+      <div style="flex:1">
+        <div class="t-title">${t.title}</div>
+        <div class="t-desc">${t.desc}</div>
+      </div>
+      ${t.gain?`<div class="t-gain">${t.gain}</div>`:''}
+    </div>`).join('');
+}
+
+// ══════════════════════════════════════════
+// NAV
+// ══════════════════════════════════════════
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  document.querySelectorAll('.tab')[id==='kalk'?0:1].classList.add('active');
+  if (id==='fav') renderAllFavGrids();
+}
+
+// Init
+renderAllFavGrids();
+updateFavStrip();
+update();
+</script>
+</body>
+</html>

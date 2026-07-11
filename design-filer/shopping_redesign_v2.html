@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:#0a0f1e; font-family:-apple-system,sans-serif; max-width:390px; margin:0 auto; color:#fff; }
+
+.hero {
+  background: linear-gradient(135deg, #0A4FD4 0%, #0D6E44 100%);
+  padding: 24px 20px 20px;
+}
+.hero-label { font-size:11px; font-weight:700; letter-spacing:.1em; color:rgba(255,255,255,.6); margin-bottom:6px; }
+.hero-title { font-size:26px; font-weight:900; color:#fff; line-height:1.2; margin-bottom:8px; }
+.hero-sub { font-size:14px; color:rgba(255,255,255,.8); line-height:1.5; }
+.hero-chips { display:flex; gap:8px; margin-top:14px; flex-wrap:wrap; }
+.hero-chip { background:rgba(255,255,255,.2); border-radius:20px; padding:6px 12px; font-size:12px; font-weight:600; }
+
+.section { padding: 20px 16px 0; }
+.sec-label { font-size:10px; font-weight:800; letter-spacing:.1em; color:#6b7280; margin-bottom:6px; text-transform:uppercase; }
+.sec-title { font-size:20px; font-weight:900; margin-bottom:4px; }
+.sec-sub { font-size:13px; color:#9ca3af; line-height:1.5; margin-bottom:14px; }
+
+/* Steg-kort */
+.steps { display:flex; flex-direction:column; gap:10px; margin-bottom:20px; }
+.step {
+  background: #f0fdf4;
+  border-radius:16px;
+  border: 2px solid #86efac;
+  overflow:hidden;
+}
+.step-header {
+  padding:14px;
+  display:flex; gap:12px; align-items:flex-start;
+  cursor:pointer;
+}
+.step-num {
+  width:30px; height:30px; border-radius:50%;
+  background: linear-gradient(135deg, #16a34a, #166534);
+  display:flex; align-items:center; justify-content:center;
+  font-size:13px; font-weight:800; flex-shrink:0; color:#fff;
+}
+.step-title { font-size:14px; font-weight:700; color:#166534; margin-bottom:3px; }
+.step-desc { font-size:12px; color:#16a34a; line-height:1.4; }
+.step-info-btn {
+  margin-left:auto; width:26px; height:26px; border-radius:50%;
+  background:rgba(22,163,74,.15); border:1px solid #16a34a;
+  display:flex; align-items:center; justify-content:center;
+  font-size:13px; flex-shrink:0; cursor:pointer; color:#16a34a; font-weight:700;
+}
+.step-detail {
+  background: rgba(22,163,74,.08);
+  border-top: 1px solid #86efac;
+  padding:12px 14px;
+  font-size:12px; color:#166534; line-height:1.6;
+  display:none;
+}
+.step-detail.open { display:block; }
+
+/* Dobbel dip */
+.combo {
+  background: #f0fdf4;
+  border: 2px solid #86efac;
+  border-radius:16px; padding:16px; margin-bottom:20px;
+}
+.combo-title { font-size:15px; font-weight:800; color:#166534; margin-bottom:4px; }
+.combo-sub { font-size:12px; color:#16a34a; margin-bottom:12px; }
+.combo-example {
+  background:#fff; border-radius:12px; padding:12px;
+  border:1px solid #86efac;
+}
+.combo-ex-title { font-size:12px; font-weight:700; color:#166534; margin-bottom:8px; }
+.combo-row { display:flex; align-items:center; gap:6px; margin-bottom:6px; }
+.combo-item {
+  flex:1; background:#f0fdf4; border:1px solid #86efac;
+  border-radius:8px; padding:8px; text-align:center;
+}
+.combo-item-icon { font-size:18px; margin-bottom:2px; }
+.combo-item-text { font-size:10px; font-weight:600; color:#166534; line-height:1.3; }
+.combo-plus { font-size:16px; color:#6b7280; font-weight:900; }
+.combo-result {
+  background: linear-gradient(135deg, #16a34a, #166534);
+  border-radius:10px; padding:12px; text-align:center; margin-top:8px;
+}
+.combo-result-num { font-size:22px; font-weight:900; color:#fff; }
+.combo-result-sub { font-size:11px; color:rgba(255,255,255,.8); margin-top:2px; }
+.combo-note { font-size:11px; color:#16a34a; margin-top:8px; text-align:center; }
+
+/* Kategorier - lys stil som favoritter */
+.cats { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:20px; }
+.cat {
+  background:#fff; border:1.5px solid #e5e7eb;
+  border-radius:14px; padding:14px; cursor:pointer;
+  text-align:center;
+}
+.cat.active { background:#f0fdf4; border-color:#16a34a; }
+.cat-icon { font-size:28px; margin-bottom:6px; }
+.cat-name { font-size:13px; font-weight:700; color:#111; }
+.cat-desc { font-size:11px; color:#9ca3af; margin-top:2px; }
+
+/* Butikk-rad - lys stil */
+.shops-box {
+  background:#f0fdf4; border:2px solid #86efac;
+  border-radius:16px; padding:12px; margin-bottom:20px;
+}
+.shops-box-title { font-size:13px; font-weight:700; color:#166534; margin-bottom:10px; }
+.shop {
+  background:#fff; border:1px solid #e5e7eb;
+  border-radius:12px; padding:10px 12px; margin-bottom:8px;
+  display:flex; align-items:center; gap:10px;
+}
+.shop.campaign { border-color:#86efac; }
+.shop-icon {
+  width:36px; height:36px; border-radius:10px;
+  background:#f0fdf4; border:1px solid #86efac;
+  display:flex; align-items:center; justify-content:center;
+  font-size:16px; font-weight:800; color:#16a34a; flex-shrink:0;
+}
+.shop-name { font-size:13px; font-weight:700; color:#111; }
+.shop-pts { font-size:11px; color:#16a34a; font-weight:600; }
+.shop-camp { font-size:9px; background:#16a34a; color:#fff; border-radius:4px; padding:1px 5px; font-weight:700; margin-left:5px; }
+.shop-btn {
+  margin-left:auto; background:#16a34a;
+  border-radius:8px; padding:6px 10px;
+  font-size:11px; color:#fff; font-weight:600; flex-shrink:0;
+  white-space:nowrap;
+}
+
+/* SAS-seksjon - blå */
+.sas-box {
+  background:#eff6ff; border:2px solid #93c5fd;
+  border-radius:16px; padding:12px; margin-bottom:20px;
+}
+.sas-box-title { font-size:13px; font-weight:700; color:#1e40af; margin-bottom:10px; }
+.sas-shop { background:#fff; border:1px solid #bfdbfe; border-radius:12px; padding:10px 12px; margin-bottom:8px; display:flex; align-items:center; gap:10px; }
+.sas-icon { width:36px; height:36px; border-radius:10px; background:#eff6ff; border:1px solid #93c5fd; display:flex; align-items:center; justify-content:center; font-size:16px; font-weight:800; color:#2563eb; flex-shrink:0; }
+.sas-name { font-size:13px; font-weight:700; color:#111; }
+.sas-pts { font-size:11px; color:#2563eb; font-weight:600; }
+.sas-pop { font-size:9px; background:#2563eb; color:#fff; border-radius:4px; padding:1px 5px; font-weight:700; margin-left:5px; }
+.sas-btn { margin-left:auto; background:#2563eb; border-radius:8px; padding:6px 10px; font-size:11px; color:#fff; font-weight:600; flex-shrink:0; white-space:nowrap; }
+
+/* Tips */
+.tip-box {
+  background:rgba(251,191,36,.08); border:1px solid rgba(251,191,36,.3);
+  border-radius:14px; padding:14px; margin-bottom:32px;
+}
+.tip-title { font-size:13px; font-weight:700; color:#fbbf24; margin-bottom:6px; }
+.tip-text { font-size:12px; color:#d1d5db; line-height:1.6; }
+
+/* Seksjons-badge */
+.badge {
+  display:inline-block; padding:4px 10px; border-radius:6px;
+  font-size:10px; font-weight:800; letter-spacing:.06em;
+  margin-bottom:8px;
+}
+.badge-green { background:rgba(22,163,74,.15); color:#16a34a; border:1px solid rgba(22,163,74,.3); }
+.badge-blue  { background:rgba(37,99,235,.15); color:#2563eb; border:1px solid rgba(37,99,235,.3); }
+</style>
+</head>
+<body>
+
+<!-- Hero -->
+<div class="hero">
+  <div class="hero-label">✈️ BONUSVARSEL</div>
+  <div class="hero-title">Spar til ferien –<br>uten å spare penger</div>
+  <div class="hero-sub">Du handler mat uansett. Du betaler strøm uansett. La oss hjelpe deg å tjene flypoeng på hverdagen – og bruke dem på ferie.</div>
+  <div class="hero-chips">
+    <span class="hero-chip">🛒 Dagligvare</span>
+    <span class="hero-chip">✈️ Fly & hotell</span>
+    <span class="hero-chip">🛍️ Netthandel</span>
+    <span class="hero-chip">🔔 Varsler</span>
+  </div>
+</div>
+
+<!-- 3 steg -->
+<div class="section">
+  <div class="sec-label">Kom i gang</div>
+  <div class="sec-title">3 enkle steg 👇</div>
+  <div class="sec-sub">Trykk på ℹ️ for å lese mer om hvert steg</div>
+
+  <div class="steps">
+
+    <div class="step">
+      <div class="step-header" onclick="toggle('s1')">
+        <div class="step-num">1</div>
+        <div style="flex:1">
+          <div class="step-title">Registrer kortet ditt i Trumf-appen</div>
+          <div class="step-desc">Gjøres én gang – bonus registreres automatisk</div>
+        </div>
+        <div class="step-info-btn" onclick="toggle('s1')">i</div>
+      </div>
+      <div class="step-detail" id="s1">
+        Last ned Trumf-appen og registrer bankkortet ditt én gang. Deretter får du <b>1% Trumf-bonus automatisk</b> hver gang du betaler med det kortet hos NorgesGruppen-butikkene: KIWI, MENY, SPAR, Joker, Jacob's og Nærbutikken.<br><br>
+        Du trenger ikke gjøre noe i kassen – bonusen registreres bare!<br><br>
+        💡 <b>Tips:</b> Har du SAS EuroBonus Mastercard eller Amex? Registrer det – da får du Trumf-bonus OG EuroBonus-poeng på samme handletur.
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-header" onclick="toggle('s2')">
+        <div class="step-num">2</div>
+        <div style="flex:1">
+          <div class="step-title">Scan QR-koden i kassen</div>
+          <div class="step-desc">Dobler bonusen til 2% – gratis og enkelt</div>
+        </div>
+        <div class="step-info-btn" onclick="toggle('s2')">i</div>
+      </div>
+      <div class="step-detail" id="s2">
+        Åpne Trumf-appen og trykk på QR-ikonet. Vis koden til kassapersonalet <b>før du betaler</b> – da dobles bonusen fra 1% til 2%.<br><br>
+        Betaler du deretter med SAS EuroBonus Amex-kortet? Da tjener du <b>20 EuroBonus-poeng per 100 kr</b> i tillegg – på toppen av Trumf-bonusen. Det kalles "dobbel dip".<br><br>
+        💡 <b>På Trippel-Torsdag</b> (noen torsdager) tredobles grunnbonusen. Har du Trumf Kredittkort? Da kan du få hele <b>5%</b> på én handletur!
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-header" onclick="toggle('s3')">
+        <div class="step-num">3</div>
+        <div style="flex:1">
+          <div class="step-title">Sjekk Varsler og handle smart</div>
+          <div class="step-desc">Vi varsler deg når favorittbutikkene dine har bonus</div>
+        </div>
+        <div class="step-info-btn" onclick="toggle('s3')">i</div>
+      </div>
+      <div class="step-detail" id="s3">
+        Gå til <b>Varsler</b>-siden og velg butikkene du handler i. Vi sender deg melding på e-post eller Telegram når de har ekstra bonus.<br><br>
+        Eksempel: Outnorth har normalt 25 poeng/100kr. Når de har kampanje stiger det til 50 poeng/100kr – da varsler vi deg!<br><br>
+        💡 <b>Premium og Elite</b> gir deg personlige varsler på opptil 5 eller 10 favorittbutikker.
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Dobbel dip -->
+<div class="section">
+  <div class="sec-label">💡 Pro-tips</div>
+  <div class="sec-title">Dobbel dip – det store trikset</div>
+  <div class="combo">
+    <div class="combo-title">🔥 Eksempel: Storhandel på torsdag</div>
+    <div class="combo-sub">Du handler for 1 000 kr på KIWI</div>
+    <div class="combo-example">
+      <div class="combo-ex-title">Slik gjør du det:</div>
+      <div class="combo-row">
+        <div class="combo-item">
+          <div class="combo-item-icon">📱</div>
+          <div class="combo-item-text">Scan QR i<br>Trumf-appen</div>
+        </div>
+        <div class="combo-plus">+</div>
+        <div class="combo-item">
+          <div class="combo-item-icon">💳</div>
+          <div class="combo-item-text">Betal med<br>vanlig kort</div>
+        </div>
+      </div>
+      <div class="combo-result">
+        <div class="combo-result-num">20 kr Trumf-bonus</div>
+        <div class="combo-result-sub">overføres automatisk til ~270 EuroBonus-poeng</div>
+      </div>
+      <div class="combo-note">200 kr Trumf = 2 700 EuroBonus-poeng ved automatisk overføring ✨</div>
+    </div>
+  </div>
+</div>
+
+<!-- Trumf butikker -->
+<div class="section">
+  <div class="badge badge-green">🛒 TRUMF NETTHANDEL</div>
+  <div class="sec-title">Handle på nett med bonus</div>
+  <div class="sec-sub">Gå til butikken via appen – bonus registreres automatisk</div>
+  <div class="shops-box">
+    <div class="shops-box-title">🔥 Kampanjer akkurat nå</div>
+    <div class="shop campaign">
+      <div class="shop-icon">O</div>
+      <div>
+        <div class="shop-name">Outnorth <span class="shop-camp">KAMPANJE</span></div>
+        <div class="shop-pts">50 poeng/100kr</div>
+      </div>
+      <div class="shop-btn">Gå til →</div>
+    </div>
+    <div class="shop campaign">
+      <div class="shop-icon">G</div>
+      <div>
+        <div class="shop-name">Gina Tricot <span class="shop-camp">KAMPANJE</span></div>
+        <div class="shop-pts">60 poeng/100kr</div>
+      </div>
+      <div class="shop-btn">Gå til →</div>
+    </div>
+    <div class="shop">
+      <div class="shop-icon">S</div>
+      <div>
+        <div class="shop-name">Scandic Hotels</div>
+        <div class="shop-pts">40 poeng/100kr</div>
+      </div>
+      <div class="shop-btn">Gå til →</div>
+    </div>
+    <div style="text-align:center;padding:8px 0">
+      <span style="font-size:12px;color:#16a34a;font-weight:600">Se alle 250+ butikker på Varsler-siden →</span>
+    </div>
+  </div>
+</div>
+
+<!-- SAS butikker -->
+<div class="section">
+  <div class="badge badge-blue">✈️ SAS ONLINE SHOPPING</div>
+  <div class="sec-title">Tjen EuroBonus-poeng på nett</div>
+  <div class="sec-sub">400+ butikker – poengene kan brukes på flyreiser og hotell</div>
+  <div class="sas-box">
+    <div class="sas-box-title">⭐ Populære butikker</div>
+    <div class="sas-shop">
+      <div class="sas-icon">S</div>
+      <div>
+        <div class="sas-name">Scandic Hotels <span class="sas-pop">POPULÆR</span></div>
+        <div class="sas-pts">20 poeng/100kr</div>
+      </div>
+      <div class="sas-btn">Gå til →</div>
+    </div>
+    <div class="sas-shop">
+      <div class="sas-icon">E</div>
+      <div>
+        <div class="sas-name">Expedia</div>
+        <div class="sas-pts">20 poeng/100kr</div>
+      </div>
+      <div class="sas-btn">Gå til →</div>
+    </div>
+    <div class="sas-shop">
+      <div class="sas-icon">B</div>
+      <div>
+        <div class="sas-name">Booking.com <span class="sas-pop">POPULÆR</span></div>
+        <div class="sas-pts">15 poeng/100kr</div>
+      </div>
+      <div class="sas-btn">Gå til →</div>
+    </div>
+    <div style="text-align:center;padding:8px 0">
+      <span style="font-size:12px;color:#2563eb;font-weight:600">Se alle 400+ butikker på Varsler-siden →</span>
+    </div>
+  </div>
+</div>
+
+<!-- Tips -->
+<div class="section">
+  <div class="tip-box">
+    <div class="tip-title">💡 Hva kan du bruke poengene på?</div>
+    <div class="tip-text">
+      EuroBonus-poeng kan brukes på flyreiser med SAS, Widerøe og SkyTeam-partnere (Air France, KLM, Delta m.fl.), hotellopphold, leiebil og oppgraderinger.<br><br>
+      <b>Eksempel:</b> En tur Oslo–London kan koste ned mot 15 000 poeng. Poengene er gyldige i opptil 5 år fra opptjening.
+    </div>
+  </div>
+</div>
+
+<script>
+function toggle(id) {
+  const el = document.getElementById(id);
+  el.classList.toggle('open');
+}
+</script>
+</body>
+</html>

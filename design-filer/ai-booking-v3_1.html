@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="nb">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BonusVarsel AI-booking</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#2a1a0e;--cream:#faf5ee;--warm:#f5e8d8;
+  --gold:#c9956a;--gold2:#e8c4a0;--gold3:#9a6840;
+  --rose:#c4889a;--purple:#8c6c9a;--purple2:#b09ac0;
+  --muted:#9a8070;--sidebar:#f0e8de;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{font-family:'DM Sans',sans-serif;background:var(--cream);color:#3d2c1e;overflow-x:hidden;}
+
+/* ══ HERO ══════════════════════════════════════════════════ */
+.hero{
+  min-height:100vh;
+  background:
+    radial-gradient(ellipse 55% 55% at 15% 15%, rgba(201,149,106,0.22),transparent),
+    radial-gradient(ellipse 45% 60% at 85% 85%, rgba(140,108,154,0.15),transparent),
+    radial-gradient(ellipse 70% 40% at 50% 60%, rgba(42,26,14,0.6),transparent),
+    linear-gradient(150deg,#3d2410 0%,#2a1608 30%,#221420 70%,#1a1028 100%);
+  padding:0 56px;display:flex;flex-direction:column;
+  position:relative;overflow:hidden;
+}
+
+/* Bokeh orbs */
+.orb{position:absolute;border-radius:50%;pointer-events:none;}
+.o1{width:500px;height:500px;top:-150px;right:8%;background:radial-gradient(circle,rgba(201,149,106,0.14),transparent 70%);}
+.o2{width:350px;height:350px;bottom:5%;left:2%;background:radial-gradient(circle,rgba(140,108,154,0.12),transparent 70%);}
+.o3{width:250px;height:250px;top:35%;right:3%;background:radial-gradient(circle,rgba(196,136,154,0.09),transparent 70%);}
+.o4{width:180px;height:180px;top:60%;left:30%;background:radial-gradient(circle,rgba(232,196,160,0.08),transparent 70%);}
+
+/* NAV */
+.nav{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:26px 0;position:relative;z-index:10;
+}
+.nav-logo{display:flex;align-items:center;gap:10px;}
+.nav-star{
+  width:28px;height:28px;display:flex;align-items:center;justify-content:center;
+  color:var(--gold2);font-size:20px;
+}
+.nav-name{font-size:18px;font-weight:400;color:rgba(250,245,238,0.9);letter-spacing:.3px;}
+.nav-url{
+  display:flex;align-items:center;gap:7px;
+  font-size:11.5px;color:rgba(250,245,238,0.45);
+  border:1px solid rgba(201,149,106,0.22);
+  padding:7px 16px;border-radius:20px;
+  letter-spacing:.3px;
+}
+.nav-url b{color:rgba(250,245,238,0.7);}
+
+/* HERO TITLE */
+.hero-title-block{
+  text-align:center;padding:36px 0 28px;
+  position:relative;z-index:10;
+}
+.hero-title-block h1{
+  font-family:'Cormorant Garamond',serif;
+  font-size:clamp(52px,7vw,88px);
+  font-weight:300;line-height:1;
+  color:rgba(250,245,238,0.95);
+  letter-spacing:-.5px;
+}
+.hero-title-block h1 span{color:var(--gold2);}
+
+/* HERO MAIN */
+.hero-main{
+  flex:1;display:grid;
+  grid-template-columns:200px 1fr 1.55fr;
+  gap:32px;align-items:center;
+  padding:0 0 40px;position:relative;z-index:10;
+}
+
+/* LEFT — floating cards */
+.float-col{display:flex;flex-direction:column;gap:14px;}
+.fcard{
+  background:rgba(42,26,14,0.82);
+  backdrop-filter:blur(20px);
+  border:1px solid rgba(201,149,106,0.22);
+  border-radius:16px;padding:16px;
+  animation:fadeUp .7s ease both;
+}
+.fcard:nth-child(2){animation-delay:.12s;}
+.fcard:nth-child(3){animation-delay:.24s;}
+.fc-icon{font-size:22px;margin-bottom:8px;}
+.fc-title{font-size:12px;font-weight:600;color:var(--cream);margin-bottom:4px;}
+.fc-sub{font-size:10.5px;font-weight:300;color:rgba(250,245,238,0.4);line-height:1.5;}
+
+/* CENTER — phone */
+.phone-col{display:flex;justify-content:center;}
+.phone{
+  width:240px;
+  filter:drop-shadow(0 32px 64px rgba(0,0,0,0.65));
+  animation:fadeUp .8s .1s ease both;
+}
+.ph-shell{
+  background:linear-gradient(155deg,#2d1e10,#1a1008);
+  border-radius:34px;
+  border:1.5px solid rgba(201,149,106,0.28);
+  overflow:hidden;
+}
+.ph-notch{
+  height:24px;background:#0e0805;
+  display:flex;align-items:center;justify-content:center;
+}
+.ph-pill{width:65px;height:6px;background:#1a1008;border-radius:8px;}
+.ph-screen{padding:14px;background:linear-gradient(165deg,#1e1408,#130e06);}
+
+/* phone header */
+.ph-hd{
+  display:flex;align-items:center;gap:8px;
+  padding:8px 10px;background:rgba(201,149,106,0.1);
+  border-radius:10px;margin-bottom:11px;
+}
+.ph-av{
+  width:26px;height:26px;border-radius:50%;
+  background:linear-gradient(135deg,var(--gold),var(--gold2));
+  display:flex;align-items:center;justify-content:center;
+  font-size:13px;font-weight:700;color:#1a1008;
+}
+.ph-n{color:var(--cream);font-size:10px;font-weight:600;}
+.ph-s{color:#7dba7a;font-size:8.5px;display:flex;align-items:center;gap:3px;}
+.ph-dot{width:5px;height:5px;border-radius:50%;background:#7dba7a;display:inline-block;}
+
+/* chat bubbles */
+.pm{margin-bottom:7px;}
+.pm.usr{text-align:right;}
+.pm .b{display:inline-block;padding:7px 10px;border-radius:11px;font-size:9.5px;line-height:1.5;max-width:90%;}
+.pm.ai .b{background:rgba(255,255,255,0.07);border:1px solid rgba(201,149,106,0.15);color:rgba(250,245,238,.9);border-radius:11px 11px 11px 3px;}
+.pm.usr .b{background:rgba(140,108,154,0.25);border:1px solid rgba(176,154,192,0.2);color:var(--purple2);border-radius:11px 11px 3px 11px;}
+.pm-ts{font-size:7.5px;color:rgba(250,245,238,0.25);margin-top:2px;}
+.pm.usr .pm-ts{text-align:right;}
+
+/* date chips */
+.date-chips{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin:9px 0;}
+.dc{
+  border-radius:9px;padding:7px 5px;text-align:center;
+  border:1px solid rgba(201,149,106,0.2);
+  background:rgba(255,255,255,0.04);
+  font-size:8.5px;color:rgba(250,245,238,0.5);
+  font-weight:300;
+}
+.dc.active{
+  background:rgba(201,149,106,0.2);
+  border-color:var(--gold);color:var(--gold2);font-weight:500;
+}
+.dc .dc-day{font-size:7.5px;margin-bottom:2px;opacity:.7;}
+.dc .dc-date{font-size:11px;font-weight:600;}
+.dc .dc-time{font-size:8px;margin-top:2px;}
+
+/* confirm card */
+.ph-confirm{
+  background:rgba(122,158,126,0.12);
+  border:1px solid rgba(122,158,126,0.22);
+  border-radius:10px;padding:10px;margin:6px 0;
+}
+.ph-c-title{color:#7dba7a;font-size:8px;letter-spacing:.8px;text-transform:uppercase;margin-bottom:6px;}
+.ph-c-row{color:rgba(250,245,238,.65);font-size:9px;margin-bottom:3px;}
+
+.ph-input{
+  display:flex;align-items:center;gap:6px;
+  margin-top:10px;padding:7px 10px;
+  background:rgba(255,255,255,0.05);
+  border-radius:18px;border:1px solid rgba(201,149,106,0.15);
+}
+.ph-input span{flex:1;font-size:9px;color:rgba(250,245,238,.2);}
+.ph-send{
+  width:22px;height:22px;border-radius:50%;
+  background:linear-gradient(135deg,var(--gold),var(--gold3));
+  display:flex;align-items:center;justify-content:center;
+  font-size:9px;color:var(--cream);flex-shrink:0;
+}
+
+/* RIGHT — dashboard */
+.db-col{animation:fadeUp .8s .18s ease both;}
+.dashboard{
+  background:rgba(252,247,242,0.96);
+  backdrop-filter:blur(24px);
+  border-radius:18px;
+  border:1px solid rgba(210,185,165,0.28);
+  overflow:hidden;
+  box-shadow:0 28px 70px rgba(0,0,0,0.38);
+  display:grid;
+  grid-template-columns:130px 1fr;
+}
+
+/* sidebar */
+.db-sidebar{
+  background:var(--sidebar);
+  border-right:1px solid rgba(210,185,165,0.3);
+  padding:18px 0;
+  display:flex;flex-direction:column;
+}
+.db-brand{padding:0 14px 16px;border-bottom:1px solid rgba(210,185,165,0.25);}
+.db-brand-logo{
+  width:32px;height:32px;border-radius:50%;
+  background:linear-gradient(135deg,var(--gold),var(--rose));
+  display:flex;align-items:center;justify-content:center;font-size:14px;
+  margin-bottom:6px;
+}
+.db-brand-name{font-size:10px;font-weight:700;color:#3d2c1e;line-height:1.2;}
+.db-brand-sub{font-size:8.5px;color:var(--muted);}
+.db-nav{padding:12px 0;flex:1;}
+.db-nav-item{
+  display:flex;align-items:center;gap:8px;
+  padding:8px 14px;font-size:10px;color:var(--muted);
+  cursor:pointer;transition:all .2s;
+}
+.db-nav-item:hover{background:rgba(201,149,106,0.08);color:#3d2c1e;}
+.db-nav-item.active{
+  background:rgba(140,108,154,0.12);
+  color:var(--purple);font-weight:600;
+  border-right:2px solid var(--purple);
+}
+.db-nav-icon{font-size:12px;width:16px;text-align:center;}
+
+/* main content */
+.db-main{padding:16px;overflow:hidden;}
+.db-top-bar{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:12px;
+}
+.db-greeting h3{font-size:14px;font-weight:500;color:#3d2c1e;}
+.db-greeting p{font-size:9px;color:var(--muted);}
+.db-top-actions{display:flex;align-items:center;gap:8px;}
+.db-date-pill{
+  font-size:8.5px;color:var(--muted);
+  border:1px solid rgba(210,185,165,0.4);
+  padding:4px 10px;border-radius:12px;
+  display:flex;align-items:center;gap:4px;
+}
+.db-new-btn{
+  background:linear-gradient(135deg,var(--purple),#5a3a6a);
+  color:white;border:none;border-radius:14px;
+  padding:5px 10px;font-size:8.5px;font-weight:500;
+  cursor:pointer;font-family:inherit;
+  display:flex;align-items:center;gap:4px;
+}
+
+/* stat cards */
+.db-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-bottom:13px;}
+.db-stat{
+  background:rgba(250,245,240,0.8);
+  border:1px solid rgba(210,185,165,0.28);
+  border-radius:9px;padding:9px;
+}
+.db-stat-lbl{font-size:7.5px;color:var(--muted);margin-bottom:3px;}
+.db-stat-val{font-size:15px;font-weight:600;color:#3d2c1e;line-height:1;}
+.db-stat-val.g{color:var(--gold3);}
+.db-stat-ch{font-size:7.5px;color:#7dba7a;margin-top:3px;}
+.db-stat-ch.star{color:#e8a040;}
+
+/* calendar + top services split */
+.db-content-grid{display:grid;grid-template-columns:1fr 120px;gap:10px;}
+
+/* calendar */
+.db-cal-hdr{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:8px;
+}
+.db-cal-title{font-size:10px;font-weight:600;color:#3d2c1e;}
+.db-cal-tabs{display:flex;gap:4px;}
+.db-tab{
+  font-size:8px;padding:3px 8px;border-radius:8px;
+  border:1px solid rgba(210,185,165,0.3);
+  color:var(--muted);cursor:pointer;background:transparent;font-family:inherit;
+}
+.db-tab.active{background:rgba(140,108,154,0.12);color:var(--purple);border-color:rgba(140,108,154,0.2);}
+
+.db-cal-grid{display:grid;grid-template-columns:28px repeat(4,1fr);gap:3px;}
+.cal-head{font-size:7.5px;font-weight:600;color:var(--muted);text-align:center;padding:2px 0;}
+.cal-time{font-size:7.5px;color:var(--muted);padding-top:3px;}
+.cal-slot{border-radius:5px;padding:4px 5px;font-size:7px;line-height:1.35;min-height:28px;}
+.cs-p{background:rgba(140,108,154,0.15);border-left:2px solid var(--purple);color:#5a3a6a;}
+.cs-g{background:rgba(201,149,106,0.15);border-left:2px solid var(--gold);color:var(--gold3);}
+.cs-r{background:rgba(196,136,154,0.15);border-left:2px solid var(--rose);color:#7a3a4a;}
+.cs-hi{background:rgba(201,149,106,0.22);border-left:2px solid var(--gold3);color:var(--gold3);}
+.cs-e{background:transparent;}
+
+/* legend */
+.cal-legend{display:flex;gap:8px;margin-top:8px;}
+.leg{display:flex;align-items:center;gap:4px;font-size:7.5px;color:var(--muted);}
+.leg-dot{width:6px;height:6px;border-radius:2px;}
+
+/* top services */
+.db-top-title{font-size:9.5px;font-weight:600;color:#3d2c1e;margin-bottom:8px;}
+.db-top-item{
+  display:flex;align-items:center;gap:6px;
+  padding:5px 0;border-bottom:1px solid rgba(210,185,165,0.18);
+}
+.dti-ic{
+  width:20px;height:20px;border-radius:5px;
+  background:rgba(201,149,106,0.1);
+  display:flex;align-items:center;justify-content:center;font-size:10px;
+}
+.dti-name{font-size:8.5px;color:#3d2c1e;font-weight:500;flex:1;}
+.dti-n{font-size:7.5px;color:var(--muted);}
+.dti-ch{font-size:7.5px;color:#7dba7a;font-weight:600;}
+
+/* growth */
+.db-growth{
+  margin-top:10px;padding:9px;
+  background:rgba(250,245,240,0.7);
+  border-radius:9px;border:1px solid rgba(210,185,165,0.2);
+}
+.db-growth-title{font-size:8.5px;font-weight:600;color:#3d2c1e;margin-bottom:4px;}
+.db-growth-val{font-size:18px;font-weight:600;color:var(--purple);line-height:1;}
+.db-growth-sub{font-size:7.5px;color:var(--muted);margin-bottom:6px;}
+.spark{width:100%;height:28px;}
+
+/* db footer */
+.db-footer{
+  grid-column:1/-1;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:10px 16px 14px;
+  border-top:1px solid rgba(210,185,165,0.2);
+}
+.db-user{display:flex;align-items:center;gap:7px;}
+.db-user-av{
+  width:26px;height:26px;border-radius:50%;
+  background:linear-gradient(135deg,var(--rose),var(--purple));
+  display:flex;align-items:center;justify-content:center;
+  font-size:12px;color:white;
+}
+.db-user-name{font-size:9.5px;font-weight:600;color:#3d2c1e;}
+.db-user-role{font-size:8px;color:var(--muted);}
+.db-legend{display:flex;gap:10px;}
+
+/* BOTTOM BAR */
+.hero-bar{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:18px 0 28px;
+  border-top:1px solid rgba(201,149,106,0.1);
+  position:relative;z-index:10;
+}
+.hbar-items{display:flex;gap:36px;}
+.hbi{display:flex;flex-direction:column;align-items:center;gap:7px;}
+.hbi-ic{
+  width:38px;height:38px;border-radius:50%;
+  background:rgba(201,149,106,0.1);
+  border:1px solid rgba(201,149,106,0.2);
+  display:flex;align-items:center;justify-content:center;font-size:15px;
+}
+.hbi-txt{font-size:9.5px;color:rgba(250,245,238,0.38);text-align:center;max-width:88px;line-height:1.4;}
+.hbar-cta{}
+.cta-btn{
+  background:linear-gradient(135deg,var(--gold),var(--gold3));
+  color:var(--cream);border:none;border-radius:50px;
+  padding:14px 26px;font-size:13px;font-weight:500;
+  cursor:pointer;font-family:inherit;
+  display:flex;align-items:center;gap:8px;
+  box-shadow:0 8px 28px rgba(201,149,106,0.35);
+  text-decoration:none;
+}
+.cta-sub{font-size:9.5px;color:rgba(250,245,238,.3);margin-top:5px;text-align:center;}
+
+/* ══ BELOW FOLD ═════════════════════════════════════════════ */
+.section{padding:90px 80px;}
+.s-tag{font-size:11px;letter-spacing:2.5px;text-transform:uppercase;color:var(--gold);margin-bottom:14px;}
+.s-title{font-family:'Cormorant Garamond',serif;font-size:clamp(34px,4vw,52px);font-weight:300;line-height:1.15;margin-bottom:14px;}
+.s-title em{font-style:italic;color:var(--gold3);}
+.s-sub{font-size:15px;font-weight:300;color:var(--muted);max-width:480px;line-height:1.75;}
+
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;margin-top:58px;border-radius:20px;overflow:hidden;}
+.step{padding:42px 34px;background:white;position:relative;transition:background .3s;}
+.step:hover{background:#fdf8f2;}
+.step-n{font-family:'Cormorant Garamond',serif;font-size:62px;font-weight:300;color:#ede5da;line-height:1;margin-bottom:14px;}
+.step-ic{font-size:24px;margin-bottom:12px;}
+.step h3{font-family:'Cormorant Garamond',serif;font-size:21px;font-weight:400;margin-bottom:8px;}
+.step p{font-size:13px;font-weight:300;color:var(--muted);line-height:1.7;}
+.step-arr{position:absolute;right:-12px;top:50%;transform:translateY(-50%);width:24px;height:24px;border-radius:50%;background:white;border:1px solid #ede5da;display:flex;align-items:center;justify-content:center;font-size:10px;z-index:1;}
+.step:last-child .step-arr{display:none;}
+
+.sys-sec{background:#2a1a0e;padding:80px;}
+.sys-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:50px;}
+.sys-card{background:rgba(255,255,255,0.04);border:1px solid rgba(201,149,106,0.18);border-radius:17px;padding:28px;transition:all .3s;}
+.sys-card:hover{background:rgba(201,149,106,0.07);border-color:rgba(201,149,106,0.3);transform:translateY(-3px);}
+.sys-logo{font-family:'Cormorant Garamond',serif;font-size:25px;font-weight:600;color:var(--gold2);margin-bottom:9px;}
+.sys-card p{font-size:12px;color:rgba(250,245,238,.4);line-height:1.65;font-weight:300;}
+.sys-badge{display:inline-block;margin-top:13px;font-size:9px;letter-spacing:1px;text-transform:uppercase;color:#7dba7a;border:1px solid rgba(122,158,126,0.28);padding:3px 10px;border-radius:20px;}
+
+.price-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;max-width:760px;margin:58px auto 0;}
+.price-card{border:1px solid #ede5da;border-radius:20px;padding:42px 36px;background:white;position:relative;transition:all .3s;}
+.price-card:hover{border-color:var(--gold);box-shadow:0 18px 48px rgba(201,149,106,0.1);}
+.price-card.feat{background:linear-gradient(160deg,#2d1f0f,#1a1208);border-color:rgba(201,149,106,0.25);}
+.feat-lbl{position:absolute;top:-10px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,var(--gold),var(--gold3));color:var(--cream);font-size:9px;letter-spacing:1.2px;text-transform:uppercase;padding:3px 14px;border-radius:20px;}
+.pname{font-family:'Cormorant Garamond',serif;font-size:25px;font-weight:400;margin-bottom:5px;}
+.price-card.feat .pname{color:var(--gold2);}
+.pamt{font-family:'Cormorant Garamond',serif;font-size:52px;font-weight:300;line-height:1;margin:16px 0 3px;}
+.price-card.feat .pamt{color:var(--cream);}
+.pper{font-size:12px;color:var(--muted);margin-bottom:26px;}
+.price-card.feat .pper{color:rgba(250,245,238,.35);}
+.pfeat{list-style:none;}
+.pfeat li{font-size:12.5px;font-weight:300;padding:8px 0;border-bottom:1px solid #ede5da;display:flex;align-items:center;gap:8px;color:var(--muted);}
+.price-card.feat .pfeat li{border-color:rgba(255,255,255,.07);color:rgba(250,245,238,.5);}
+.pfeat li::before{content:'✓';color:#7dba7a;font-size:10px;flex-shrink:0;}
+.pcta{margin-top:26px;width:100%;background:linear-gradient(135deg,var(--gold),var(--gold3));color:var(--cream);border:none;border-radius:50px;padding:13px;font-size:13.5px;font-weight:500;cursor:pointer;font-family:inherit;}
+
+.cta-sec{background:linear-gradient(160deg,#2a1608,#1e1820);padding:110px 80px;text-align:center;position:relative;overflow:hidden;}
+.cta-sec::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 60% 55% at 50% 50%,rgba(201,149,106,0.09),transparent);}
+.cta-btns{display:flex;gap:12px;justify-content:center;position:relative;}
+.btn-g{background:transparent;color:var(--cream);border:1px solid rgba(250,245,238,.2);border-radius:50px;padding:14px 32px;font-size:13.5px;font-weight:300;cursor:pointer;font-family:inherit;transition:all .2s;text-decoration:none;display:inline-block;}
+.btn-g:hover{border-color:var(--gold2);color:var(--gold2);}
+
+footer{background:#1a1008;padding:34px 80px;display:flex;justify-content:space-between;align-items:center;border-top:1px solid rgba(255,255,255,0.04);}
+.foot-brand{font-family:'Cormorant Garamond',serif;font-size:18px;color:var(--gold2);}
+.foot-links{display:flex;gap:26px;}
+.foot-links a{font-size:11px;color:rgba(250,245,238,.28);text-decoration:none;}
+.foot-links a:hover{color:var(--gold2);}
+
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+
+@media(max-width:1024px){
+  .hero{padding:0 24px;}
+  .hero-main{grid-template-columns:1fr;padding:20px 0 40px;}
+  .float-col{flex-direction:row;justify-content:center;}
+  .fcard{width:140px;}
+  .phone-col{order:-1;}
+  .db-col{display:none;}
+  .section{padding:60px 24px;}
+  .steps{grid-template-columns:1fr;}
+  .step-arr{display:none;}
+  .sys-sec{padding:60px 24px;}
+  .sys-grid{grid-template-columns:1fr;}
+  .price-grid{grid-template-columns:1fr;max-width:360px;}
+  .cta-sec{padding:80px 24px;}
+  .cta-btns{flex-direction:column;align-items:center;}
+  footer{flex-direction:column;gap:14px;padding:26px 24px;text-align:center;}
+  .hbar-items{gap:18px;}
+}
+</style>
+</head>
+<body>
+
+<section class="hero">
+  <div class="orb o1"></div><div class="orb o2"></div>
+  <div class="orb o3"></div><div class="orb o4"></div>
+
+  <!-- Nav -->
+  <nav class="nav">
+    <div class="nav-logo">
+      <div class="nav-star">✦</div>
+      <span class="nav-name">Bonusvarsel</span>
+    </div>
+    <div class="nav-url">🌐 <b>bonusvarsel.no/ai-booking</b> →</div>
+  </nav>
+
+  <!-- Title -->
+  <div class="hero-title-block">
+    <h1>Bonusvarsel <span>AI-booking</span></h1>
+  </div>
+
+  <!-- Main grid -->
+  <div class="hero-main">
+
+    <!-- FLOAT CARDS -->
+    <div class="float-col">
+      <div class="fcard">
+        <div class="fc-icon">📅</div>
+        <div class="fc-title">Time booket!</div>
+        <div class="fc-sub">16. mai kl. 13:30<br>Glow Hair & Beauty</div>
+      </div>
+      <div class="fcard">
+        <div class="fc-icon">💎</div>
+        <div class="fc-title">Tjen bonus</div>
+        <div class="fc-sub">Opptjen poeng<br>på dine kjøp</div>
+      </div>
+      <div class="fcard">
+        <div class="fc-icon">🎁</div>
+        <div class="fc-title">Smarte forslag</div>
+        <div class="fc-sub">AI finner de beste<br>tilbudene for deg</div>
+      </div>
+    </div>
+
+    <!-- PHONE -->
+    <div class="phone-col">
+      <div class="phone">
+        <div class="ph-shell">
+          <div class="ph-notch"><div class="ph-pill"></div></div>
+          <div class="ph-screen">
+            <div class="ph-hd">
+              <div class="ph-av">✦</div>
+              <div>
+                <div class="ph-n">Bonusvarsel AI</div>
+                <div class="ph-s"><span class="ph-dot"></span> Din booking-assistent</div>
+              </div>
+            </div>
+            <div class="pm usr"><div class="b">Hei! Jeg ønsker å bestille time for klipp og farge.</div><div class="pm-ts">09:41 ✓</div></div>
+            <div class="pm ai"><div class="b">Hei! Så hyggelig å hjelpe deg 💜 Jeg finner ledige tider for klipp og farge. Hva passer best for deg?</div><div class="pm-ts">09:41</div></div>
+            <div class="date-chips">
+              <div class="dc"><div class="dc-day">Onsdag</div><div class="dc-date">15. mai</div><div class="dc-time">10:00</div></div>
+              <div class="dc active"><div class="dc-day">Torsdag</div><div class="dc-date">16. mai</div><div class="dc-time">13:30 ⭐</div></div>
+              <div class="dc"><div class="dc-day">Fredag</div><div class="dc-date">17. mai</div><div class="dc-time">11:00</div></div>
+            </div>
+            <div class="pm ai"><div class="b">Flott! Her er ledige tider denne uken hos Bonusvarsel AI ✨</div></div>
+            <div class="pm usr"><div class="b">Torsdag 16. mai kl. 13:30 passer perfekt!</div><div class="pm-ts">09:42 ✓</div></div>
+            <div class="pm ai">
+              <div class="b">Supert! ✅ Da har jeg booket klipp og farge torsdag 16. mai kl. 13:30. Du får en bekreftelse på SMS og e-post.</div>
+              <div class="ph-confirm">
+                <div class="ph-c-title">Booking bekreftet</div>
+                <div class="ph-c-row">📅 Tors. 16. mai · kl. 13:30</div>
+                <div class="ph-c-row">✂️ Klipp & Farge</div>
+                <div class="ph-c-row">📱 SMS-bekreftelse sendt</div>
+              </div>
+            </div>
+            <div class="ph-input">
+              <span>Skriv en melding...</span>
+              <div class="ph-send">➤</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- DASHBOARD -->
+    <div class="db-col">
+      <div class="dashboard">
+        <!-- Sidebar -->
+        <div class="db-sidebar">
+          <div class="db-brand">
+            <div class="db-brand-logo">🌸</div>
+            <div class="db-brand-name">GLOW<br>Hair & Beauty</div>
+          </div>
+          <div class="db-nav">
+            <div class="db-nav-item active"><span class="db-nav-icon">🏠</span> Oversikt</div>
+            <div class="db-nav-item"><span class="db-nav-icon">📅</span> Kalender</div>
+            <div class="db-nav-item"><span class="db-nav-icon">📋</span> Bookinger</div>
+            <div class="db-nav-item"><span class="db-nav-icon">👥</span> Kunder</div>
+            <div class="db-nav-item"><span class="db-nav-icon">✂️</span> Tjenester</div>
+            <div class="db-nav-item"><span class="db-nav-icon">📢</span> Markedsføring</div>
+            <div class="db-nav-item"><span class="db-nav-icon">📊</span> Statistikk</div>
+            <div class="db-nav-item"><span class="db-nav-icon">⚙️</span> Innstillinger</div>
+          </div>
+        </div>
+
+        <!-- Main -->
+        <div class="db-main">
+          <div class="db-top-bar">
+            <div class="db-greeting">
+              <h3>God morgen, Elise 👋</h3>
+              <p>Her er dagens oversikt.</p>
+            </div>
+            <div class="db-top-actions">
+              <div class="db-date-pill">📅 Onsdag 15. mai 2024 ‹ ›</div>
+              <button class="db-new-btn">+ Ny booking</button>
+            </div>
+          </div>
+
+          <div class="db-stats">
+            <div class="db-stat"><div class="db-stat-lbl">Dagens bookinger</div><div class="db-stat-val">18</div><div class="db-stat-ch">+20% fra i går</div></div>
+            <div class="db-stat"><div class="db-stat-lbl">Omsetning i dag</div><div class="db-stat-val g">12 450 kr</div><div class="db-stat-ch">+18% fra i går</div></div>
+            <div class="db-stat"><div class="db-stat-lbl">Denne uken</div><div class="db-stat-val">56</div><div class="db-stat-ch">+12% forrige uke</div></div>
+            <div class="db-stat"><div class="db-stat-lbl">Kundetilfredshet</div><div class="db-stat-val star">⭐ 4.9</div><div class="db-stat-ch star">128 omtaler</div></div>
+          </div>
+
+          <div class="db-content-grid">
+            <div>
+              <div class="db-cal-hdr">
+                <div class="db-cal-title">Kalender</div>
+                <div class="db-cal-tabs">
+                  <button class="db-tab active">Dag</button>
+                  <button class="db-tab">Uke</button>
+                  <button class="db-tab">Måned</button>
+                </div>
+              </div>
+              <div class="db-cal-grid">
+                <div></div>
+                <div class="cal-head">Elise</div>
+                <div class="cal-head">Sara</div>
+                <div class="cal-head">Maria</div>
+                <div class="cal-head">Hanne</div>
+
+                <div class="cal-time">09:00</div>
+                <div class="cal-slot cs-p">Klipp & Farge<br>Kari N.</div>
+                <div class="cal-slot cs-e"></div>
+                <div class="cal-slot cs-g">Balayage<br>Thea K.</div>
+                <div class="cal-slot cs-e"></div>
+
+                <div class="cal-time">10:00</div>
+                <div class="cal-slot cs-e"></div>
+                <div class="cal-slot cs-p">Keratinbeh.<br>Malin S.</div>
+                <div class="cal-slot cs-e"></div>
+                <div class="cal-slot cs-e"></div>
+
+                <div class="cal-time">11:00</div>
+                <div class="cal-slot cs-r">Føhn & Styling<br>Ingrid H.</div>
+                <div class="cal-slot cs-e"></div>
+                <div class="cal-slot cs-e"></div>
+                <div class="cal-slot cs-g">Herreklipp<br>Jonas B.</div>
+
+                <div class="cal-time">12:30</div>
+                <div class="cal-slot cs-e"></div>
+                <div class="cal-slot cs-p">Klipp<br>Vilde A.</div>
+                <div class="cal-slot cs-r">Kur & Føhn<br>Anne M.</div>
+                <div class="cal-slot cs-e"></div>
+
+                <div class="cal-time">13:30</div>
+                <div class="cal-slot cs-hi">⭐ Klipp & Farge<br>Nina J.</div>
+                <div class="cal-slot cs-e"></div>
+                <div class="cal-slot cs-e"></div>
+                <div class="cal-slot cs-e"></div>
+
+                <div class="cal-time">15:00</div>
+                <div class="cal-slot cs-e"></div>
+                <div class="cal-slot cs-g">Farge ettervekst<br>Camilla L.</div>
+                <div class="cal-slot cs-e"></div>
+                <div class="cal-slot cs-r">Vipper & Bryn<br>Sofie H.</div>
+              </div>
+              <div class="cal-legend">
+                <div class="leg"><div class="leg-dot" style="background:var(--purple)"></div>Klipp</div>
+                <div class="leg"><div class="leg-dot" style="background:var(--gold)"></div>Farge</div>
+                <div class="leg"><div class="leg-dot" style="background:var(--rose)"></div>Behandling</div>
+                <div class="leg"><div class="leg-dot" style="background:#aaa"></div>Annet</div>
+              </div>
+            </div>
+
+            <div>
+              <div class="db-top-title">Topp tjenester</div>
+              <div class="db-top-item"><div class="dti-ic">✂️</div><div class="dti-name">Klipp & Farge</div><div class="dti-n">28</div><div class="dti-ch">+32%</div></div>
+              <div class="db-top-item"><div class="dti-ic">🌟</div><div class="dti-name">Balayage</div><div class="dti-n">15</div><div class="dti-ch">+18%</div></div>
+              <div class="db-top-item"><div class="dti-ic">💨</div><div class="dti-name">Føhn & Styling</div><div class="dti-n">12</div><div class="dti-ch">+10%</div></div>
+              <div class="db-top-item"><div class="dti-ic">✨</div><div class="dti-name">Keratinbeh.</div><div class="dti-n">8</div><div class="dti-ch">+5%</div></div>
+              <div class="db-growth">
+                <div class="db-growth-title">Kundevekst</div>
+                <div class="db-growth-val">+23%</div>
+                <div class="db-growth-sub">nye kunder · +12 fra forrige måned</div>
+                <svg class="spark" viewBox="0 0 120 28" fill="none">
+                  <polyline points="0,22 20,18 40,20 60,12 80,15 100,6 120,8"
+                    stroke="var(--purple)" stroke-width="1.5" fill="none" opacity=".7"/>
+                  <polyline points="0,22 20,18 40,20 60,12 80,15 100,6 120,8 120,28 0,28"
+                    fill="rgba(140,108,154,0.1)"/>
+                </svg>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- db footer -->
+        <div class="db-footer">
+          <div class="db-user">
+            <div class="db-user-av">E</div>
+            <div><div class="db-user-name">Elise N.</div><div class="db-user-role">Salongeier</div></div>
+          </div>
+          <div class="db-legend">
+            <div class="leg"><div class="leg-dot" style="background:var(--purple)"></div>Klipp</div>
+            <div class="leg"><div class="leg-dot" style="background:var(--gold)"></div>Farge</div>
+            <div class="leg"><div class="leg-dot" style="background:var(--rose)"></div>Behandling</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom bar -->
+  <div class="hero-bar">
+    <div class="hbar-items">
+      <div class="hbi"><div class="hbi-ic">🤖</div><div class="hbi-txt">AI som forstår dine kunder</div></div>
+      <div class="hbi"><div class="hbi-ic">📅</div><div class="hbi-txt">Bookinger 24/7 – automatisk</div></div>
+      <div class="hbi"><div class="hbi-ic">🔔</div><div class="hbi-txt">Påminnelser & no-show reduksjon</div></div>
+      <div class="hbi"><div class="hbi-ic">❤️</div><div class="hbi-txt">Mer tid til det du elsker</div></div>
+    </div>
+    <div class="hbar-cta">
+      <a href="#kontakt" class="cta-btn">✦ Kom i gang gratis</a>
+      <div class="cta-sub">Ingen bindingstid. Avslutt når du vil.</div>
+    </div>
+  </div>
+</section>
+
+<!-- STEPS -->
+<section class="section">
+  <div class="s-tag">Slik fungerer det</div>
+  <h2 class="s-title">Tre steg. <em>Én gang.</em><br>Deretter automatisk.</h2>
+  <p class="s-sub">Du setter det opp én gang — så tar AI-en alle henvendelser dag og natt.</p>
+  <div class="steps">
+    <div class="step"><div class="step-n">01</div><div class="step-ic">💬</div><h3>Kunden sender melding</h3><p>På Messenger, Instagram DM eller web-chat — uansett tidspunkt på døgnet.</p><div class="step-arr">→</div></div>
+    <div class="step"><div class="step-n">02</div><div class="step-ic">🤖</div><h3>AI svarer på norsk</h3><p>Trent på dine tjenester, priser og åpningstider. Avklarer og foreslår ledige tider.</p><div class="step-arr">→</div></div>
+    <div class="step"><div class="step-n">03</div><div class="step-ic">📅</div><h3>Booking inn i systemet</h3><p>Rett inn i Fixit, Timma eller ditt system. Du godkjenner — ferdig.</p></div>
+  </div>
+</section>
+
+<!-- SYSTEMS -->
+<section class="sys-sec">
+  <div class="s-tag">Integrasjoner</div>
+  <h2 class="s-title" style="color:var(--cream)">Fungerer med systemet<br><em>du allerede bruker</em></h2>
+  <div class="sys-grid">
+    <div class="sys-card"><div class="sys-logo">Fixit</div><p>Norges mest brukte bookingsystem. AI-en sender forespørselen rett inn — du godkjenner som vanlig.</p><span class="sys-badge">✓ Støttet</span></div>
+    <div class="sys-card"><div class="sys-logo">Timma</div><p>Populært blant negl- og vippesalonger. Bookingen havner i Timma-kalenderen din automatisk.</p><span class="sys-badge">✓ Støttet</span></div>
+    <div class="sys-card"><div class="sys-logo">Ingen system</div><p>Tar du bookinger manuelt? AI-en sender deg en ferdig formatert booking du bare bekrefter.</p><span class="sys-badge">✓ Støttet</span></div>
+  </div>
+</section>
+
+<!-- PRICING -->
+<section class="section" id="priser" style="text-align:center">
+  <div class="s-tag">Priser</div>
+  <h2 class="s-title">Enkelt og <em>forutsigbart</em></h2>
+  <p class="s-sub" style="margin:0 auto">Ingen bindingstid. Gratis de første 14 dagene.</p>
+  <div class="price-grid">
+    <div class="price-card"><div class="pname">Starter</div><div class="pamt">3 990</div><div class="pper">kr per måned · 1 lokasjon</div><ul class="pfeat"><li>AI svarer på Messenger og Instagram</li><li>Opptil 200 samtaler per måned</li><li>Fixit, Timma eller ingen system</li><li>SMS-bekreftelse til kunden</li><li>14 dager gratis</li></ul><button class="pcta" onclick="location.href='#kontakt'">Start gratis →</button></div>
+    <div class="price-card feat"><div class="feat-lbl">Mest populær</div><div class="pname">Pro</div><div class="pamt">5 990</div><div class="pper">kr per måned · ubegrenset</div><ul class="pfeat"><li>Alt i Starter</li><li>Ubegrenset samtaler</li><li>Multi-stylist støtte</li><li>No-show oppfølging automatisk</li><li>Statistikk-dashboard</li></ul><button class="pcta" onclick="location.href='#kontakt'">Start gratis →</button></div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta-sec" id="kontakt">
+  <div class="s-tag" style="position:relative">Kom i gang</div>
+  <h2 class="s-title" style="color:var(--cream);max-width:540px;margin:0 auto 14px;position:relative">Gratis i 14 dager.<br><em>Ingen forpliktelse.</em></h2>
+  <p class="s-sub" style="color:rgba(250,245,238,.45);margin:0 auto 42px;position:relative">Jeg setter opp alt for deg — du trenger bare prislisten og åpningstidene.</p>
+  <div class="cta-btns">
+    <a href="mailto:royrotvold@gmail.com?subject=Gratis test AI Booking" class="cta-btn">Send meg en epost →</a>
+    <a href="https://instagram.com/bonusvarsel" class="btn-g">Finn oss på Instagram</a>
+  </div>
+</section>
+
+<footer>
+  <div class="foot-brand">✦ BonusVarsel</div>
+  <div class="foot-links">
+    <a href="https://bonusvarsel.no">bonusvarsel.no</a>
+    <a href="#priser">Priser</a>
+    <a href="mailto:royrotvold@gmail.com">Kontakt</a>
+  </div>
+</footer>
+
+</body>
+</html>

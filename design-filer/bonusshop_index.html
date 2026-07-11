@@ -1,0 +1,925 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#FF385C">
+<meta name="description" content="BonusShop – Finn de beste produktene og tjen bonuspoeng på hvert kjøp">
+<title>BonusShop – Handle smart, tjen poeng</title>
+<link rel="manifest" href="/manifest.json">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --red:     #FF385C;
+    --red-dk:  #E0002B;
+    --navy:    #0A1628;
+    --ink:     #1A1A2E;
+    --slate:   #4A5568;
+    --mist:    #F7F8FA;
+    --white:   #FFFFFF;
+    --border:  #E8ECF0;
+    --gold:    #F5A623;
+    --radius:  14px;
+    --shadow:  0 2px 16px rgba(0,0,0,0.08);
+    --shadow-hover: 0 8px 32px rgba(0,0,0,0.14);
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--white);
+    color: var(--ink);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ── NAV ── */
+  nav {
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(255,255,255,0.95);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    padding: 0 24px;
+    height: 64px;
+    display: flex; align-items: center; gap: 24px;
+  }
+  .nav-logo {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-weight: 800; font-size: 22px;
+    color: var(--navy); text-decoration: none;
+    letter-spacing: -0.5px; white-space: nowrap;
+  }
+  .nav-logo span { color: var(--red); }
+
+  .nav-search {
+    flex: 1; max-width: 520px;
+    display: flex; align-items: center;
+    background: var(--mist);
+    border: 1.5px solid var(--border);
+    border-radius: 50px;
+    padding: 0 16px; gap: 10px;
+    transition: border-color .2s, box-shadow .2s;
+  }
+  .nav-search:focus-within {
+    border-color: var(--red);
+    box-shadow: 0 0 0 3px rgba(255,56,92,0.1);
+    background: var(--white);
+  }
+  .nav-search svg { color: var(--slate); flex-shrink: 0; }
+  .nav-search input {
+    flex: 1; border: none; background: transparent;
+    font-size: 15px; color: var(--ink); outline: none;
+    font-family: 'Inter', sans-serif;
+    padding: 10px 0;
+  }
+  .nav-search input::placeholder { color: #9AA3AF; }
+
+  .nav-actions { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+  .nav-btn {
+    display: flex; align-items: center; gap: 6px;
+    padding: 8px 16px; border-radius: 50px;
+    font-size: 14px; font-weight: 600;
+    cursor: pointer; text-decoration: none;
+    transition: all .2s;
+  }
+  .nav-btn-ghost {
+    background: transparent; border: 1.5px solid var(--border);
+    color: var(--ink);
+  }
+  .nav-btn-ghost:hover { border-color: var(--ink); }
+  .nav-btn-red {
+    background: var(--red); border: 1.5px solid var(--red);
+    color: var(--white);
+  }
+  .nav-btn-red:hover { background: var(--red-dk); border-color: var(--red-dk); }
+
+  .nav-icon-btn {
+    width: 40px; height: 40px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--mist); border: 1.5px solid var(--border);
+    cursor: pointer; transition: all .2s; text-decoration: none;
+    color: var(--ink);
+  }
+  .nav-icon-btn:hover { border-color: var(--ink); }
+
+  /* ── HERO ── */
+  .hero {
+    background: linear-gradient(135deg, var(--navy) 0%, #1a2744 60%, #2d1b4e 100%);
+    padding: 72px 24px 80px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: radial-gradient(ellipse 80% 60% at 50% 100%, rgba(255,56,92,0.18) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .hero-eyebrow {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 50px; padding: 6px 16px;
+    font-size: 13px; font-weight: 600; color: rgba(255,255,255,0.85);
+    letter-spacing: 0.3px; margin-bottom: 24px;
+  }
+  .hero-eyebrow-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--gold); animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.6; transform: scale(1.3); }
+  }
+  .hero h1 {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: clamp(36px, 6vw, 64px);
+    font-weight: 800; color: var(--white);
+    line-height: 1.1; letter-spacing: -1.5px;
+    max-width: 700px; margin: 0 auto 20px;
+  }
+  .hero h1 em {
+    font-style: normal; color: var(--red);
+    position: relative;
+  }
+  .hero p {
+    font-size: clamp(16px, 2vw, 19px);
+    color: rgba(255,255,255,0.7);
+    max-width: 480px; margin: 0 auto 36px;
+    line-height: 1.6;
+  }
+  .hero-cta {
+    display: inline-flex; align-items: center; gap: 10px;
+    background: var(--red); color: var(--white);
+    padding: 16px 32px; border-radius: 50px;
+    font-size: 16px; font-weight: 700;
+    text-decoration: none;
+    transition: all .2s;
+    box-shadow: 0 8px 32px rgba(255,56,92,0.4);
+  }
+  .hero-cta:hover {
+    background: var(--red-dk);
+    transform: translateY(-2px);
+    box-shadow: 0 12px 40px rgba(255,56,92,0.5);
+  }
+  .hero-stats {
+    display: flex; justify-content: center; gap: 48px;
+    margin-top: 56px; padding-top: 48px;
+    border-top: 1px solid rgba(255,255,255,0.1);
+  }
+  .hero-stat-num {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 28px; font-weight: 800; color: var(--white);
+    letter-spacing: -0.5px;
+  }
+  .hero-stat-label {
+    font-size: 13px; color: rgba(255,255,255,0.5);
+    margin-top: 2px;
+  }
+
+  /* ── CATEGORIES ── */
+  .section { padding: 56px 24px; max-width: 1280px; margin: 0 auto; }
+  .section-header {
+    display: flex; align-items: baseline; justify-content: space-between;
+    margin-bottom: 28px;
+  }
+  .section-title {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 24px; font-weight: 800;
+    color: var(--navy); letter-spacing: -0.5px;
+  }
+  .section-link {
+    font-size: 14px; font-weight: 600; color: var(--red);
+    text-decoration: none;
+  }
+  .section-link:hover { text-decoration: underline; }
+
+  .categories-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    gap: 12px;
+  }
+  .cat-card {
+    background: var(--mist);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px 12px 16px;
+    text-align: center;
+    cursor: pointer;
+    transition: all .2s;
+    text-decoration: none;
+    display: block;
+  }
+  .cat-card:hover {
+    border-color: var(--red);
+    background: #FFF5F7;
+    transform: translateY(-3px);
+    box-shadow: var(--shadow);
+  }
+  .cat-card.active {
+    border-color: var(--red);
+    background: #FFF5F7;
+  }
+  .cat-icon { font-size: 32px; display: block; margin-bottom: 8px; }
+  .cat-name {
+    font-size: 13px; font-weight: 600;
+    color: var(--navy);
+  }
+
+  /* ── PROMO BANNER ── */
+  .promo-strip {
+    background: var(--mist);
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+  }
+  .promo-inner {
+    max-width: 1280px; margin: 0 auto;
+    padding: 20px 24px;
+    display: flex; gap: 0;
+    overflow-x: auto; scrollbar-width: none;
+  }
+  .promo-inner::-webkit-scrollbar { display: none; }
+  .promo-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 0 28px; border-right: 1px solid var(--border);
+    white-space: nowrap; flex-shrink: 0;
+  }
+  .promo-item:first-child { padding-left: 0; }
+  .promo-item:last-child { border-right: none; }
+  .promo-icon { font-size: 20px; }
+  .promo-text { font-size: 13px; font-weight: 600; color: var(--navy); }
+  .promo-sub { font-size: 12px; color: var(--slate); }
+
+  /* ── PRODUCTS ── */
+  .products-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 20px;
+  }
+  .product-card {
+    background: var(--white);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    cursor: pointer;
+    transition: all .25s;
+    text-decoration: none;
+    display: block;
+    position: relative;
+  }
+  .product-card:hover {
+    border-color: #CBD2DA;
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-hover);
+  }
+  .product-img-wrap {
+    aspect-ratio: 1 / 1;
+    background: var(--mist);
+    overflow: hidden;
+    position: relative;
+  }
+  .product-img-wrap img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    transition: transform .3s;
+  }
+  .product-card:hover .product-img-wrap img { transform: scale(1.04); }
+
+  .product-badge {
+    position: absolute; top: 12px; left: 12px;
+    background: var(--red); color: var(--white);
+    font-size: 11px; font-weight: 700;
+    padding: 4px 10px; border-radius: 50px;
+    letter-spacing: 0.3px;
+  }
+  .product-badge-gold {
+    background: var(--gold); color: var(--navy);
+  }
+  .product-wishlist {
+    position: absolute; top: 12px; right: 12px;
+    width: 34px; height: 34px; border-radius: 50%;
+    background: rgba(255,255,255,0.9);
+    backdrop-filter: blur(4px);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; transition: all .2s;
+    border: none; font-size: 16px;
+  }
+  .product-wishlist:hover { background: var(--white); transform: scale(1.1); }
+
+  .product-body { padding: 16px; }
+  .product-category {
+    font-size: 11px; font-weight: 600; color: var(--red);
+    text-transform: uppercase; letter-spacing: 0.8px;
+    margin-bottom: 6px;
+  }
+  .product-name {
+    font-size: 15px; font-weight: 600; color: var(--navy);
+    line-height: 1.35; margin-bottom: 12px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .product-footer {
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .product-price {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 20px; font-weight: 800;
+    color: var(--navy); letter-spacing: -0.5px;
+  }
+  .product-price-old {
+    font-size: 13px; color: var(--slate);
+    text-decoration: line-through; margin-left: 6px;
+    font-weight: 400;
+  }
+  .product-stars {
+    display: flex; align-items: center; gap: 4px;
+    font-size: 12px; color: var(--slate);
+  }
+  .stars { color: var(--gold); font-size: 13px; }
+
+  .add-btn {
+    width: 36px; height: 36px; border-radius: 50%;
+    background: var(--red); border: none;
+    color: var(--white); font-size: 20px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; transition: all .2s;
+    flex-shrink: 0;
+  }
+  .add-btn:hover { background: var(--red-dk); transform: scale(1.1); }
+
+  /* ── BONUS BANNER ── */
+  .bonus-banner {
+    background: linear-gradient(135deg, #0A1628 0%, #1a2744 100%);
+    border-radius: 20px;
+    padding: 48px 40px;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 32px;
+    align-items: center;
+    margin: 0 24px 56px;
+    max-width: 1232px;
+    margin-left: auto; margin-right: auto;
+    position: relative;
+    overflow: hidden;
+  }
+  .bonus-banner::after {
+    content: '🎯';
+    position: absolute;
+    right: 200px; top: 50%;
+    transform: translateY(-50%);
+    font-size: 100px;
+    opacity: 0.06;
+  }
+  .bonus-eyebrow {
+    font-size: 12px; font-weight: 700; color: var(--gold);
+    text-transform: uppercase; letter-spacing: 1.2px;
+    margin-bottom: 12px;
+  }
+  .bonus-title {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: clamp(24px, 3vw, 36px);
+    font-weight: 800; color: var(--white);
+    letter-spacing: -0.5px; line-height: 1.15;
+    margin-bottom: 12px;
+  }
+  .bonus-title span { color: var(--gold); }
+  .bonus-desc {
+    font-size: 15px; color: rgba(255,255,255,0.65);
+    line-height: 1.6; max-width: 440px;
+  }
+  .bonus-cta {
+    background: var(--gold); color: var(--navy);
+    padding: 14px 28px; border-radius: 50px;
+    font-size: 15px; font-weight: 700;
+    text-decoration: none; white-space: nowrap;
+    transition: all .2s;
+  }
+  .bonus-cta:hover { background: #e09300; transform: translateY(-2px); }
+
+  /* ── DIVIDER ── */
+  .section-divider {
+    height: 1px; background: var(--border);
+    max-width: 1280px; margin: 0 auto;
+  }
+
+  /* ── FOOTER ── */
+  footer {
+    background: var(--navy);
+    color: rgba(255,255,255,0.6);
+    padding: 48px 24px 32px;
+    margin-top: 72px;
+  }
+  .footer-inner {
+    max-width: 1280px; margin: 0 auto;
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr 1fr;
+    gap: 40px;
+  }
+  .footer-logo {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 20px; font-weight: 800;
+    color: var(--white); letter-spacing: -0.5px;
+    margin-bottom: 12px;
+  }
+  .footer-logo span { color: var(--red); }
+  .footer-desc { font-size: 14px; line-height: 1.7; max-width: 240px; }
+  .footer-heading {
+    font-size: 13px; font-weight: 700;
+    color: var(--white); text-transform: uppercase;
+    letter-spacing: 0.8px; margin-bottom: 16px;
+  }
+  .footer-link {
+    display: block; font-size: 14px;
+    color: rgba(255,255,255,0.55); text-decoration: none;
+    margin-bottom: 10px; transition: color .2s;
+  }
+  .footer-link:hover { color: var(--white); }
+  .footer-bottom {
+    max-width: 1280px; margin: 40px auto 0;
+    padding-top: 24px;
+    border-top: 1px solid rgba(255,255,255,0.1);
+    display: flex; justify-content: space-between;
+    align-items: center;
+    font-size: 13px;
+  }
+
+  /* ── FILTER BAR ── */
+  .filter-bar {
+    display: flex; align-items: center; gap: 10px;
+    overflow-x: auto; scrollbar-width: none;
+    padding-bottom: 4px;
+  }
+  .filter-bar::-webkit-scrollbar { display: none; }
+  .filter-chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 8px 18px; border-radius: 50px;
+    font-size: 14px; font-weight: 600;
+    border: 1.5px solid var(--border);
+    background: var(--white);
+    color: var(--slate);
+    cursor: pointer; white-space: nowrap;
+    transition: all .2s;
+  }
+  .filter-chip:hover { border-color: var(--red); color: var(--red); }
+  .filter-chip.active {
+    background: var(--red); border-color: var(--red);
+    color: var(--white);
+  }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 768px) {
+    .hero { padding: 48px 20px 56px; }
+    .hero-stats { gap: 28px; }
+    .bonus-banner {
+      grid-template-columns: 1fr;
+      padding: 32px 24px;
+    }
+    .bonus-banner::after { display: none; }
+    .footer-inner { grid-template-columns: 1fr 1fr; }
+    .products-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+    nav { gap: 12px; }
+    .nav-search { display: none; }
+  }
+  @media (max-width: 480px) {
+    .footer-inner { grid-template-columns: 1fr; }
+    .products-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  }
+
+  /* ── SKELETON LOADER ── */
+  .skeleton {
+    background: linear-gradient(90deg, var(--mist) 25%, #eef0f3 50%, var(--mist) 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.4s infinite;
+    border-radius: 8px;
+  }
+  @keyframes shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+
+  /* ── TOAST ── */
+  .toast {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px);
+    background: var(--navy); color: var(--white);
+    padding: 12px 24px; border-radius: 50px;
+    font-size: 14px; font-weight: 600;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+    transition: transform .3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    z-index: 999; white-space: nowrap;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a href="/" class="nav-logo">Bonus<span>Shop</span></a>
+  <div class="nav-search">
+    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+    <input type="search" placeholder="Søk blant 110+ produkter...">
+  </div>
+  <div class="nav-actions">
+    <a href="#" class="nav-icon-btn" title="Handlekurv">
+      <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+    </a>
+    <a href="#" class="nav-btn nav-btn-ghost">Logg inn</a>
+    <a href="#" class="nav-btn nav-btn-red">Kom i gang</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-eyebrow">
+    <span class="hero-eyebrow-dot"></span>
+    Tjen bonuspoeng på hvert kjøp
+  </div>
+  <h1>Handle smart.<br><em>Tjen mer.</em></h1>
+  <p>Finn de beste produktene fra norske og internasjonale butikker – og tjen Trumf-poeng på hvert kjøp.</p>
+  <a href="#produkter" class="hero-cta">
+    Utforsk produkter
+    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+  </a>
+  <div class="hero-stats">
+    <div>
+      <div class="hero-stat-num">110+</div>
+      <div class="hero-stat-label">Produkter</div>
+    </div>
+    <div>
+      <div class="hero-stat-num">8</div>
+      <div class="hero-stat-label">Kategorier</div>
+    </div>
+    <div>
+      <div class="hero-stat-num">25%</div>
+      <div class="hero-stat-label">Maks rabatt</div>
+    </div>
+    <div>
+      <div class="hero-stat-num">Gratis</div>
+      <div class="hero-stat-label">Å bruke</div>
+    </div>
+  </div>
+</section>
+
+<!-- PROMO STRIP -->
+<div class="promo-strip">
+  <div class="promo-inner">
+    <div class="promo-item">
+      <span class="promo-icon">🚚</span>
+      <div>
+        <div class="promo-text">Rask levering</div>
+        <div class="promo-sub">Via partnerbutikker</div>
+      </div>
+    </div>
+    <div class="promo-item">
+      <span class="promo-icon">🏆</span>
+      <div>
+        <div class="promo-text">Tjen Trumf-poeng</div>
+        <div class="promo-sub">På alle kjøp</div>
+      </div>
+    </div>
+    <div class="promo-item">
+      <span class="promo-icon">🔒</span>
+      <div>
+        <div class="promo-text">Trygt å handle</div>
+        <div class="promo-sub">Verifiserte butikker</div>
+      </div>
+    </div>
+    <div class="promo-item">
+      <span class="promo-icon">💸</span>
+      <div>
+        <div class="promo-text">Beste priser</div>
+        <div class="promo-sub">Sammenlign og spar</div>
+      </div>
+    </div>
+    <div class="promo-item">
+      <span class="promo-icon">📱</span>
+      <div>
+        <div class="promo-text">Installer som app</div>
+        <div class="promo-sub">Fungerer offline</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CATEGORIES -->
+<div class="section">
+  <div class="section-header">
+    <h2 class="section-title">Kategorier</h2>
+  </div>
+  <div class="categories-grid">
+    <a href="#" class="cat-card active" onclick="filterCat(event,'alle')">
+      <span class="cat-icon">🛍️</span>
+      <span class="cat-name">Alle</span>
+    </a>
+    <a href="#" class="cat-card" onclick="filterCat(event,'elektronikk')">
+      <span class="cat-icon">📱</span>
+      <span class="cat-name">Elektronikk</span>
+    </a>
+    <a href="#" class="cat-card" onclick="filterCat(event,'sport')">
+      <span class="cat-icon">⚽</span>
+      <span class="cat-name">Sport</span>
+    </a>
+    <a href="#" class="cat-card" onclick="filterCat(event,'skjønnhet')">
+      <span class="cat-icon">💄</span>
+      <span class="cat-name">Skjønnhet</span>
+    </a>
+    <a href="#" class="cat-card" onclick="filterCat(event,'hjemmet')">
+      <span class="cat-icon">🏠</span>
+      <span class="cat-name">Hjemmet</span>
+    </a>
+    <a href="#" class="cat-card" onclick="filterCat(event,'klær')">
+      <span class="cat-icon">👗</span>
+      <span class="cat-name">Klær</span>
+    </a>
+    <a href="#" class="cat-card" onclick="filterCat(event,'golf')">
+      <span class="cat-icon">⛳</span>
+      <span class="cat-name">Golf</span>
+    </a>
+    <a href="#" class="cat-card" onclick="filterCat(event,'bil')">
+      <span class="cat-icon">🚗</span>
+      <span class="cat-name">Bil</span>
+    </a>
+    <a href="#" class="cat-card" onclick="filterCat(event,'thailand')">
+      <span class="cat-icon">🌴</span>
+      <span class="cat-name">Thailand</span>
+    </a>
+  </div>
+</div>
+
+<div class="section-divider"></div>
+
+<!-- PRODUCTS -->
+<div class="section" id="produkter">
+  <div class="section-header">
+    <h2 class="section-title">Populære produkter</h2>
+    <a href="#" class="section-link">Se alle →</a>
+  </div>
+
+  <!-- Filter chips -->
+  <div class="filter-bar" style="margin-bottom:28px;">
+    <button class="filter-chip active">Alle produkter</button>
+    <button class="filter-chip">Beste rabatt</button>
+    <button class="filter-chip">Nyeste</button>
+    <button class="filter-chip">Under 500 kr</button>
+    <button class="filter-chip">Under 1000 kr</button>
+    <button class="filter-chip">Premium</button>
+  </div>
+
+  <div class="products-grid" id="productsGrid">
+    <!-- Produktkort lastes fra Firebase / statisk demo under -->
+    <!-- DEMO KORT -->
+    <a href="#" class="product-card">
+      <div class="product-img-wrap">
+        <img src="https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400&q=80" alt="Hodetelefoner" loading="lazy">
+        <span class="product-badge">-25%</span>
+        <button class="product-wishlist" onclick="wishlist(event)">🤍</button>
+      </div>
+      <div class="product-body">
+        <div class="product-category">Elektronikk</div>
+        <div class="product-name">Sony WH-1000XM5 trådløse hodetelefoner</div>
+        <div class="product-footer">
+          <div>
+            <span class="product-price">2 999 kr</span>
+            <span class="product-price-old">3 999 kr</span>
+          </div>
+          <button class="add-btn" onclick="addCart(event)">+</button>
+        </div>
+      </div>
+    </a>
+
+    <a href="#" class="product-card">
+      <div class="product-img-wrap">
+        <img src="https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400&q=80" alt="Sko" loading="lazy">
+        <span class="product-badge product-badge-gold">Bestselger</span>
+        <button class="product-wishlist" onclick="wishlist(event)">🤍</button>
+      </div>
+      <div class="product-body">
+        <div class="product-category">Sport</div>
+        <div class="product-name">Nike Air Max 90 løpesko</div>
+        <div class="product-footer">
+          <div>
+            <span class="product-price">1 299 kr</span>
+          </div>
+          <button class="add-btn" onclick="addCart(event)">+</button>
+        </div>
+      </div>
+    </a>
+
+    <a href="#" class="product-card">
+      <div class="product-img-wrap">
+        <img src="https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=400&q=80" alt="Skjønnhet" loading="lazy">
+        <button class="product-wishlist" onclick="wishlist(event)">🤍</button>
+      </div>
+      <div class="product-body">
+        <div class="product-category">Skjønnhet</div>
+        <div class="product-name">Olaplex No.3 Hair Perfector</div>
+        <div class="product-footer">
+          <div>
+            <span class="product-price">349 kr</span>
+          </div>
+          <button class="add-btn" onclick="addCart(event)">+</button>
+        </div>
+      </div>
+    </a>
+
+    <a href="#" class="product-card">
+      <div class="product-img-wrap">
+        <img src="https://images.unsplash.com/photo-1488590528505-98d2b5aba04b?w=400&q=80" alt="Elektronikk" loading="lazy">
+        <span class="product-badge">-20%</span>
+        <button class="product-wishlist" onclick="wishlist(event)">🤍</button>
+      </div>
+      <div class="product-body">
+        <div class="product-category">Elektronikk</div>
+        <div class="product-name">DJI Neo 2 Fly More Combo drone</div>
+        <div class="product-footer">
+          <div>
+            <span class="product-price">5 499 kr</span>
+            <span class="product-price-old">6 999 kr</span>
+          </div>
+          <button class="add-btn" onclick="addCart(event)">+</button>
+        </div>
+      </div>
+    </a>
+
+    <a href="#" class="product-card">
+      <div class="product-img-wrap">
+        <img src="https://images.unsplash.com/photo-1575311373937-040b8e1fd5b6?w=400&q=80" alt="Sport" loading="lazy">
+        <button class="product-wishlist" onclick="wishlist(event)">🤍</button>
+      </div>
+      <div class="product-body">
+        <div class="product-category">Sport</div>
+        <div class="product-name">Patagonia Nano Puff jakke</div>
+        <div class="product-footer">
+          <div>
+            <span class="product-price">2 799 kr</span>
+          </div>
+          <button class="add-btn" onclick="addCart(event)">+</button>
+        </div>
+      </div>
+    </a>
+
+    <a href="#" class="product-card">
+      <div class="product-img-wrap">
+        <img src="https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=400&q=80" alt="Kjøkken" loading="lazy">
+        <span class="product-badge product-badge-gold">Nyhet</span>
+        <button class="product-wishlist" onclick="wishlist(event)">🤍</button>
+      </div>
+      <div class="product-body">
+        <div class="product-category">Hjemmet</div>
+        <div class="product-name">Vitamix E310 Blender profesjonell</div>
+        <div class="product-footer">
+          <div>
+            <span class="product-price">4 999 kr</span>
+          </div>
+          <button class="add-btn" onclick="addCart(event)">+</button>
+        </div>
+      </div>
+    </a>
+
+    <a href="#" class="product-card">
+      <div class="product-img-wrap">
+        <img src="https://images.unsplash.com/photo-1535131749006-b7f58c99034b?w=400&q=80" alt="Golf" loading="lazy">
+        <button class="product-wishlist" onclick="wishlist(event)">🤍</button>
+      </div>
+      <div class="product-body">
+        <div class="product-category">Golf</div>
+        <div class="product-name">Ping G430 jernset 7-pak komplett</div>
+        <div class="product-footer">
+          <div>
+            <span class="product-price">12 999 kr</span>
+          </div>
+          <button class="add-btn" onclick="addCart(event)">+</button>
+        </div>
+      </div>
+    </a>
+
+    <a href="#" class="product-card">
+      <div class="product-img-wrap">
+        <img src="https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&q=80" alt="Bil" loading="lazy">
+        <span class="product-badge">-25%</span>
+        <button class="product-wishlist" onclick="wishlist(event)">🤍</button>
+      </div>
+      <div class="product-body">
+        <div class="product-category">Bil</div>
+        <div class="product-name">Tesla Model 3 og Y Bagasjeromsmatte</div>
+        <div class="product-footer">
+          <div>
+            <span class="product-price">799 kr</span>
+            <span class="product-price-old">999 kr</span>
+          </div>
+          <button class="add-btn" onclick="addCart(event)">+</button>
+        </div>
+      </div>
+    </a>
+  </div>
+</div>
+
+<!-- BONUS BANNER -->
+<div style="padding: 0 24px; max-width:1280px; margin:0 auto 56px;">
+  <div class="bonus-banner">
+    <div>
+      <div class="bonus-eyebrow">🏆 BonusVarsel</div>
+      <h2 class="bonus-title">Tjen <span>Trumf-poeng</span><br>på hvert kjøp</h2>
+      <p class="bonus-desc">Last ned BonusVarsel og få varsler om de beste tilbudene. Hvert kjøp via BonusShop gir deg poeng i Trumf-programmet – automatisk.</p>
+    </div>
+    <a href="#" class="bonus-cta">Lær mer →</a>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-inner">
+    <div>
+      <div class="footer-logo">Bonus<span>Shop</span></div>
+      <p class="footer-desc">Norges smarteste handleplattform. Finn de beste produktene og tjen bonuspoeng på hvert kjøp.</p>
+    </div>
+    <div>
+      <div class="footer-heading">Handl</div>
+      <a href="#" class="footer-link">Alle produkter</a>
+      <a href="#" class="footer-link">Elektronikk</a>
+      <a href="#" class="footer-link">Sport</a>
+      <a href="#" class="footer-link">Klær</a>
+    </div>
+    <div>
+      <div class="footer-heading">Om oss</div>
+      <a href="#" class="footer-link">Om BonusShop</a>
+      <a href="#" class="footer-link">BonusVarsel</a>
+      <a href="#" class="footer-link">Adtraction</a>
+      <a href="#" class="footer-link">Kontakt</a>
+    </div>
+    <div>
+      <div class="footer-heading">Hjelp</div>
+      <a href="#" class="footer-link">Personvern</a>
+      <a href="#" class="footer-link">Vilkår</a>
+      <a href="#" class="footer-link">Cookies</a>
+      <a href="#" class="footer-link">Support</a>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <span>© 2026 BonusShop · no.bonusvarsel.bonusshop</span>
+    <span>🇳🇴 Norsk</span>
+  </div>
+</footer>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+function addCart(e) {
+  e.preventDefault(); e.stopPropagation();
+  const btn = e.currentTarget;
+  btn.textContent = '✓';
+  btn.style.background = '#22c55e';
+  setTimeout(() => { btn.textContent = '+'; btn.style.background = ''; }, 1500);
+  showToast('✅ Lagt i handlekurven');
+}
+
+function wishlist(e) {
+  e.preventDefault(); e.stopPropagation();
+  const btn = e.currentTarget;
+  const isActive = btn.textContent === '❤️';
+  btn.textContent = isActive ? '🤍' : '❤️';
+  showToast(isActive ? 'Fjernet fra ønskeliste' : '❤️ Lagt til i ønskeliste');
+}
+
+function filterCat(e, cat) {
+  e.preventDefault();
+  document.querySelectorAll('.cat-card').forEach(c => c.classList.remove('active'));
+  e.currentTarget.classList.add('active');
+  showToast('Viser: ' + e.currentTarget.querySelector('.cat-name').textContent);
+}
+
+// Filter chips
+document.querySelectorAll('.filter-chip').forEach(chip => {
+  chip.addEventListener('click', function() {
+    document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+    this.classList.add('active');
+  });
+});
+
+// PWA install prompt
+let deferredPrompt;
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  showToast('📱 Installer BonusShop som app!');
+});
+</script>
+</body>
+</html>

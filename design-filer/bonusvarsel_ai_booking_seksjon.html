@@ -1,0 +1,409 @@
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+<style>
+.bv-ai {
+  background: linear-gradient(150deg, #1e0e06, #160e18);
+  padding: 90px 32px;
+  position: relative;
+  overflow: hidden;
+  font-family: 'DM Sans', sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+.bv-ai::before {
+  content: '';
+  position: absolute; inset: 0; pointer-events: none;
+  background:
+    radial-gradient(ellipse 700px 500px at 20% 20%, rgba(201,149,106,0.08), transparent),
+    radial-gradient(ellipse 500px 700px at 80% 80%, rgba(140,108,154,0.06), transparent);
+}
+.bv-ai-inner {
+  max-width: 1100px;
+  margin: 0 auto;
+  position: relative; z-index: 1;
+}
+
+/* HEADER */
+.bv-ai-tag {
+  font-size: .68rem; font-weight: 600;
+  letter-spacing: .14em; text-transform: uppercase;
+  color: #c9956a; margin-bottom: 12px;
+}
+.bv-ai-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: clamp(2rem, 4.5vw, 3.4rem);
+  font-weight: 300; line-height: 1.1;
+  letter-spacing: -.02em;
+  color: #faf5ee; margin-bottom: 14px;
+}
+.bv-ai-title em { font-style: italic; color: #e8c4a0; }
+.bv-ai-sub {
+  color: rgba(250,245,238,.5);
+  font-size: .95rem; font-weight: 300;
+  line-height: 1.75; max-width: 500px;
+  margin-bottom: 48px;
+}
+
+/* MAIN GRID */
+.bv-ai-grid {
+  display: grid;
+  grid-template-columns: 190px 1fr 1.5fr;
+  gap: 36px;
+  align-items: center;
+}
+
+/* FLOATING CARDS */
+.bv-float-col { display: flex; flex-direction: column; gap: 12px; }
+.bv-fcard {
+  background: rgba(42,26,14,0.85);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(201,149,106,0.2);
+  border-radius: 14px; padding: 14px;
+}
+.bv-fc-icon { font-size: 20px; margin-bottom: 6px; }
+.bv-fc-title { font-size: .75rem; font-weight: 600; color: #faf5ee; margin-bottom: 3px; }
+.bv-fc-sub { font-size: .68rem; font-weight: 300; color: rgba(250,245,238,.38); line-height: 1.5; }
+
+/* PHONE MOCKUP */
+.bv-phone-wrap { display: flex; justify-content: center; }
+.bv-phone {
+  width: 230px;
+  filter: drop-shadow(0 28px 56px rgba(0,0,0,0.65));
+}
+.bv-ph-shell {
+  background: linear-gradient(155deg, #2d1e10, #1a1008);
+  border-radius: 34px;
+  border: 1.5px solid rgba(201,149,106,0.28);
+  overflow: hidden;
+}
+.bv-ph-notch {
+  height: 22px; background: #0e0805;
+  display: flex; align-items: center; justify-content: center;
+}
+.bv-ph-pill { width: 60px; height: 5px; background: #1a1008; border-radius: 8px; }
+.bv-ph-screen { padding: 12px; background: linear-gradient(165deg, #1e1408, #130e06); }
+.bv-ph-hd {
+  display: flex; align-items: center; gap: 7px;
+  padding: 7px 9px;
+  background: rgba(201,149,106,0.1);
+  border-radius: 9px; margin-bottom: 10px;
+}
+.bv-ph-av {
+  width: 24px; height: 24px; border-radius: 50%;
+  background: linear-gradient(135deg, #c9956a, #e8c4a0);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 700; color: #1a1008;
+}
+.bv-ph-n { color: #faf5ee; font-size: 9.5px; font-weight: 600; }
+.bv-ph-s { color: #7dba7a; font-size: 8px; display: flex; align-items: center; gap: 3px; }
+.bv-ph-dot { width: 4px; height: 4px; border-radius: 50%; background: #7dba7a; display: inline-block; }
+.bv-pm { margin-bottom: 6px; }
+.bv-pm.usr { text-align: right; }
+.bv-pm .b {
+  display: inline-block; padding: 6px 9px;
+  border-radius: 10px; font-size: 9px; line-height: 1.5; max-width: 90%;
+}
+.bv-pm.ai .b {
+  background: rgba(255,255,255,.07);
+  border: 1px solid rgba(201,149,106,0.14);
+  color: rgba(250,245,238,.9);
+  border-radius: 10px 10px 10px 3px;
+}
+.bv-pm.usr .b {
+  background: rgba(140,108,154,0.22);
+  border: 1px solid rgba(154,122,176,0.2);
+  color: rgba(200,170,230,.9);
+  border-radius: 10px 10px 3px 10px;
+}
+.bv-pm-ts { font-size: 7px; color: rgba(250,245,238,.2); margin-top: 2px; }
+.bv-pm.usr .bv-pm-ts { text-align: right; }
+.bv-date-chips { display: grid; grid-template-columns: repeat(3,1fr); gap: 4px; margin: 8px 0; }
+.bv-dc {
+  border-radius: 8px; padding: 6px 4px; text-align: center;
+  border: 1px solid rgba(201,149,106,0.18);
+  background: rgba(255,255,255,.03);
+  font-size: 8px; color: rgba(250,245,238,.45); font-weight: 300;
+}
+.bv-dc.active {
+  background: rgba(201,149,106,0.18);
+  border-color: #c9956a; color: #e8c4a0; font-weight: 500;
+}
+.bv-dc .bv-dc-day { font-size: 7px; margin-bottom: 2px; opacity: .7; }
+.bv-dc .bv-dc-date { font-size: 10px; font-weight: 600; }
+.bv-dc .bv-dc-time { font-size: 7.5px; margin-top: 2px; }
+.bv-ph-confirm {
+  background: rgba(125,186,122,0.1);
+  border: 1px solid rgba(125,186,122,0.2);
+  border-radius: 9px; padding: 9px; margin: 5px 0;
+}
+.bv-ph-c-title { color: #7dba7a; font-size: 7.5px; letter-spacing: .7px; text-transform: uppercase; margin-bottom: 5px; }
+.bv-ph-c-row { color: rgba(250,245,238,.6); font-size: 8.5px; margin-bottom: 2px; }
+.bv-ph-input {
+  display: flex; align-items: center; gap: 5px;
+  margin-top: 9px; padding: 6px 9px;
+  background: rgba(255,255,255,.04);
+  border-radius: 16px; border: 1px solid rgba(201,149,106,0.13);
+}
+.bv-ph-input span { flex: 1; font-size: 8.5px; color: rgba(250,245,238,.18); }
+.bv-ph-send {
+  width: 20px; height: 20px; border-radius: 50%;
+  background: linear-gradient(135deg, #c9956a, #9a6840);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 8px; color: #0e0805; flex-shrink: 0;
+}
+
+/* RIGHT COLUMN */
+.bv-ai-feats {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 10px; margin-bottom: 20px;
+}
+.bv-ai-feat {
+  background: rgba(255,255,255,.04);
+  border: 1px solid rgba(201,149,106,0.16);
+  border-radius: 14px; padding: 18px 16px;
+}
+.bv-ai-feat-icon { font-size: 22px; margin-bottom: 8px; }
+.bv-ai-feat h4 { font-size: .85rem; font-weight: 500; color: #e8c4a0; margin-bottom: 4px; }
+.bv-ai-feat p { font-size: .76rem; color: rgba(250,245,238,.35); line-height: 1.6; font-weight: 300; }
+
+/* PRICING */
+.bv-ai-pricing { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 24px; }
+.bv-ai-plan {
+  background: rgba(255,255,255,.04);
+  border: 1px solid rgba(201,149,106,0.16);
+  border-radius: 14px; padding: 22px;
+  position: relative; overflow: hidden;
+}
+.bv-ai-plan::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(201,149,106,0.35), transparent);
+}
+.bv-ai-plan.feat {
+  background: linear-gradient(135deg, rgba(201,149,106,0.1), rgba(22,14,6,0.8));
+  border-color: rgba(201,149,106,0.35);
+}
+.bv-ai-plan.feat::before {
+  background: linear-gradient(90deg, transparent, rgba(201,149,106,0.6), transparent);
+}
+.bv-ai-plan-badge {
+  font-size: .6rem; font-weight: 700;
+  color: #c9956a; letter-spacing: .08em;
+  text-transform: uppercase; margin-bottom: 5px;
+}
+.bv-ai-plan-name {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.2rem; font-weight: 400; color: #e8c4a0; margin-bottom: 3px;
+}
+.bv-ai-plan-price {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 2rem; font-weight: 300;
+  color: #faf5ee; line-height: 1; margin-bottom: 2px;
+}
+.bv-ai-plan-per { font-size: .7rem; color: rgba(250,245,238,.3); margin-bottom: 14px; }
+.bv-ai-plan-feats { list-style: none; }
+.bv-ai-plan-feats li {
+  font-size: .78rem; color: rgba(250,245,238,.5);
+  padding: 4px 0;
+  border-bottom: 1px solid rgba(255,255,255,.05);
+  display: flex; align-items: center; gap: 7px;
+}
+.bv-ai-plan-feats li::before { content: '✓'; color: #7dba7a; font-size: .7rem; flex-shrink: 0; }
+.bv-ai-plan-feats li:last-child { border-bottom: none; }
+
+/* CTA BUTTON */
+.bv-ai-cta {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: linear-gradient(135deg, #c9956a, #9a6840);
+  color: #0e0805; padding: 14px 30px; border-radius: 50px;
+  font-size: .9rem; font-weight: 600;
+  text-decoration: none;
+  box-shadow: 0 8px 24px rgba(201,149,106,0.28);
+  transition: opacity .2s;
+  font-family: 'DM Sans', sans-serif;
+}
+.bv-ai-cta:hover { opacity: .85; }
+.bv-ai-note {
+  font-size: .7rem;
+  color: rgba(250,245,238,.22);
+  margin-top: 10px;
+}
+
+/* INTEGRATIONS */
+.bv-ai-integrations {
+  display: flex; align-items: center; gap: 14px;
+  margin-top: 36px; padding-top: 28px;
+  border-top: 1px solid rgba(201,149,106,0.12);
+  flex-wrap: wrap;
+}
+.bv-ai-int-label {
+  font-size: .68rem; font-weight: 500;
+  color: rgba(250,245,238,.25);
+  letter-spacing: .06em; text-transform: uppercase;
+  white-space: nowrap;
+}
+.bv-ai-int-pill {
+  background: rgba(255,255,255,.05);
+  border: 1px solid rgba(201,149,106,0.16);
+  color: rgba(250,245,238,.45);
+  font-size: .72rem; padding: 4px 12px;
+  border-radius: 999px;
+}
+.bv-ai-int-pill.verified {
+  border-color: rgba(125,186,122,0.25);
+  color: #7dba7a;
+  background: rgba(125,186,122,0.07);
+}
+
+/* RESPONSIVE */
+@media (max-width: 960px) {
+  .bv-ai-grid { grid-template-columns: 1fr; gap: 40px; }
+  .bv-float-col { flex-direction: row; justify-content: center; flex-wrap: wrap; }
+  .bv-fcard { min-width: 130px; }
+  .bv-phone-wrap { order: -1; }
+}
+@media (max-width: 600px) {
+  .bv-ai { padding: 60px 20px; }
+  .bv-ai-title { font-size: 2rem; }
+  .bv-ai-feats { grid-template-columns: 1fr; }
+  .bv-ai-pricing { grid-template-columns: 1fr; }
+  .bv-phone { width: 200px; }
+}
+</style>
+
+<!-- AI-BOOKING SEKSJON -->
+<div class="bv-ai">
+  <div class="bv-ai-inner">
+
+    <!-- HEADER -->
+    <div class="bv-ai-tag">For salonger og spa</div>
+    <h2 class="bv-ai-title">Bonusvarsel<br><em>AI-booking</em></h2>
+    <p class="bv-ai-sub">Norsk AI som svarer kunder på Messenger og Instagram 24/7 — og sender bookingen rett inn i Fixit eller Timma. Du slipper å løfte en finger.</p>
+
+    <!-- MAIN GRID -->
+    <div class="bv-ai-grid">
+
+      <!-- FLOATING CARDS -->
+      <div class="bv-float-col">
+        <div class="bv-fcard">
+          <div class="bv-fc-icon">📅</div>
+          <div class="bv-fc-title">Time booket!</div>
+          <div class="bv-fc-sub">16. mai kl. 13:30<br>Glow Hair &amp; Beauty</div>
+        </div>
+        <div class="bv-fcard">
+          <div class="bv-fc-icon">💎</div>
+          <div class="bv-fc-title">Tjen bonus</div>
+          <div class="bv-fc-sub">Opptjen poeng<br>på dine kjøp</div>
+        </div>
+        <div class="bv-fcard">
+          <div class="bv-fc-icon">🎁</div>
+          <div class="bv-fc-title">Smarte forslag</div>
+          <div class="bv-fc-sub">AI finner de beste<br>tilbudene for deg</div>
+        </div>
+      </div>
+
+      <!-- PHONE MOCKUP -->
+      <div class="bv-phone-wrap">
+        <div class="bv-phone">
+          <div class="bv-ph-shell">
+            <div class="bv-ph-notch"><div class="bv-ph-pill"></div></div>
+            <div class="bv-ph-screen">
+              <div class="bv-ph-hd">
+                <div class="bv-ph-av">✦</div>
+                <div>
+                  <div class="bv-ph-n">Bonusvarsel AI</div>
+                  <div class="bv-ph-s"><span class="bv-ph-dot"></span> Din booking-assistent</div>
+                </div>
+              </div>
+              <div class="bv-pm usr"><div class="b">Hei! Jeg vil bestille klipp og farge.</div><div class="bv-pm-ts">09:41 ✓</div></div>
+              <div class="bv-pm ai"><div class="b">Hei! Hyggelig 💜 Her er ledige tider:</div><div class="bv-pm-ts">09:41</div></div>
+              <div class="bv-date-chips">
+                <div class="bv-dc"><div class="bv-dc-day">Onsdag</div><div class="bv-dc-date">15. mai</div><div class="bv-dc-time">10:00</div></div>
+                <div class="bv-dc active"><div class="bv-dc-day">Torsdag</div><div class="bv-dc-date">16. mai</div><div class="bv-dc-time">13:30 ⭐</div></div>
+                <div class="bv-dc"><div class="bv-dc-day">Fredag</div><div class="bv-dc-date">17. mai</div><div class="bv-dc-time">11:00</div></div>
+              </div>
+              <div class="bv-pm usr"><div class="b">Torsdag 16. mai kl. 13:30!</div><div class="bv-pm-ts">09:42 ✓</div></div>
+              <div class="bv-pm ai">
+                <div class="b">Supert! ✅ Booket torsdag 16. mai kl. 13:30.</div>
+                <div class="bv-ph-confirm">
+                  <div class="bv-ph-c-title">Booking bekreftet</div>
+                  <div class="bv-ph-c-row">📅 Tors. 16. mai · kl. 13:30</div>
+                  <div class="bv-ph-c-row">✂️ Klipp &amp; Farge</div>
+                  <div class="bv-ph-c-row">📱 SMS-bekreftelse sendt</div>
+                </div>
+              </div>
+              <div class="bv-ph-input"><span>Skriv en melding...</span><div class="bv-ph-send">➤</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- FEATURES + PRICING -->
+      <div>
+        <div class="bv-ai-feats">
+          <div class="bv-ai-feat">
+            <div class="bv-ai-feat-icon">💬</div>
+            <h4>Svarer 24/7</h4>
+            <p>Messenger og Instagram hele døgnet — på norsk.</p>
+          </div>
+          <div class="bv-ai-feat">
+            <div class="bv-ai-feat-icon">📅</div>
+            <h4>Booker automatisk</h4>
+            <p>Rett inn i Fixit, Timma eller ditt system.</p>
+          </div>
+          <div class="bv-ai-feat">
+            <div class="bv-ai-feat-icon">📊</div>
+            <h4>Dashboard</h4>
+            <p>Full oversikt over bookinger og omsetning.</p>
+          </div>
+          <div class="bv-ai-feat">
+            <div class="bv-ai-feat-icon">🔔</div>
+            <h4>No-show reduksjon</h4>
+            <p>Automatiske påminnelser reduserer no-show.</p>
+          </div>
+        </div>
+
+        <div class="bv-ai-pricing">
+          <div class="bv-ai-plan">
+            <div class="bv-ai-plan-name">Starter</div>
+            <div class="bv-ai-plan-price">3 990</div>
+            <div class="bv-ai-plan-per">kr/mnd · 1 lokasjon</div>
+            <ul class="bv-ai-plan-feats">
+              <li>AI på Messenger og Instagram</li>
+              <li>200 samtaler/mnd</li>
+              <li>Fixit, Timma eller manuelt</li>
+              <li>SMS-bekreftelse til kunden</li>
+              <li>14 dager gratis</li>
+            </ul>
+          </div>
+          <div class="bv-ai-plan feat">
+            <div class="bv-ai-plan-badge">Mest populær</div>
+            <div class="bv-ai-plan-name">Pro</div>
+            <div class="bv-ai-plan-price">5 990</div>
+            <div class="bv-ai-plan-per">kr/mnd · ubegrenset</div>
+            <ul class="bv-ai-plan-feats">
+              <li>Alt i Starter</li>
+              <li>Ubegrenset samtaler</li>
+              <li>Multi-stylist støtte</li>
+              <li>No-show oppfølging</li>
+              <li>Statistikk-dashboard</li>
+            </ul>
+          </div>
+        </div>
+
+        <a href="mailto:royrotvold@gmail.com?subject=Gratis test AI Booking" class="bv-ai-cta">
+          ✦ Start gratis i 14 dager
+        </a>
+        <div class="bv-ai-note">Ingen bindingstid · Ingen oppsett-kostnad · Jeg setter opp alt</div>
+
+        <div class="bv-ai-integrations">
+          <span class="bv-ai-int-label">Fungerer med</span>
+          <span class="bv-ai-int-pill verified">✓ Fixit</span>
+          <span class="bv-ai-int-pill verified">✓ Timma</span>
+          <span class="bv-ai-int-pill">Messenger</span>
+          <span class="bv-ai-int-pill">Instagram DM</span>
+          <span class="bv-ai-int-pill">Manuelt system</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>

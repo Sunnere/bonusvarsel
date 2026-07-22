@@ -2,7 +2,7 @@ name: Bonusvarsel – collect & notify (matrix)
 
 on:
   schedule:
-    - cron: "0 * * * *"
+    - cron: "0 6 * * 4"  # torsdager kl 06:00 UTC (~08:00 norsk sommertid / 07:00 vintertid)
   workflow_dispatch:
     inputs:
       force:

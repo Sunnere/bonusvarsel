@@ -221,7 +221,11 @@ exports.callClaude = functions.https.onCall(
       throw new functions.https.HttpsError("unauthenticated", "Logg inn først.");
     }
 
-    const { messages, model = "claude-sonnet-4-5", maxTokens = 1000 } = request.data;
+    const { messages, maxTokens = 1000 } = request.data;
+    // NB: bruker ALLTID en fast, aktiv modell server-side her - ignorerer evt.
+    // modellstreng fra klienten. "claude-sonnet-4-5" ble pensjonert av Anthropic
+    // 18. mai 2026, og gamle app-versjoner kan fortsatt sende den gamle strengen.
+    const model = "claude-sonnet-5";
     const fetch = require("node-fetch");
 
     const response = await fetch("https://api.anthropic.com/v1/messages", {

@@ -221,33 +221,53 @@ exports.callClaude = functions.https.onCall(
       throw new functions.https.HttpsError("unauthenticated", "Logg inn først.");
     }
 
-    const { messages, maxTokens = 1000 } = request.data;
-    // NB: bruker ALLTID en fast, aktiv modell server-side her - ignorerer evt.
-    // modellstreng fra klienten. "claude-sonnet-4-5" ble pensjonert av Anthropic
-    // 18. mai 2026, og gamle app-versjoner kan fortsatt sende den gamle strengen.
-    const model = "claude-sonnet-5";
-    const fetch = require("node-fetch");
+    try {
+      const { messages, maxTokens = 1000 } = request.data;
+      const model = "claude-sonnet-5";
 
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": process.env.ANTHROPIC_API_KEY,
-        "anthropic-version": "2023-06-01",
-      },
-      body: JSON.stringify({
+      console.log("[callClaude] request", {
+        hasApiKey: Boolean(process.env.ANTHROPIC_API_KEY),
         model,
-        max_tokens: maxTokens,
-        messages,
-      }),
-    });
+        maxTokens,
+        messageCount: Array.isArray(messages) ? messages.length : null,
+      });
 
-    if (!response.ok) {
-      const err = await response.text();
-      throw new functions.https.HttpsError("internal", `Claude feil: ${err}`);
+      const fetch = require("node-fetch");
+
+      const response = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": process.env.ANTHROPIC_API_KEY,
+          "anthropic-version": "2023-06-01",
+        },
+        body: JSON.stringify({
+          model,
+          max_tokens: maxTokens,
+          messages,
+        }),
+      });
+
+      if (!response.ok) {
+        const err = await response.text();
+        console.error("[callClaude] Anthropic API-feil", {
+          status: response.status,
+          statusText: response.statusText,
+          body: err,
+        });
+        throw new functions.https.HttpsError("internal", `Claude feil (${response.status}): ${err}`);
+      }
+
+      const result = await response.json();
+      console.log("[callClaude] suksess");
+      return { content: result.content[0].text };
+    } catch (e) {
+      if (e instanceof functions.https.HttpsError) throw e;
+      console.error("[callClaude] Uventet feil", {
+        message: e && e.message,
+        stack: e && e.stack,
+      });
+      throw new functions.https.HttpsError("internal", `Uventet feil: ${e && e.message}`);
     }
-
-    const result = await response.json();
-    return { content: result.content[0].text };
   }
 );

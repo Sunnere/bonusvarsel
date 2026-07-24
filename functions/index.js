@@ -259,8 +259,16 @@ exports.callClaude = functions.https.onCall(
       }
 
       const result = await response.json();
+      // claude-sonnet-5 kan returnere en "thinking"-blokk FØR selve tekstsvaret.
+      // Hent riktig blokk basert på type, ikke bare første element i listen -
+      // ellers blir "content" null/undefined og appen krasjer med en type-cast-feil.
+      const textBlock = (result.content || []).find((b) => b.type === "text");
+      if (!textBlock) {
+        console.error("[callClaude] Fant ingen tekstblokk i svaret", { content: result.content });
+        throw new functions.https.HttpsError("internal", "Claude returnerte ingen tekst.");
+      }
       console.log("[callClaude] suksess");
-      return { content: result.content[0].text };
+      return { content: textBlock.text };
     } catch (e) {
       if (e instanceof functions.https.HttpsError) throw e;
       console.error("[callClaude] Uventet feil", {

@@ -13,6 +13,7 @@ import cors from "cors";
 import fetch from "node-fetch";
 import * as cheerio from "cheerio";
 import * as sentKeysStore from './lib/sentKeysStore.js';
+import * as telegramLinkStore from './lib/telegramLinkStore.js';
 import { initMonitor, startMonitor, runMonitorCheck, monitorStatus } from './lib/monitor.js';
 
 
@@ -41,9 +42,9 @@ async function sendEmail(to, subject, html) {
 const TG_BOT_TOKEN = process.env.TG_BOT_TOKEN || '';
 const TG_CHAT_ID = process.env.TG_CHAT_ID || '';
 
-async function sendTelegram(message) {
-  if (!TG_BOT_TOKEN || !TG_CHAT_ID) {
-    console.warn('Telegram ikke konfigurert');
+async function sendTelegram(message, chatId = TG_CHAT_ID) {
+  if (!TG_BOT_TOKEN || !chatId) {
+    console.warn('Telegram ikke konfigurert (mangler bot-token eller chat_id)');
     return false;
   }
   try {
@@ -52,12 +53,13 @@ async function sendTelegram(message) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        chat_id: TG_CHAT_ID,
+        chat_id: chatId,
         text: message,
         parse_mode: 'HTML',
       }),
     });
     const data = await r.json();
+    if (!data.ok) console.error('Telegram API avviste meldingen:', data);
     return data.ok;
   } catch (e) {
     console.error('Telegram feil:', e);
@@ -1152,11 +1154,32 @@ app.get("/v1/push/dispatch", (req, res) => {
 const deviceFavorites = {};
 
 app.post("/v1/devices/favorites", express.json(), (req, res) => {
-  const { trumf = [], sas = [], email = null } = req.body || {};
+  const { trumf = [], sas = [], email = null, telegram = null } = req.body || {};
   const deviceId = req.headers['x-device-id'] || 'default';
-  deviceFavorites[deviceId] = { trumf, sas, email, updatedAt: new Date().toISOString() };
-  console.log(`Favoritter oppdatert for ${deviceId}: Trumf=${trumf.length}, SAS=${sas.length}, Email=${email || 'ingen'}`);
+  deviceFavorites[deviceId] = { trumf, sas, email, telegram, updatedAt: new Date().toISOString() };
+  console.log(`Favoritter oppdatert for ${deviceId}: Trumf=${trumf.length}, SAS=${sas.length}, Email=${email || 'ingen'}, Telegram=${telegram || 'ingen'}`);
   res.json({ ok: true, trumf: trumf.length, sas: sas.length });
+});
+
+// Telegram-webhook: fanger opp chat_id når en bruker starter/skriver til @bonusvarsel_bot,
+// og kobler det til brukernavnet deres (kun slik kan vi senere sende dem private meldinger).
+app.post("/telegram/webhook", express.json(), async (req, res) => {
+  try {
+    const msg = req.body && req.body.message;
+    const username = msg && msg.from && msg.from.username;
+    const chatId = msg && msg.chat && msg.chat.id;
+    if (username && chatId) {
+      await telegramLinkStore.set(username, chatId);
+      console.log(`[telegram/webhook] Koblet @${username} -> chat_id ${chatId}`);
+      await sendTelegram(
+        '✅ Du er nå koblet til Bonusvarsel! Du vil motta varsler her når favorittene dine får kampanjer (eller ukens beste tilbud hvis du ikke har valgt noen).',
+        chatId
+      );
+    }
+  } catch (e) {
+    console.error('[telegram/webhook] feil:', e);
+  }
+  res.sendStatus(200);
 });
 
 app.get("/v1/devices/favorites", (req, res) => {
@@ -1219,7 +1242,11 @@ async function checkFavoritesAndNotify() {
 
       const msg = `${headerText}\n\n${tgLines}\n\n${BV_TG_REMINDER}`;
 
-      const tgOk = await sendTelegram(msg);
+      const tgChatId = favs.telegram ? telegramLinkStore.get(favs.telegram) : null;
+      if (favs.telegram && !tgChatId) {
+        console.log(`[CHECKFAV] ${deviceId}: @${favs.telegram} har ikke startet @bonusvarsel_bot ennå - kan ikke sende Telegram`);
+      }
+      const tgOk = tgChatId ? await sendTelegram(msg, tgChatId) : false;
 
       if (favs.email) {
         const htmlCards = newCampaigns
@@ -1271,6 +1298,8 @@ startMonitor(monitorIntervalMs);
 
 sentKeysStore.init();
 sentKeysStore.warmUp().catch((e) => console.error('[sentKeysStore] warmUp error:', e));
+telegramLinkStore.init();
+telegramLinkStore.warmUp().catch((e) => console.error('[telegramLinkStore] warmUp error:', e));
 
 app.listen(port, () => {
   console.log(`API running on http://127.0.0.1:${port}`);

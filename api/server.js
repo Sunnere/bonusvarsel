@@ -1253,6 +1253,17 @@ function weekKey() {
   return `${now.getFullYear()}-W${week}`;
 }
 
+function pickWeeklyGeneralOffers(campaigns) {
+  const eligible = campaigns.filter((c) => c.slug && (c.multiplier ?? 1) > 1);
+  const topTrumf = eligible
+    .filter((c) => c.source === "trumf")
+    .sort((a, b) => (b.multiplier ?? 0) - (a.multiplier ?? 0))[0];
+  const topSas = eligible
+    .filter((c) => c.source === "sas")
+    .sort((a, b) => (b.multiplier ?? 0) - (a.multiplier ?? 0))[0];
+  return [topTrumf, topSas].filter(Boolean);
+}
+
 async function checkFavoritesAndNotify() {
   try {
     const campaigns = await fetchAllCampaigns('elite');
@@ -1266,10 +1277,7 @@ async function checkFavoritesAndNotify() {
       const newCampaigns = [];
       if (isFreeTier) {
         if (!isWeeklyFallbackWindow()) continue;
-        const topGeneral = campaigns
-          .filter(c => c.slug && (c.multiplier ?? 1) > 1)
-          .sort((a, b) => (b.multiplier ?? 0) - (a.multiplier ?? 0))
-          .slice(0, 2);
+        const topGeneral = pickWeeklyGeneralOffers(campaigns);
         for (const campaign of topGeneral) {
           const key = `${deviceId}-weekly-${weekKey()}-${campaign.slug}-${campaign.multiplier}`;
           if (sentKeysStore.has(key)) continue;
@@ -1350,10 +1358,7 @@ app.post("/dev/test-weekly-fallback", express.json(), async (req, res) => {
     }
 
     const campaigns = await fetchAllCampaigns("elite");
-    const topGeneral = campaigns
-      .filter((c) => c.slug && (c.multiplier ?? 1) > 1)
-      .sort((a, b) => (b.multiplier ?? 0) - (a.multiplier ?? 0))
-      .slice(0, 2);
+    const topGeneral = pickWeeklyGeneralOffers(campaigns);
 
     if (!topGeneral.length) {
       return res.json({ ok: true, sent: false, reason: "Ingen kampanjer funnet akkurat nå" });

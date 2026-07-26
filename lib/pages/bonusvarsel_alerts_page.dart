@@ -275,6 +275,7 @@ class _BonusvarselAlertsPageState extends State<BonusvarselAlertsPage> {
           sasFavs: sas,
           email: email,
           telegram: _telegramValue.isNotEmpty ? _telegramValue : null,
+          tier: EntitlementService.instance.plan,
         );
       }
     } catch (e) {

@@ -1187,12 +1187,26 @@ app.get("/v1/push/dispatch", (req, res) => {
 // ── Device favorites ─────────────────────────────────────────────────────────
 const deviceFavorites = {};
 
+const TIER_FAVORITE_LIMITS = { free: 0, premium: 5, elite: 10 };
+
 app.post("/v1/devices/favorites", express.json(), (req, res) => {
-  const { trumf = [], sas = [], email = null, telegram = null, tier = 'free' } = req.body || {};
+  const { trumf = [], sas = [], email = null, telegram = null, tier: rawTier = 'free' } = req.body || {};
+  const tier = Object.prototype.hasOwnProperty.call(TIER_FAVORITE_LIMITS, rawTier) ? rawTier : 'free';
+  const limit = TIER_FAVORITE_LIMITS[tier];
+
+  const trumfCapped = Array.isArray(trumf) ? trumf.slice(0, limit) : [];
+  const sasCapped = Array.isArray(sas) ? sas.slice(0, limit) : [];
+
   const deviceId = req.headers['x-device-id'] || 'default';
-  deviceFavorites[deviceId] = { trumf, sas, email, telegram, tier, updatedAt: new Date().toISOString() };
-  console.log(`Favoritter oppdatert for ${deviceId}: Trumf=${trumf.length}, SAS=${sas.length}, Email=${email || 'ingen'}, Telegram=${telegram || 'ingen'}, Tier=${tier}`);
-  res.json({ ok: true, trumf: trumf.length, sas: sas.length });
+  deviceFavorites[deviceId] = { trumf: trumfCapped, sas: sasCapped, email, telegram, tier, updatedAt: new Date().toISOString() };
+
+  const wasTruncated = trumfCapped.length !== trumf.length || sasCapped.length !== sas.length || tier !== rawTier;
+  if (wasTruncated) {
+    console.warn(`[v1/devices/favorites] ${deviceId}: begrenset til tier-grense (tier=${tier}, limit=${limit}, forsøkte Trumf=${trumf.length} SAS=${sas.length})`);
+  }
+
+  console.log(`Favoritter oppdatert for ${deviceId}: Trumf=${trumfCapped.length}, SAS=${sasCapped.length}, Email=${email || 'ingen'}, Telegram=${telegram || 'ingen'}, Tier=${tier}`);
+  res.json({ ok: true, trumf: trumfCapped.length, sas: sasCapped.length, tier, limit });
 });
 
 // Telegram-webhook: fanger opp chat_id når en bruker starter/skriver til @bonusvarsel_bot,

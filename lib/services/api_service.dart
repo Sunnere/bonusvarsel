@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart';
 import '../config/api_config.dart';
+import 'device_id_service.dart';
 
 import '../models/activated_notification.dart';
 import '../models/feed_item.dart';
@@ -60,11 +61,16 @@ class ApiService {
     required List<String> trumfFavs,
     required List<String> sasFavs,
     String? email,
+    String? telegram,
   }) async {
+    final deviceId = await DeviceIdService.getId();
     final res = await http.post(
       _uri('/v1/devices/favorites'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({'trumf': trumfFavs, 'sas': sasFavs, 'email': email}),
+      headers: {
+        'Content-Type': 'application/json',
+        'x-device-id': deviceId,
+      },
+      body: jsonEncode({'trumf': trumfFavs, 'sas': sasFavs, 'email': email, 'telegram': telegram}),
     ).timeout(const Duration(seconds: 5));
     if (res.statusCode < 200 || res.statusCode >= 300) {
       throw Exception('POST /v1/devices/favorites failed: \${res.statusCode}');

@@ -10,6 +10,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:http/http.dart' as http;
 import '../services/api_service.dart';
+import '../services/device_id_service.dart';
 import '../services/entitlement_service.dart';
 
 class BonusvarselAlertsPage extends StatefulWidget {
@@ -245,8 +246,20 @@ class _BonusvarselAlertsPageState extends State<BonusvarselAlertsPage> {
     } catch (e) {
       debugPrint('Firestore Telegram feilet: $e');
     }
+    await _syncFavoritesToServer(trumf: _trumfFavIds, sas: _sasFavIds);
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Telegram lagret!")));
+  }
+
+  Future<void> _connectTelegramViaLink() async {
+    final deviceId = await DeviceIdService.getId();
+    final uri = Uri.parse("https://t.me/bonusvarsel_varsel_bot?start=$deviceId");
+    final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (!ok && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Klarte ikke å åpne Telegram. Er appen installert?")),
+      );
+    }
   }
 
 
@@ -261,6 +274,7 @@ class _BonusvarselAlertsPageState extends State<BonusvarselAlertsPage> {
           trumfFavs: trumf,
           sasFavs: sas,
           email: email,
+          telegram: _telegramValue.isNotEmpty ? _telegramValue : null,
         );
       }
     } catch (e) {
@@ -445,8 +459,8 @@ class _BonusvarselAlertsPageState extends State<BonusvarselAlertsPage> {
             )),
             const SizedBox(width: 8),
             ElevatedButton(
-              onPressed: () => launchUrl(Uri.parse("https://t.me/BonusvarselBot")),
-              child: const Text("Åpne Bot"),
+              onPressed: _connectTelegramViaLink,
+              child: const Text("Koble til Telegram"),
             ),
           ]),
           if (_telegramSaved) ...[

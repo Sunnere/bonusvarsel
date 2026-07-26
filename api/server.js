@@ -14,6 +14,7 @@ import fetch from "node-fetch";
 import * as cheerio from "cheerio";
 import * as sentKeysStore from './lib/sentKeysStore.js';
 import * as telegramLinkStore from './lib/telegramLinkStore.js';
+import * as telegramDeviceStore from './lib/telegramDeviceStore.js';
 import { initMonitor, startMonitor, runMonitorCheck, monitorStatus } from './lib/monitor.js';
 
 
@@ -1168,9 +1169,24 @@ app.post("/telegram/webhook", express.json(), async (req, res) => {
     const msg = req.body && req.body.message;
     const username = msg && msg.from && msg.from.username;
     const chatId = msg && msg.chat && msg.chat.id;
+    const text = (msg && msg.text) || '';
+    let linked = false;
+
+    const startMatch = text.match(/^\/start(?:@\w+)?\s+(\S+)/);
+    if (startMatch && chatId) {
+      const deviceId = startMatch[1];
+      await telegramDeviceStore.set(deviceId, chatId);
+      console.log(`[telegram/webhook] Koblet enhet ${deviceId} -> chat_id ${chatId}`);
+      linked = true;
+    }
+
     if (username && chatId) {
       await telegramLinkStore.set(username, chatId);
       console.log(`[telegram/webhook] Koblet @${username} -> chat_id ${chatId}`);
+      linked = true;
+    }
+
+    if (linked) {
       await sendTelegram(
         '✅ Du er nå koblet til Bonusvarsel! Du vil motta varsler her når favorittene dine får kampanjer (eller ukens beste tilbud hvis du ikke har valgt noen).',
         chatId
@@ -1242,9 +1258,9 @@ async function checkFavoritesAndNotify() {
 
       const msg = `${headerText}\n\n${tgLines}\n\n${BV_TG_REMINDER}`;
 
-      const tgChatId = favs.telegram ? telegramLinkStore.get(favs.telegram) : null;
-      if (favs.telegram && !tgChatId) {
-        console.log(`[CHECKFAV] ${deviceId}: @${favs.telegram} har ikke startet @bonusvarsel_bot ennå - kan ikke sende Telegram`);
+      const tgChatId = telegramDeviceStore.get(deviceId) || (favs.telegram ? telegramLinkStore.get(favs.telegram) : null);
+      if (!tgChatId && favs.telegram) {
+        console.log(`[CHECKFAV] ${deviceId}: @${favs.telegram} har ikke startet @bonusvarsel_varsel_bot ennå - kan ikke sende Telegram`);
       }
       const tgOk = tgChatId ? await sendTelegram(msg, tgChatId) : false;
 
@@ -1300,6 +1316,8 @@ sentKeysStore.init();
 sentKeysStore.warmUp().catch((e) => console.error('[sentKeysStore] warmUp error:', e));
 telegramLinkStore.init();
 telegramLinkStore.warmUp().catch((e) => console.error('[telegramLinkStore] warmUp error:', e));
+telegramDeviceStore.init();
+telegramDeviceStore.warmUp().catch((e) => console.error('[telegramDeviceStore] warmUp error:', e));
 
 app.listen(port, () => {
   console.log(`API running on http://127.0.0.1:${port}`);

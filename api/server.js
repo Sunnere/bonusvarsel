@@ -1428,6 +1428,33 @@ app.post("/dev/test-weekly-fallback", express.json(), async (req, res) => {
   }
 });
 
+app.post("/dev/test-trippel-trumf", express.json(), async (req, res) => {
+  try {
+    const deviceId = req.headers["x-device-id"] || "default";
+    const favs = deviceFavorites[deviceId];
+    if (!favs) {
+      return res.status(404).json({ ok: false, error: "Ingen enhet med denne x-device-id er registrert" });
+    }
+
+    const nextDate = TRIPPEL_TRUMF_PREDICTED_DATES_2026.find((d) => d >= trippelTrumfDateTomorrow()) || TRIPPEL_TRUMF_PREDICTED_DATES_2026[0];
+    const ttMsg = `🔔 <b>[TEST] Trippel Trumf er trolig ${nextDate}!</b>\n\nHusk å skanne Trumf-kortet ditt i butikk (KIWI, MENY, SPAR, Joker m.fl.) for 3% bonus - 4% med Trumf Pay.\n\n<i>NB: Datoen er ikke offisielt bekreftet av Trumf ennå - sjekk Trumf-appen for siste nytt.\n(Dette er en manuell test - den ekte varslingen skjer fortsatt automatisk kvelden før.)</i>`;
+
+    const tgChatId = telegramDeviceStore.get(deviceId) || (favs.telegram ? telegramLinkStore.get(favs.telegram) : null);
+    const tgOk = tgChatId ? await sendTelegram(ttMsg, tgChatId) : false;
+
+    let emailOk = false;
+    if (favs.email) {
+      const ttHtml = `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:24px;"><h2 style="color:#0F2340;">🔔 [TEST] Trippel Trumf er trolig ${nextDate}!</h2><p>Husk å skanne Trumf-kortet ditt i butikk (KIWI, MENY, SPAR, Joker m.fl.) for 3% bonus - 4% med Trumf Pay.</p><p style="color:#94A3B8;font-size:12px;">NB: Datoen er ikke offisielt bekreftet av Trumf ennå.<br>(Dette er en manuell test - den ekte varslingen skjer fortsatt automatisk kvelden før.)</p></div>`;
+      emailOk = await sendEmail(favs.email, "🔔 [TEST] Trippel Trumf er trolig " + nextDate, ttHtml);
+    }
+
+    res.json({ ok: true, sent: true, telegramSent: tgOk, emailSent: emailOk, predictedDate: nextDate });
+  } catch (e) {
+    console.error("[dev/test-trippel-trumf] feil:", e);
+    res.status(500).json({ ok: false, error: String(e) });
+  }
+});
+
 
 app.post("/dev/reset-sent-keys", async (req, res) => {
   state.sentCampaignKeys = new Set();

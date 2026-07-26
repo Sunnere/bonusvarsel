@@ -1155,10 +1155,10 @@ app.get("/v1/push/dispatch", (req, res) => {
 const deviceFavorites = {};
 
 app.post("/v1/devices/favorites", express.json(), (req, res) => {
-  const { trumf = [], sas = [], email = null, telegram = null } = req.body || {};
+  const { trumf = [], sas = [], email = null, telegram = null, tier = 'free' } = req.body || {};
   const deviceId = req.headers['x-device-id'] || 'default';
-  deviceFavorites[deviceId] = { trumf, sas, email, telegram, updatedAt: new Date().toISOString() };
-  console.log(`Favoritter oppdatert for ${deviceId}: Trumf=${trumf.length}, SAS=${sas.length}, Email=${email || 'ingen'}, Telegram=${telegram || 'ingen'}`);
+  deviceFavorites[deviceId] = { trumf, sas, email, telegram, tier, updatedAt: new Date().toISOString() };
+  console.log(`Favoritter oppdatert for ${deviceId}: Trumf=${trumf.length}, SAS=${sas.length}, Email=${email || 'ingen'}, Telegram=${telegram || 'ingen'}, Tier=${tier}`);
   res.json({ ok: true, trumf: trumf.length, sas: sas.length });
 });
 
@@ -1204,6 +1204,22 @@ app.get("/v1/devices/favorites", (req, res) => {
 
 
 
+function osloNow() {
+  return new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/Oslo' }));
+}
+
+function isWeeklyFallbackWindow() {
+  const now = osloNow();
+  return now.getDay() === 3 && now.getHours() === 18;
+}
+
+function weekKey() {
+  const now = osloNow();
+  const firstJan = new Date(now.getFullYear(), 0, 1);
+  const week = Math.ceil((((now - firstJan) / 86400000) + firstJan.getDay() + 1) / 7);
+  return `${now.getFullYear()}-W${week}`;
+}
+
 async function checkFavoritesAndNotify() {
   try {
     const campaigns = await fetchAllCampaigns('elite');
@@ -1216,13 +1232,13 @@ async function checkFavoritesAndNotify() {
 
       const newCampaigns = [];
       if (isFreeTier) {
-        // Free-tier uten favoritter: send topp 3 generelle tilbud
+        if (!isWeeklyFallbackWindow()) continue;
         const topGeneral = campaigns
           .filter(c => c.slug && (c.multiplier ?? 1) > 1)
           .sort((a, b) => (b.multiplier ?? 0) - (a.multiplier ?? 0))
-          .slice(0, 3);
+          .slice(0, 2);
         for (const campaign of topGeneral) {
-          const key = `${deviceId}-${campaign.slug}-${campaign.multiplier}`;
+          const key = `${deviceId}-weekly-${weekKey()}-${campaign.slug}-${campaign.multiplier}`;
           if (sentKeysStore.has(key)) continue;
           newCampaigns.push(campaign);
           await sentKeysStore.add(key);

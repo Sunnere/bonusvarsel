@@ -1,0 +1,14 @@
+name: atlas
+description: Atlas Engineering OS
+version: 0.1.0
+
+environment:
+  sdk: ^3.11.0
+
+dependencies:
+  path: ^1.9.0
+
+dev_dependencies:
+  lints: ^6.0.0
+  test: ^1.26.0
+  

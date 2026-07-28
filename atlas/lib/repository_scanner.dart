@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:atlas/file_filters.dart';
 import 'package:atlas/graph_builder.dart';
+import 'package:atlas/graph_query.dart';
 import 'package:atlas/import_reference.dart';
 import 'package:atlas/import_scanner.dart';
 import 'package:atlas/knowledge_graph.dart';
@@ -20,11 +21,14 @@ class RepositoryScanner {
 
   RepositoryInventory? _inventory;
   KnowledgeGraph? _graph;
+  GraphQuery? _query;
   List<ImportReference> _imports = const [];
 
   RepositoryInventory? get inventory => _inventory;
 
   KnowledgeGraph? get graph => _graph;
+
+  GraphQuery? get query => _query;
 
   List<ImportReference> get imports => _imports;
 
@@ -62,10 +66,13 @@ class RepositoryScanner {
     _inventory = inventory;
     _imports = List.unmodifiable(imports);
 
-    _graph = const GraphBuilder().build(
+    final graph = const GraphBuilder().build(
       inventory,
       imports: imports,
     );
+
+    _graph = graph;
+    _query = GraphQuery(graph);
 
     return RepositoryStats(
       directories: Directory(repositoryRoot)

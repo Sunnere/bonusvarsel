@@ -28,6 +28,9 @@ dependencies:
   app_links: ^7.0.0
   webview_flutter: ^4.13.1
   package_info_plus: ^10.1.0
+  cloud_firestore: ^5.6.12
+  file_picker: ^3.0.4
+  image_picker: ^1.2.3
 
 dev_dependencies:
   flutter_test:

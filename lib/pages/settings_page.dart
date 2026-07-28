@@ -740,6 +740,8 @@ class _SettingsPageState extends State<SettingsPage> {
                         try {
                           await AuthService.instance.signInWithApple();
                           if (context.mounted) setState(() {});
+                        } on AuthCancelledException {
+                          // Brukeren avbrøt selv - ingen feilmelding.
                         } catch (e) {
                           if (context.mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(

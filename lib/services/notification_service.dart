@@ -48,12 +48,12 @@ class NotificationService {
       final all = await repo.fetchActiveItems(program: 'sas_online', forceRefresh: true);
       if (sasFavs.isNotEmpty) {
         final fav = all.where((item) => sasFavs.any((f) =>
-          item.store.toLowerCase().contains(f.toLowerCase()))).toList();
+          item.storeName.toLowerCase().contains(f.toLowerCase()))).toList();
         if (fav.isNotEmpty) return fav.take(3).toList();
       }
       final defaults = all.where((item) => _sasDefaultShops.any((s) =>
-        item.store.toLowerCase().contains(s.toLowerCase()))).toList();
-      defaults.sort((a, b) => (b.rate ?? 0).compareTo(a.rate ?? 0));
+        item.storeName.toLowerCase().contains(s.toLowerCase()))).toList();
+      defaults.sort((a, b) => b.rate.compareTo(a.rate));
       return defaults.take(2).toList();
     } catch (_) { return []; }
   }
@@ -64,13 +64,13 @@ class NotificationService {
       final all = await repo.fetchActiveItems(program: 'trumf_netthandel', forceRefresh: true);
       if (trumfFavs.isNotEmpty) {
         final fav = all.where((item) => trumfFavs.any((f) =>
-          item.store.toLowerCase().contains(f.toLowerCase()))).toList();
+          item.storeName.toLowerCase().contains(f.toLowerCase()))).toList();
         if (fav.isNotEmpty) return fav.take(3).toList();
       }
-      final withCamp = all.where((i) => i.hasCampaign == true).toList();
-      withCamp.sort((a, b) => (b.rate ?? 0).compareTo(a.rate ?? 0));
+      final withCamp = all.where((i) => i.campaign.isNotEmpty).toList();
+      withCamp.sort((a, b) => b.rate.compareTo(a.rate));
       if (withCamp.isNotEmpty) return withCamp.take(3).toList();
-      all.sort((a, b) => (b.rate ?? 0).compareTo(a.rate ?? 0));
+      all.sort((a, b) => b.rate.compareTo(a.rate));
       return all.take(2).toList();
     } catch (_) { return []; }
   }
@@ -86,16 +86,16 @@ class NotificationService {
     if (trumfItems.isNotEmpty) {
       buf.writeln('🟢 *Trumf Netthandel${trumfFavs.isNotEmpty ? " (dine favoritter)" : ""}*');
       for (final item in trumfItems) {
-        final rate = item.rate != null ? ' – ${item.rate!.toStringAsFixed(0)} p/100kr' : '';
-        buf.writeln('• ${item.store}$rate');
+        final rate = item.rate > 0 ? ' – ${item.rate.toStringAsFixed(0)} p/100kr' : '';
+        buf.writeln('• ${item.storeName}$rate');
       }
       buf.writeln('👉 https://trumfnetthandel.no\n');
     }
     if (sasItems.isNotEmpty) {
       buf.writeln('✈️ *SAS Online Shopping${sasFavs.isNotEmpty ? " (dine favoritter)" : ""}*');
       for (final item in sasItems) {
-        final rate = item.rate != null ? ' – ${item.rate!.toStringAsFixed(0)} p/100kr' : '';
-        buf.writeln('• ${item.store}$rate');
+        final rate = item.rate > 0 ? ' – ${item.rate.toStringAsFixed(0)} p/100kr' : '';
+        buf.writeln('• ${item.storeName}$rate');
       }
       buf.writeln('👉 https://onlineshopping.flysas.com/nb-NO\n');
     }

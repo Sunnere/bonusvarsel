@@ -138,13 +138,16 @@ class _LoginPageState extends State<LoginPage> {
       _showForgotPassword = false;
       widget.onSuccess?.call();
       Navigator.of(context).pop();
+    } on AuthCancelledException {
+      // Brukeren avbrøt selv - ingen feilmelding.
     } on Exception catch (e) {
-      final msg = e.toString()
-        .replaceAll('Exception: ', '')
-        .replaceAll('Apple-innlogging avbrutt', '')
-        .replaceAll('[firebase_auth/network-request-failed]', 'Nettverksfeil. Sjekk internettforbindelsen.')
-        .replaceAll('[firebase_auth/too-many-requests]', 'For mange forsøk. Vent litt og prøv igjen.');
-      if (msg.isNotEmpty) setState(() => _error = msg);
+      final raw = e.toString().replaceAll('Exception: ', '');
+      final msg = raw.contains('network-request-failed')
+          ? 'Nettverksfeil. Sjekk internettforbindelsen.'
+          : raw.contains('too-many-requests')
+              ? 'For mange forsøk. Vent litt og prøv igjen.'
+              : raw;
+      setState(() => _error = msg);
     } finally {
       if (mounted) setState(() => _loading = false);
     }

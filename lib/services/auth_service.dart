@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
@@ -58,11 +59,13 @@ class AuthService {
       return await _auth.signInWithCredential(oauthCredential);
     } on SignInWithAppleAuthorizationException catch (e) {
       if (e.code == AuthorizationErrorCode.canceled) {
-        throw Exception('Apple-innlogging avbrutt');
+        throw const AuthCancelledException();
       }
-      throw Exception('Apple-innlogging feilet: ${e.message}');
+      debugPrint('[AuthService] Apple-innlogging feilet (teknisk): ${e.code} ${e.message}');
+      throw Exception('Innlogging med Apple feilet. Prøv igjen om litt.');
     } catch (e) {
-      throw Exception('Apple-innlogging feilet: $e');
+      debugPrint('[AuthService] Apple-innlogging feilet (teknisk): $e');
+      throw Exception('Innlogging med Apple feilet. Prøv igjen om litt.');
     }
   }
 
@@ -76,4 +79,10 @@ class AuthService {
   Future<void> sendPasswordReset(String email) async {
     await _auth.sendPasswordResetEmail(email: email);
   }
+}
+
+/// Kastes når brukeren selv avbryter innloggingen.
+/// Dette er et bevisst valg, ikke en feil - skal aldri vises som feilmelding.
+class AuthCancelledException implements Exception {
+  const AuthCancelledException();
 }

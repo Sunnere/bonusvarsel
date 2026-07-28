@@ -13,6 +13,7 @@ import cors from "cors";
 import fetch from "node-fetch";
 import * as cheerio from "cheerio";
 import * as sentKeysStore from './lib/sentKeysStore.js';
+import * as deviceFavoritesStore from './lib/deviceFavoritesStore.js';
 import * as telegramLinkStore from './lib/telegramLinkStore.js';
 import * as telegramDeviceStore from './lib/telegramDeviceStore.js';
 import { initMonitor, startMonitor, runMonitorCheck, monitorStatus } from './lib/monitor.js';
@@ -1187,6 +1188,13 @@ app.get("/v1/push/dispatch", (req, res) => {
 // ── Device favorites ─────────────────────────────────────────────────────────
 const deviceFavorites = {};
 
+deviceFavoritesStore.init();
+(async () => {
+  const loaded = await deviceFavoritesStore.loadAll();
+  Object.assign(deviceFavorites, loaded);
+  console.log(`[deviceFavorites] Lastet ${Object.keys(loaded).length} enheter fra Firestore (mode=${deviceFavoritesStore.getMode()})`);
+})();
+
 const TIER_FAVORITE_LIMITS = { free: 0, premium: 5, elite: 10 };
 
 app.post("/v1/devices/favorites", express.json(), (req, res) => {
@@ -1199,6 +1207,10 @@ app.post("/v1/devices/favorites", express.json(), (req, res) => {
 
   const deviceId = req.headers['x-device-id'] || 'default';
   deviceFavorites[deviceId] = { trumf: trumfCapped, sas: sasCapped, email, telegram, tier, updatedAt: new Date().toISOString() };
+
+  deviceFavoritesStore.persist(deviceId, deviceFavorites[deviceId]).catch((err) => {
+    console.error(`[v1/devices/favorites] Persistering feilet for ${deviceId}:`, err.message);
+  });
 
   const wasTruncated = trumfCapped.length !== trumf.length || sasCapped.length !== sas.length || tier !== rawTier;
   if (wasTruncated) {

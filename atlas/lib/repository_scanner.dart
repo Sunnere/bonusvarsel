@@ -2,6 +2,8 @@ import 'dart:io';
 
 import 'package:atlas/file_filters.dart';
 import 'package:atlas/graph_builder.dart';
+import 'package:atlas/import_reference.dart';
+import 'package:atlas/import_scanner.dart';
 import 'package:atlas/knowledge_graph.dart';
 import 'package:atlas/repository_inventory.dart';
 import 'package:atlas/repository_item.dart';
@@ -14,17 +16,23 @@ class RepositoryScanner {
 
   final String repositoryRoot;
 
+  final ImportScanner _importScanner = const ImportScanner();
+
   RepositoryInventory? _inventory;
   KnowledgeGraph? _graph;
+  List<ImportReference> _imports = const [];
 
   RepositoryInventory? get inventory => _inventory;
 
   KnowledgeGraph? get graph => _graph;
 
+  List<ImportReference> get imports => _imports;
+
   Future<RepositoryStats> scan() async {
     final root = Directory(repositoryRoot);
 
     final inventory = RepositoryInventory();
+    final imports = <ImportReference>[];
 
     await for (final entity
         in root.list(recursive: true, followLinks: false)) {
@@ -43,10 +51,21 @@ class RepositoryScanner {
           path: path,
         ),
       );
+
+      if (path.endsWith('.dart')) {
+        imports.addAll(
+          _importScanner.scan(entity),
+        );
+      }
     }
 
     _inventory = inventory;
-    _graph = const GraphBuilder().build(inventory);
+    _imports = List.unmodifiable(imports);
+
+    _graph = const GraphBuilder().build(
+      inventory,
+      imports: imports,
+    );
 
     return RepositoryStats(
       directories: Directory(repositoryRoot)

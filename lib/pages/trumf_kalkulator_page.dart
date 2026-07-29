@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../widgets/info_video.dart';
 import '../theme/app_theme.dart';
 import '../services/entitlement_service.dart';
 import '../widgets/ad_slot.dart';
@@ -499,6 +500,7 @@ class _TrumfKalkulatorPageState extends State<TrumfKalkulatorPage> {
         'title': 'Du er godt optimalisert!',
         'desc': 'Husk å sette opp automatisk overføring til EuroBonus i Trumf-appen. '
             'Du får 35% mer poeng enn ved manuell overføring.',
+        'video': 'trumf-bruk-bonus-overforing',
         'gain': '',
       });
     }
@@ -535,6 +537,10 @@ class _TrumfKalkulatorPageState extends State<TrumfKalkulatorPage> {
         const SizedBox(height: 8),
         Text(t['desc'] as String,
             style: TextStyle(fontSize: 12, color: Colors.grey[400], height: 1.5)),
+        if (t['video'] != null) ...[
+          const SizedBox(height: 10),
+          InfoVideo(name: t['video'] as String),
+        ],
       ]),
     )).toList();
   }

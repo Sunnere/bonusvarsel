@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../services/entitlement_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/info_image.dart';
+import '../widgets/info_video.dart';
 
 class EbShoppingPage extends StatefulWidget {
   const EbShoppingPage({super.key});
@@ -67,12 +68,14 @@ class _EbShoppingPageState extends State<EbShoppingPage> {
     {
       "title": "Bli SAS EuroBonus-medlem",
       "short": "Gratis å melde seg inn – ta 2 minutter nå",
+      "video": "medlemskap-trumf-sas-guide",
       "url": "https://bonusvarsel.no",
       "detail": "Gå til sas.no og opprett en gratis EuroBonus-konto. Du får et unikt EuroBonus-nummer som du bruker til å samle poeng.\n\nHar du allerede SAS-konto? Hopp til steg 2!\n\nTips: Last ned SAS-appen og logg inn – da har du alltid poengsaldoen tilgjengelig.",
     },
     {
       "title": "Bli Trumf-medlem",
       "short": "Gratis å melde seg inn – ta 2 minutter nå",
+      "video": "medlemskap-trumf-sas-guide",
       "url": "https://bonusvarsel.no",
       "detail": "Last ned Trumf-appen og registrer bankkortet ditt én gang. Deretter får du 1% Trumf-bonus automatisk hver gang du betaler med det kortet hos NorgesGruppen-butikkene: KIWI, MENY, SPAR, Joker, Jacob\u2019s og Nærbutikken.\n\nDu trenger ikke gjøre noe i kassen – bonusen registreres bare!\n\nTips: Har du SAS EuroBonus Mastercard eller Amex? Registrer det – da får du Trumf-bonus OG EuroBonus-poeng på samme handletur.",
     },
@@ -342,6 +345,10 @@ class _EbShoppingPageState extends State<EbShoppingPage> {
                 children: [
                   if (step["image"] != null) ...[
                     InfoImage(name: step["image"] as String),
+                    const SizedBox(height: 12),
+                  ],
+                  if (step["video"] != null) ...[
+                    InfoVideo(name: step["video"] as String),
                     const SizedBox(height: 12),
                   ],
                   Text(

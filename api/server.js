@@ -1163,6 +1163,7 @@ app.get("/v1/offers", (req, res) => {
     ok: true,
     offers: state.seededOffers || [],
     count: (state.seededOffers || []).length,
+    lastUpdatedAt: state.lastGoodCampaignsAt,
   });
 });
 

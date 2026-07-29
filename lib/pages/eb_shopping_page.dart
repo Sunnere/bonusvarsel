@@ -6,6 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/entitlement_service.dart';
 import '../theme/app_theme.dart';
+import '../widgets/info_image.dart';
 
 class EbShoppingPage extends StatefulWidget {
   const EbShoppingPage({super.key});
@@ -78,11 +79,13 @@ class _EbShoppingPageState extends State<EbShoppingPage> {
     {
       "title": "Scan QR-koden i kassen",
       "short": "Dobler bonusen til 2% – gratis og enkelt",
+      "image": "trumf-qr-kasse-kiwi",
       "detail": "Åpne Trumf-appen og trykk på QR-ikonet. Vis koden til kassapersonalet før du betaler – da dobles bonusen fra 1% til 2%.\n\nBetaler du med SAS EuroBonus Amex-kortet etterpå? Da tjener du 20 EuroBonus-poeng per 100 kr i tillegg. Det kalles dobbel dip.\n\n💡 På Trippel-Torsdag tredobles grunnbonusen. Har du Trumf Kredittkort kan du få hele 5% på én handletur!",
     },
     {
       "title": "Sjekk Varsler og handle smart",
       "short": "Vi varsler deg når favorittbutikkene har bonus",
+      "image": "telegram-varsel-eksempel",
       "detail": "Gå til Varsler-siden og velg butikkene du handler i. Vi sender deg melding på e-post eller Telegram når de har ekstra bonus.\n\nEksempel: Outnorth har normalt 25 poeng/100kr. Ved kampanje stiger det til 50 – da varsler vi deg!\n\n💡 Premium og Elite gir personlige varsler på opptil 5 eller 10 favorittbutikker.",
     },
   ];
@@ -334,12 +337,21 @@ class _EbShoppingPageState extends State<EbShoppingPage> {
                   bottomRight: Radius.circular(14),
                 ),
               ),
-              child: Text(
-                (step["detail"] as String).replaceAll("\\n", "\n"),
-                style: const TextStyle(
-                    fontSize: 15,
-                    color: Color(0xFFF8FAFC),
-                    height: 1.7),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (step["image"] != null) ...[
+                    InfoImage(name: step["image"] as String),
+                    const SizedBox(height: 12),
+                  ],
+                  Text(
+                    (step["detail"] as String).replaceAll("\\n", "\n"),
+                    style: const TextStyle(
+                        fontSize: 15,
+                        color: Color(0xFFF8FAFC),
+                        height: 1.7),
+                  ),
+                ],
               ),
             ),
         ]),

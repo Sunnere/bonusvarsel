@@ -1499,6 +1499,7 @@ app.post("/dev/monitor-check", async (req, res) => {
 });
 
 const monitorIntervalMs = Number(process.env.MONITOR_INTERVAL_MS || 30 * 60 * 1000);
+let checkFavoritesIntervalMs = Number(process.env.CHECK_FAVORITES_INTERVAL_MS || 30 * 60 * 1000);
 initMonitor({ fetchAllCampaigns, sendTelegram });
 startMonitor(monitorIntervalMs);
 
@@ -1508,6 +1509,30 @@ telegramLinkStore.init();
 telegramLinkStore.warmUp().catch((e) => console.error('[telegramLinkStore] warmUp error:', e));
 telegramDeviceStore.init();
 telegramDeviceStore.warmUp().catch((e) => console.error('[telegramDeviceStore] warmUp error:', e));
+
+// ── Favoritt-varsel scheduler (mail + Telegram) — kjører UANSETT ENABLE_DEV_ROUTES ──
+// Rettet: checkFavoritesAndNotify() ble tidligere KUN trigget manuelt via
+// /dev/check-favorites og kjørte aldri av seg selv - derfor uteble mail/Telegram.
+function startFavoritesScheduler() {
+  checkFavoritesAndNotify()
+    .then(() => console.log("Favoritter-sjekk (initial) kjørt OK"))
+    .catch((e) => console.error("Favoritter-sjekk (initial) feilet:", e));
+
+  setInterval(async () => {
+    try {
+      await checkFavoritesAndNotify();
+      console.log("Favoritter-sjekk (scheduler) kjørt OK");
+    } catch (e) {
+      console.error("Favoritter-sjekk (scheduler) feilet:", e);
+    }
+  }, checkFavoritesIntervalMs);
+
+  console.log(`Favoritt-scheduler startet, intervall=${checkFavoritesIntervalMs}ms`);
+}
+
+// Vent til lagrene (Firestore-backed) er varmet opp før første kjøring,
+// slik at dedup-nøkler er lastet inn og vi ikke sender duplikater ved oppstart.
+setTimeout(() => startFavoritesScheduler(), 10000);
 
 app.listen(port, () => {
   console.log(`API running on http://127.0.0.1:${port}`);

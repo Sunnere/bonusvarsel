@@ -1,65 +1,33 @@
 import 'dart:io';
 
-import 'package:atlas/reporters/console_reporter.dart';
-import 'package:atlas/repository_scanner.dart';
+import 'package:atlas/scanner/repository_scanner.dart';
 
 Future<void> main(List<String> args) async {
-  print('');
-  print('====================================');
-  print('      🚀 Atlas Engineering OS');
-  print('====================================');
-  print('');
+  final root = args.isEmpty ? Directory.current.path : args.first;
 
-  final atlasDir = Directory.current;
-  final repositoryRoot = atlasDir.parent.path;
+  final scanner = RepositoryScanner();
 
-  print('Atlas      : ${atlasDir.path}');
-  print('Repository : $repositoryRoot');
+  print('Atlas Repository Scanner');
   print('');
 
-  final scanner = RepositoryScanner(
-    repositoryRoot: repositoryRoot,
-  );
+  final model = await scanner.scan(root);
 
-  final stats = await scanner.scan();
+  print('Repository : ${model.rootPath}');
+  print('Files      : ${model.totalFiles}');
+  print('Directories: ${model.totalDirectories}');
+  print('');
 
-  ConsoleReporter().printSummary(stats);
+  print('Languages');
 
-  final inventory = scanner.inventory;
-  final graph = scanner.graph;
-  final query = scanner.query;
+  final languages = model.languages.entries.toList()
+    ..sort((a, b) => b.value.compareTo(a.value));
 
-  if (inventory != null && graph != null && query != null) {
-    print('');
-    print('Knowledge Graph');
-    print('---------------');
-    print('Files   : ${inventory.totalFiles}');
-    print('Nodes   : ${graph.nodeCount}');
-    print('Edges   : ${graph.edgeCount}');
-    print('Imports : ${scanner.imports.length}');
-
-    final sample = graph.nodes.firstWhere(
-      (node) => query.importsOf(node.id).isNotEmpty,
-      orElse: () => graph.nodes.first,
-    );
-
-    final imports = query.importsOf(sample.id);
-
-    print('');
-    print('Graph Query');
-    print('-----------');
-    print('Sample node : ${sample.name}');
-    print('Imports     : ${imports.length}');
-
-    for (final edge in imports.take(5)) {
-      print('  -> ${edge.to}');
-    }
-
-    if (imports.length > 5) {
-      print('  ... (${imports.length - 5} more)');
-    }
+  for (final language in languages) {
+    print(' - ${language.key}: ${language.value}');
   }
 
   print('');
-  print('✅ Atlas finished successfully.');
+  print(
+    'Completed in ${model.scanDuration.inMilliseconds} ms',
+  );
 }

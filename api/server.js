@@ -1331,6 +1331,20 @@ function pickWeeklyGeneralOffers(campaigns) {
   return [topTrumf, topSas].filter(Boolean);
 }
 
+// Loyalty program config - legg til nytt program her (klar for Flying Blue m.fl.)
+const LOYALTY_PROGRAMS = {
+  trumf: { prefix: 'tn_', label: 'Trumf' },
+  sas: { prefix: 'sas_', label: 'SAS EuroBonus' },
+};
+
+function stripLoyaltyPrefix(slug) {
+  const s = String(slug || '');
+  for (const { prefix } of Object.values(LOYALTY_PROGRAMS)) {
+    if (s.startsWith(prefix)) return s.slice(prefix.length);
+  }
+  return s;
+}
+
 async function checkFavoritesAndNotify() {
   try {
     const campaigns = await fetchAllCampaigns('elite');
@@ -1338,7 +1352,7 @@ async function checkFavoritesAndNotify() {
     if (!campaigns.length) return;
 
     for (const [deviceId, favs] of Object.entries(deviceFavorites)) {
-      const allFavSlugs = [...(favs.trumf || []), ...(favs.sas || [])];
+      const allFavSlugs = Object.keys(LOYALTY_PROGRAMS).flatMap((programKey) => favs[programKey] || []);
       const isFreeTier = !allFavSlugs.length;
 
       if (isTrippelTrumfEveWindow()) {
@@ -1369,9 +1383,8 @@ async function checkFavoritesAndNotify() {
       } else {
         for (const campaign of campaigns) {
           if (!campaign.slug) continue;
-          const normalizedFavSlugs = allFavSlugs.map(s =>
-            s.replace(/^tn_/, '').replace(/^sas_/, ''));
-          const normalizedCampaignSlug = campaign.slug.replace(/^tn_/, '').replace(/^sas_/, '');
+          const normalizedFavSlugs = allFavSlugs.map((s) => stripLoyaltyPrefix(s));
+          const normalizedCampaignSlug = stripLoyaltyPrefix(campaign.slug);
           if (!normalizedFavSlugs.includes(normalizedCampaignSlug)) continue;
           if ((campaign.multiplier ?? 1) <= 1) continue;
           const key = `${deviceId}-${campaign.slug}-${campaign.multiplier}`;

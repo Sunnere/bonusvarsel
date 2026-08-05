@@ -844,12 +844,29 @@ function startAutoPipeline() {
       console.error("Auto pipeline initial tick failed:", e);
     });
 
+  checkFavoritesAndNotify()
+    .then(() => {
+      console.log("Favorites/weekly check initial tick: ok");
+    })
+    .catch((e) => {
+      console.error("Favorites/weekly check initial tick failed:", e);
+    });
+
   setInterval(async () => {
     try {
       const result = await evaluateLivePipelineTick();
       console.log("Auto pipeline tick:", result);
     } catch (e) {
       console.error("Auto pipeline tick failed:", e);
+    }
+  }, autoPipelineIntervalMs);
+
+  setInterval(async () => {
+    try {
+      await checkFavoritesAndNotify();
+      console.log("Favorites/weekly check tick: ok");
+    } catch (e) {
+      console.error("Favorites/weekly check tick failed:", e);
     }
   }, autoPipelineIntervalMs);
 }

@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:cloud_functions/cloud_functions.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class EntitlementService extends ChangeNotifier {
@@ -53,6 +54,35 @@ class EntitlementService extends ChangeNotifier {
     await prefs.setBool('premium.is_premium', isPremium);
     // SubscriptionService nøkkel
     await prefs.setString('bv.subs.tier', _plan);
+  }
+
+  /// Henter faktisk abonnement-status fra den eksisterende
+  /// checkSubscription Cloud Function (functions/index.js), og overstyrer
+  /// lokal SharedPreferences-status hvis backend vet bedre.
+  Future<void> syncFromBackend() async {
+    try {
+      final user = await FirebaseAuth.instance.authStateChanges().first;
+      if (user == null) {
+        debugPrint('EntitlementService.syncFromBackend: ingen innlogget bruker, hopper over');
+        return;
+      }
+
+      // MIDLERTIDIG DEBUG-UID - fjernes etter feilsøking
+      debugPrint('EntitlementService.syncFromBackend [DEBUG-UID]: uid=${user.uid} email=${user.email}');
+
+      final callable = FirebaseFunctions.instance.httpsCallable('checkSubscription');
+      final result = await callable.call();
+      final backendPlan = (result.data?['plan'] as String?) ?? 'free';
+
+      if (backendPlan != _plan) {
+        debugPrint('EntitlementService.syncFromBackend: lokal=$_plan backend=$backendPlan -> oppdaterer');
+        await unlock(backendPlan);
+      } else {
+        debugPrint('EntitlementService.syncFromBackend: allerede synkronisert ($_plan)');
+      }
+    } catch (e) {
+      debugPrint('EntitlementService.syncFromBackend feilet (beholder lokal status): $e');
+    }
   }
 
   Future<void> clear() async {

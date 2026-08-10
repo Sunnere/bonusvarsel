@@ -22,6 +22,9 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
   await EntitlementService.instance.load();
+  // Ikke await - skal ikke forsinke appstart. Oppdaterer UI via
+  // notifyListeners() når (om) den er ferdig i bakgrunnen.
+  EntitlementService.instance.syncFromBackend();
   ApiService.registerDemoDeviceOnce();
   runApp(const BonusvarselApp());
   PaywallTriggerService.registerAppOpen();

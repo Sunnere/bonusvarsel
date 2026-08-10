@@ -1,4 +1,5 @@
 const functions = require("firebase-functions");
+const { onCall } = require("firebase-functions/v2/https");
 const crypto = require("crypto");
 const { v4: uuidv4 } = require("uuid");
 const fs = require("fs");
@@ -190,16 +191,18 @@ exports.stripeWebhook = functions.https.onRequest(
 });
 
 // ── Sjekk abonnement ──────────────────────────────────────────────────────────
-exports.checkSubscription = functions.https.onCall(async (data, context) => {
-  if (!context.auth) return { plan: 'free' };
-  
+exports.checkSubscription = onCall(async (request) => {
+  const auth = request.auth;
+
+  if (!auth) return { plan: 'free' };
+
   try {
-    const doc = await db.collection('subscriptions').doc(context.auth.uid).get();
+    const doc = await db.collection('subscriptions').doc(auth.uid).get();
+
     if (doc.exists) {
       return { plan: doc.data().plan || 'free' };
     }
-    // Sjekk pending med e-post
-    const email = context.auth.token.email;
+    const email = auth.token?.email;
     if (email) {
       const pending = await db.collection('pending_subscriptions')
         .doc(email.toLowerCase()).get();
@@ -209,6 +212,7 @@ exports.checkSubscription = functions.https.onCall(async (data, context) => {
     }
     return { plan: 'free' };
   } catch (e) {
+    console.error('[checkSubscription] Feil:', e.message);
     return { plan: 'free' };
   }
 });

@@ -184,6 +184,55 @@ class ApiService {
     return decoded;
   }
 
+  /// Henter live kampanjer fra /api/campaigns og plukker ut den beste
+  /// (høyest multiplier) fra hvert program. Trumf og SAS bruker ulike
+  /// poengskalaer og kan ikke rangeres mot hverandre - vi henter derfor
+  /// "beste av hver" i stedet for en samlet topp-2.
+  static Future<Map<String, Map<String, dynamic>?>> getTopCampaigns() async {
+    try {
+      final res = await http.get(_uri('/api/campaigns')).timeout(const Duration(seconds: 4));
+
+      if (res.statusCode < 200 || res.statusCode >= 300) {
+        return {'trumf': null, 'sas': null};
+      }
+
+      final decoded = jsonDecode(res.body);
+      if (decoded is! Map<String, dynamic>) {
+        return {'trumf': null, 'sas': null};
+      }
+
+      final campaigns = (decoded['campaigns'] as List?) ?? const [];
+
+      Map<String, dynamic>? bestFor(String source) {
+        Map<String, dynamic>? best;
+        double bestMultiplier = -1;
+
+        for (final raw in campaigns) {
+          if (raw is! Map) continue;
+          final item = Map<String, dynamic>.from(raw);
+          if (item['source'] != source) continue;
+
+          final multiplier = (item['multiplier'] is num)
+              ? (item['multiplier'] as num).toDouble()
+              : 0.0;
+
+          if (multiplier > bestMultiplier) {
+            bestMultiplier = multiplier;
+            best = item;
+          }
+        }
+        return best;
+      }
+
+      return {
+        'trumf': bestFor('trumf'),
+        'sas': bestFor('sas'),
+      };
+    } catch (_) {
+      return {'trumf': null, 'sas': null};
+    }
+  }
+
   static Future<List<FeedItem>> getFeed() async {
     final decoded = await _getList('/v1/feed');
     final items = decoded

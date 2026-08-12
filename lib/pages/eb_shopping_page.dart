@@ -8,6 +8,7 @@ import '../services/entitlement_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/info_image.dart';
 import '../widgets/info_video.dart';
+import '../services/api_service.dart';
 
 class EbShoppingPage extends StatefulWidget {
   const EbShoppingPage({super.key});
@@ -19,6 +20,72 @@ class _EbShoppingPageState extends State<EbShoppingPage> {
   final Set<int> _openSteps = {};
   int _trumfCatIdx = 0;
   int _sasCatIdx = 0;
+
+  Map<String, dynamic>? _topTrumf;
+  Map<String, dynamic>? _topSas;
+  bool _loadingTop = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadTopCampaigns();
+  }
+
+  Future<void> _loadTopCampaigns() async {
+    final result = await ApiService.getTopCampaigns();
+    if (!mounted) return;
+    setState(() {
+      _topTrumf = result['trumf'];
+      _topSas = result['sas'];
+      _loadingTop = false;
+    });
+  }
+
+  Widget _topCampaignCard({
+    required String program,
+    required Color accent,
+    required Color bg,
+  }) {
+    if (_loadingTop) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 16),
+        child: Center(
+          child: SizedBox(
+            width: 20,
+            height: 20,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          ),
+        ),
+      );
+    }
+
+    final top = program == 'trumf' ? _topTrumf : _topSas;
+
+    if (top == null) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        child: Text(
+          'Ingen aktive kampanjer akkurat nå',
+          style: TextStyle(fontSize: 13, color: Colors.grey[400]),
+        ),
+      );
+    }
+
+    final title = (top['title'] ?? '').toString();
+    final multiplier = (top['multiplier'] is num) ? (top['multiplier'] as num).toDouble() : 0.0;
+    final url = (top['url'] ?? '').toString();
+
+    return _shopRow(
+      name: title,
+      pts: multiplier.toStringAsFixed(1),
+      isCampaign: true,
+      badge: "BESTE NÅ",
+      accent: accent,
+      bg: bg,
+      border: AppTheme.borderColor(EntitlementService.instance.isElite, EntitlementService.instance.isPremium),
+      onTap: () => _open(url),
+    );
+  }
 
   static const _tGreen  = Color(0xFF34D399);
   static const _tBg     = Color(0xFF152B4A);
@@ -44,25 +111,7 @@ class _EbShoppingPageState extends State<EbShoppingPage> {
     {"name": "Elektronikk", "icon": "📱", "url": "https://onlineshopping.flysas.com/nb-NO"},
   ];
 
-  static const _trumfShops = [
-    {"name": "Gina Tricot",     "pts": "60", "camp": true,  "url": "https://trumfnetthandel.no/kategori/mote"},
-    {"name": "SmartBuyGlasses", "pts": "80", "camp": true,  "url": "https://trumfnetthandel.no/cashback/smartbuyglasses-trumf"},
-    {"name": "Scandic Hotels",  "pts": "40", "camp": false, "url": "https://trumfnetthandel.no/kategori/hotell"},
-    {"name": "Hotels.com",      "pts": "35", "camp": false, "url": "https://trumfnetthandel.no/kategori/hotell"},
-    {"name": "Expedia",         "pts": "35", "camp": false, "url": "https://trumfnetthandel.no/kategori/reise"},
-    {"name": "Blivakker",       "pts": "30", "camp": false, "url": "https://trumfnetthandel.no/cashback/blivakker-trumf"},
-    {"name": "H&M",             "pts": "20", "camp": false, "url": "https://trumfnetthandel.no/kategori/mote"},
-  ];
 
-  static const _sasShops = [
-    {"name": "Outnorth",       "pts": "50", "pop": true,  "url": "https://onlineshopping.flysas.com/nb-NO/kampanjer/1"},
-    {"name": "Scandic Hotels", "pts": "20", "pop": true,  "url": "https://onlineshopping.flysas.com/nb-NO"},
-    {"name": "Expedia",        "pts": "20", "pop": true,  "url": "https://onlineshopping.flysas.com/nb-NO"},
-    {"name": "Booking.com",    "pts": "15", "pop": true,  "url": "https://onlineshopping.flysas.com/nb-NO"},
-    {"name": "Hotels.com",     "pts": "15", "pop": true,  "url": "https://onlineshopping.flysas.com/nb-NO"},
-    {"name": "Hertz",          "pts": "15", "pop": false, "url": "https://onlineshopping.flysas.com/nb-NO"},
-    {"name": "H&M",            "pts": "10", "pop": true,  "url": "https://onlineshopping.flysas.com/nb-NO"},
-  ];
 
   static const _steps = [
     {
@@ -541,19 +590,7 @@ class _EbShoppingPageState extends State<EbShoppingPage> {
             ),
             padding: const EdgeInsets.all(12),
             child: Column(children: [
-              ..._trumfShops.map((shop) {
-                final isCamp = shop["camp"] as bool;
-                return _shopRow(
-                  name: shop["name"] as String,
-                  pts: shop["pts"] as String,
-                  isCampaign: isCamp,
-                  badge: isCamp ? "KAMPANJE" : null,
-                  accent: _tGreen,
-                  bg: _tBg,
-                  border: AppTheme.borderColor(EntitlementService.instance.isElite, EntitlementService.instance.isPremium),
-                  onTap: () => _open(shop["url"] as String),
-                );
-              }),
+              _topCampaignCard(program: 'trumf', accent: _tGreen, bg: _tBg),
               const SizedBox(height: 4),
               GestureDetector(
                 onTap: () =>
@@ -637,19 +674,7 @@ class _EbShoppingPageState extends State<EbShoppingPage> {
             ),
             padding: const EdgeInsets.all(12),
             child: Column(children: [
-              ..._sasShops.map((shop) {
-                final isPop = shop["pop"] as bool;
-                return _shopRow(
-                  name: shop["name"] as String,
-                  pts: shop["pts"] as String,
-                  isCampaign: isPop,
-                  badge: isPop ? "POPULÆR" : null,
-                  accent: _sBlue,
-                  bg: _sBg,
-                  border: AppTheme.borderColor(EntitlementService.instance.isElite, EntitlementService.instance.isPremium),
-                  onTap: () => _open(shop["url"] as String),
-                );
-              }),
+              _topCampaignCard(program: 'sas', accent: _sBlue, bg: _sBg),
               const SizedBox(height: 4),
               GestureDetector(
                 onTap: () => _open(

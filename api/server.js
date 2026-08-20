@@ -14,6 +14,9 @@ import fetch from "node-fetch";
 import * as cheerio from "cheerio";
 import * as sentKeysStore from './lib/sentKeysStore.js';
 import * as deviceFavoritesStore from './lib/deviceFavoritesStore.js';
+import * as entitlementStore from './lib/entitlementStore.js';
+import { handleStripeWebhook } from './lib/stripeWebhook.js';
+import { handleGetMe } from './lib/meHandler.js';
 import * as telegramLinkStore from './lib/telegramLinkStore.js';
 import * as telegramDeviceStore from './lib/telegramDeviceStore.js';
 import { initMonitor, startMonitor, runMonitorCheck, monitorStatus } from './lib/monitor.js';
@@ -123,7 +126,14 @@ const autoDispatchMinScore = Number(process.env.AUTO_DISPATCH_MIN_SCORE || 18);
 const autoDispatchMaxPerTick = Number(process.env.AUTO_DISPATCH_MAX_PER_TICK || 2);
 
 app.use(cors());
-app.use(express.json({ limit: "256kb" }));
+app.use(express.json({
+  limit: "256kb",
+  verify: (req, res, buf) => { req.rawBody = buf; },
+}));
+
+entitlementStore.init();
+app.post("/webhook/stripe", handleStripeWebhook);
+app.get("/v1/me", handleGetMe);
 
 const state = {
   tier: "premium",
@@ -844,14 +854,6 @@ function startAutoPipeline() {
       console.error("Auto pipeline initial tick failed:", e);
     });
 
-  checkFavoritesAndNotify()
-    .then(() => {
-      console.log("Favorites/weekly check initial tick: ok");
-    })
-    .catch((e) => {
-      console.error("Favorites/weekly check initial tick failed:", e);
-    });
-
   setInterval(async () => {
     try {
       const result = await evaluateLivePipelineTick();
@@ -860,15 +862,10 @@ function startAutoPipeline() {
       console.error("Auto pipeline tick failed:", e);
     }
   }, autoPipelineIntervalMs);
-
-  setInterval(async () => {
-    try {
-      await checkFavoritesAndNotify();
-      console.log("Favorites/weekly check tick: ok");
-    } catch (e) {
-      console.error("Favorites/weekly check tick failed:", e);
-    }
-  }, autoPipelineIntervalMs);
+  // NB: checkFavoritesAndNotify() kjøres IKKE lenger herfra.
+  // Den kjøres uavhengig av ENABLE_DEV_ROUTES via startFavoritesScheduler()
+  // (se lenger ned i filen) - dette unngår duplikat-kjøring og sikrer at
+  // favoritt-varsler går ut selv når ENABLE_DEV_ROUTES=false i produksjon.
 }
 
 
@@ -1337,6 +1334,15 @@ const LOYALTY_PROGRAMS = {
   sas: { prefix: 'sas_', label: 'SAS EuroBonus' },
 };
 
+function bvTokenize(slug) {
+  const stopwords = new Set(["trumf","no","eu","se","1","2","of","the"]);
+  return String(slug || "").toLowerCase().split(/[-_]/).filter(function(t) { return t && !stopwords.has(t); });
+}
+function bvFuzzyMatch(favSlug, campSlug) {
+  const favTokens = bvTokenize(favSlug);
+  const campTokens = bvTokenize(campSlug);
+  return favTokens.some(function(ft) { return campTokens.includes(ft); });
+}
 function stripLoyaltyPrefix(slug) {
   const s = String(slug || '');
   for (const { prefix } of Object.values(LOYALTY_PROGRAMS)) {
@@ -1385,7 +1391,9 @@ async function checkFavoritesAndNotify() {
           if (!campaign.slug) continue;
           const normalizedFavSlugs = allFavSlugs.map((s) => stripLoyaltyPrefix(s));
           const normalizedCampaignSlug = stripLoyaltyPrefix(campaign.slug);
-          if (!normalizedFavSlugs.includes(normalizedCampaignSlug)) continue;
+          const exactMatch = normalizedFavSlugs.includes(normalizedCampaignSlug);
+          const fuzzyMatchFound = normalizedFavSlugs.some((fav) => bvFuzzyMatch(fav, normalizedCampaignSlug));
+          if (!exactMatch && !fuzzyMatchFound) continue;
           if ((campaign.multiplier ?? 1) <= 1) continue;
           const key = `${deviceId}-${campaign.slug}-${campaign.multiplier}`;
           if (sentKeysStore.has(key)) continue;

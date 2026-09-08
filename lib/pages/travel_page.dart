@@ -8,6 +8,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../models/card_catalog.dart';
 import '../services/user_state.dart';
 import '../services/entitlement_service.dart';
+import 'package:home_widget/home_widget.dart';
 import '../services/ai_service.dart';
 import 'premium_page.dart';
 import 'premium_page.dart';
@@ -113,6 +114,9 @@ class _TravelPageState extends State<TravelPage> with WidgetsBindingObserver {
   // Nåværende poeng
   final _pointsCtrl = TextEditingController(text: '0');
 
+  // Nåværende Trumf-saldo (kr)
+  final _trumfKrCtrl = TextEditingController(text: '0');
+
   // Månedlig forbruk (for opptjeningsestimering)
   double _monthlySpend = 20000;
 
@@ -137,6 +141,7 @@ class _TravelPageState extends State<TravelPage> with WidgetsBindingObserver {
     EntitlementService.instance.removeListener(() {});
     _destCtrl.dispose();
     _pointsCtrl.dispose();
+    _trumfKrCtrl.dispose();
     super.dispose();
   }
 
@@ -155,13 +160,33 @@ class _TravelPageState extends State<TravelPage> with WidgetsBindingObserver {
     const rateMap = {'sas_amex':20,'sas_mc':15,'sas_visa':10,'trumf_visa':10,'trumf_mc':8};
     final best = ids.isEmpty ? 15 :
         ids.map((i) => rateMap[i] ?? 10).reduce((a, b) => a > b ? a : b);
+    final savedPoints = await UserState.getEurobonusPoints();
+    final savedTrumfKr = await UserState.getTrumfPoints();
     if (!mounted) return;
     setState(() {
       _cardIds = ids;
       _cardRatePer100 = best;
       _hasAmex = ids.contains('sas_amex');
       _isTrumfMember = trumf;
+      if (savedPoints > 0) _pointsCtrl.text = savedPoints.toString();
+      if (savedTrumfKr > 0) _trumfKrCtrl.text = savedTrumfKr.toString();
     });
+  }
+
+  Future<void> _saveEuroBonusPoints(String value) async {
+    final points = int.tryParse(value.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0;
+    setState(() {});
+    await UserState.setEurobonusPoints(points);
+    await HomeWidget.saveWidgetData<int>('widget_points', points);
+    await HomeWidget.updateWidget(iOSName: 'BonusWidget');
+  }
+
+  Future<void> _saveTrumfKr(String value) async {
+    final kr = int.tryParse(value.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0;
+    setState(() {});
+    await UserState.setTrumfPoints(kr);
+    await HomeWidget.saveWidgetData<int>('widget_trumf_points', kr);
+    await HomeWidget.updateWidget(iOSName: 'BonusWidget');
   }
 
   // ── Beregninger ──────────────────────────────────────────────────────────
@@ -785,7 +810,7 @@ class _TravelPageState extends State<TravelPage> with WidgetsBindingObserver {
       children: [
         TextField(
           controller: _pointsCtrl,
-          onChanged: (_) => setState(() {}),
+          onChanged: (v) { setState(() {}); _saveEuroBonusPoints(v); },
           keyboardType: TextInputType.number,
           style: const TextStyle(color: _text, fontSize: 22,
               fontWeight: FontWeight.w900),
@@ -805,6 +830,32 @@ class _TravelPageState extends State<TravelPage> with WidgetsBindingObserver {
             hintText: '0',
             hintStyle: const TextStyle(color: Colors.white24),
             suffixText: 'poeng',
+            suffixStyle: const TextStyle(color: _textMuted),
+          ),
+        ),
+        const SizedBox(height: 12),
+        TextField(
+          controller: _trumfKrCtrl,
+          onChanged: (v) { setState(() {}); _saveTrumfKr(v); },
+          keyboardType: TextInputType.number,
+          style: const TextStyle(color: _text, fontSize: 22,
+              fontWeight: FontWeight.w900),
+          decoration: InputDecoration(
+            labelText: 'Trumf-saldo',
+            labelStyle: const TextStyle(color: _textMuted),
+            filled: true, fillColor: _surface2,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: _border)),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: _border)),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: _primary, width: 1.5)),
+            hintText: '0',
+            hintStyle: const TextStyle(color: Colors.white24),
+            suffixText: 'kr',
             suffixStyle: const TextStyle(color: _textMuted),
           ),
         ),

@@ -19,6 +19,7 @@ struct BonusData {
     var monthsToGoal: Int
     var cardName: String
     var companionTicket: Bool
+    var trumfPoints: Int
 
     static func load() -> BonusData {
         let defaults = UserDefaults(suiteName: appGroupID)
@@ -28,7 +29,8 @@ struct BonusData {
             destination:     defaults?.string(forKey: "widget_destination")    ?? "Bangkok",
             monthsToGoal:    defaults?.integer(forKey: "widget_months")        ?? 0,
             cardName:        defaults?.string(forKey: "widget_card")           ?? "Amex",
-            companionTicket: defaults?.bool(forKey: "widget_companion_ticket") ?? false
+            companionTicket: defaults?.bool(forKey: "widget_companion_ticket") ?? false,
+            trumfPoints:     defaults?.integer(forKey: "widget_trumf_points")  ?? 0
         )
     }
 }
@@ -44,7 +46,7 @@ struct BonusProvider: TimelineProvider {
         BonusEntry(date: Date(), data: BonusData(
             points: 45000, goalPoints: 150000,
             destination: "Bangkok", monthsToGoal: 24,
-            cardName: "Amex", companionTicket: true))
+            cardName: "Amex", companionTicket: true, trumfPoints: 1200))
     }
 
     func getSnapshot(in context: Context, completion: @escaping (BonusEntry) -> Void) {
@@ -64,6 +66,7 @@ private let surfColor  = Color(red: 0.043, green: 0.090, blue: 0.157) // #0B1728
 private let primColor  = Color(red: 0.376, green: 0.647, blue: 0.980) // #60A5FA
 private let succColor  = Color(red: 0.204, green: 0.827, blue: 0.600) // #34D399
 private let warnColor  = Color(red: 0.984, green: 0.749, blue: 0.141) // #FBBF24
+private let trumfColor = Color(red: 0.204, green: 0.827, blue: 0.600) // #34D399 (Trumf-grønn)
 private let textColor  = Color(red: 0.973, green: 0.980, blue: 0.988) // #F8FAFC
 private let mutedColor = Color(red: 0.796, green: 0.835, blue: 0.882) // #CBD5E1
 
@@ -89,7 +92,6 @@ struct SmallWidgetView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            // Header
             HStack {
                 Text("✈️")
                     .font(.system(size: 14))
@@ -101,17 +103,23 @@ struct SmallWidgetView: View {
 
             Spacer()
 
-            // Poeng
             Text(fmt(data.points))
                 .font(.system(size: 26, weight: .black, design: .rounded))
                 .foregroundColor(textColor)
-            Text("poeng")
+            Text("EuroBonus-poeng")
                 .font(.system(size: 11, weight: .semibold))
                 .foregroundColor(mutedColor)
 
+            HStack(spacing: 4) {
+                Text("🛒")
+                    .font(.system(size: 10))
+                Text("\(fmt(data.trumfPoints)) kr Trumf")
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundColor(trumfColor)
+            }
+
             Spacer()
 
-            // Progresjonslinje
             VStack(alignment: .leading, spacing: 3) {
                 Text(data.destination)
                     .font(.system(size: 10, weight: .bold))
@@ -153,7 +161,6 @@ struct MediumWidgetView: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            // Venstre kolonne
             VStack(alignment: .leading, spacing: 4) {
                 HStack(spacing: 4) {
                     Text("✈️")
@@ -172,9 +179,16 @@ struct MediumWidgetView: View {
                     .font(.system(size: 10, weight: .semibold))
                     .foregroundColor(mutedColor)
 
+                HStack(spacing: 4) {
+                    Text("🛒")
+                        .font(.system(size: 11))
+                    Text("\(fmt(data.trumfPoints)) kr Trumf")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundColor(trumfColor)
+                }
+
                 Spacer()
 
-                // Progresjonslinje
                 VStack(alignment: .leading, spacing: 3) {
                     GeometryReader { geo in
                         ZStack(alignment: .leading) {
@@ -193,14 +207,11 @@ struct MediumWidgetView: View {
                 }
             }
 
-            // Divider
             Rectangle()
                 .fill(surfColor)
                 .frame(width: 1)
 
-            // Høyre kolonne
             VStack(alignment: .leading, spacing: 8) {
-                // Mål
                 VStack(alignment: .leading, spacing: 2) {
                     Text("🎯 Mål")
                         .font(.system(size: 10, weight: .bold))
@@ -213,7 +224,6 @@ struct MediumWidgetView: View {
                         .foregroundColor(mutedColor)
                 }
 
-                // Mangler
                 VStack(alignment: .leading, spacing: 2) {
                     Text("📈 Mangler")
                         .font(.system(size: 10, weight: .bold))
@@ -228,7 +238,6 @@ struct MediumWidgetView: View {
                     }
                 }
 
-                // Companion Ticket
                 if data.companionTicket {
                     HStack(spacing: 4) {
                         Text("🎟️")
@@ -273,7 +282,7 @@ struct BonusWidget: Widget {
                 .containerBackground(bgColor, for: .widget)
         }
         .configurationDisplayName("Bonusvarsel")
-        .description("Se EuroBonus-poeng og fremgang mot drømmereisen.")
+        .description("Se EuroBonus-poeng, Trumf-saldo og fremgang mot drømmereisen.")
         .supportedFamilies([.systemSmall, .systemMedium])
     }
 }
@@ -285,7 +294,7 @@ struct BonusWidget: Widget {
     BonusEntry(date: .now, data: BonusData(
         points: 45000, goalPoints: 150000,
         destination: "Bangkok", monthsToGoal: 24,
-        cardName: "Amex", companionTicket: true))
+        cardName: "Amex", companionTicket: true, trumfPoints: 1200))
 }
 
 #Preview(as: .systemMedium) {
@@ -294,5 +303,5 @@ struct BonusWidget: Widget {
     BonusEntry(date: .now, data: BonusData(
         points: 45000, goalPoints: 150000,
         destination: "Bangkok", monthsToGoal: 24,
-        cardName: "Amex", companionTicket: true))
+        cardName: "Amex", companionTicket: true, trumfPoints: 1200))
 }

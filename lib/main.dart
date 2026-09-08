@@ -8,6 +8,7 @@ import 'package:bonusvarsel/widgets/onboarding_gate.dart';
 import 'theme/app_theme.dart';
 import 'package:bonusvarsel/services/api_service.dart';
 import 'package:bonusvarsel/services/paywall_trigger_service.dart';
+import 'package:home_widget/home_widget.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
@@ -20,6 +21,7 @@ ThemeData _getTheme() {
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await HomeWidget.setAppGroupId('group.com.royrotvold.bonusvarsel');
   await Firebase.initializeApp();
   await EntitlementService.instance.load();
   // Ikke await - skal ikke forsinke appstart. Oppdaterer UI via

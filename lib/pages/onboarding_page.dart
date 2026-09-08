@@ -513,6 +513,48 @@ class _OnboardingPageState extends State<OnboardingPage> {
           title: 'Mer verdi uten mer friksjon',
           subtitle: 'Du slipper å lete manuelt etter hvilke butikker og tilbud som er best akkurat nå.',
         ),
+        Container(
+          margin: const EdgeInsets.only(top: 2, bottom: 12),
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.045),
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Icon(Icons.info_outline, color: Color(0xFF94A3B8), size: 20),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Premium og Elite er egne abonnementsnivåer',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w900,
+                        fontSize: 15,
+                        height: 1.15,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'De har ikke noe med hvilket American Express-kort (eller annet kort) du velger å gjøre – kortvalget ditt påvirker kun poengopptjeningen din, ikke abonnementsnivået.',
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.74),
+                        fontSize: 13,
+                        height: 1.28,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
       ],
       extraWidget: Container(
         padding: const EdgeInsets.all(14),

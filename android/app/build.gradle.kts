@@ -54,3 +54,9 @@ android {
 flutter {
     source = "../.."
 }
+
+configurations.all {
+    resolutionStrategy {
+        force("com.android.billingclient:billing:9.0.0")
+    }
+}

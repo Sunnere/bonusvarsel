@@ -89,6 +89,19 @@ class UserState {
     return prefs.getInt(_kEurobonusPoints) ?? 0;
   }
 
+  // ── Trumf-saldo ──────────────────────────────────────────────────────
+  static const _kTrumfPoints = 'trumf_points';
+
+  static Future<void> setTrumfPoints(int points) async {
+    final prefs = await _p();
+    await prefs.setInt(_kTrumfPoints, points);
+  }
+
+  static Future<int> getTrumfPoints() async {
+    final prefs = await _p();
+    return prefs.getInt(_kTrumfPoints) ?? 0;
+  }
+
   // ── Favoritter ───────────────────────────────────────────────────────
   static const _kFavorites = 'favorite_alerts';
 

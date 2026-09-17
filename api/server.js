@@ -1315,9 +1315,12 @@ const TRIPPEL_TRUMF_PREDICTED_DATES_2026 = [
   '2026-12-03',
 ];
 
+  // ENDRET 2026-09-15: varsel skal nå trigges 2 dager før Trippel
+  // Trumf-dagen (var: + 1, dvs. kvelden før). Effekt: 17.sept-varselet
+  // sendes 15.sept kl 18:00 i stedet for 16.sept.
 function trippelTrumfDateTomorrow() {
   const now = osloNow();
-  const tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+  const tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 2);
   const yyyy = tomorrow.getFullYear();
   const mm = String(tomorrow.getMonth() + 1).padStart(2, '0');
   const dd = String(tomorrow.getDate()).padStart(2, '0');

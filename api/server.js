@@ -386,17 +386,18 @@ async function fetchTrumfCampaigns() {
 
 
 // ── SAS Holidays / Elite-tilbud ──────────────────────────────────────────────
+// RYDDET 2026-09-17: forrige hardkodede kampanje ("Spar 2 000 kr", frist
+// 22.06.2026) er utløpt og fjernet - vi viste en død kampanje til
+// elite-brukere. Returnerer tom liste inntil en ekte kilde er på plass.
+//
+// TODO: elite/SkyTeam/bonusreise-varsling har INGEN egen datakilde i dag -
+// dette er kun ett hardkodet element som går inn i samme
+// checkFavoritesAndNotify()-favoritt-matching som Trumf/SAS. Skal dette
+// faktisk fungere for elite-brukere må det bygges som egen ting (egen
+// henting av SAS Holidays-tilbud + egen varslingslogikk), ikke bare fylles
+// inn her igjen med et nytt hardkodet tall/dato.
 async function fetchEliteCampaigns() {
-  const holidays = [
-    {
-      title: 'SAS Holidays: Spar 2 000 kr',
-      desc: 'Bestill fly + hotell innen 22. juni',
-      code: 'SUMMERDEAL',
-      savings: '2000 kr',
-      url: 'https://www.flysas.com/no-no/sas-holidays/',
-      ends: '22.06.2026',
-    },
-  ];
+  const holidays = [];
   return holidays.map((h, i) => ({
     ...h,
     id: `elite-holiday-${i}`,

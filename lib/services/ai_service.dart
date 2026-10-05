@@ -171,6 +171,7 @@ Vær spesifikk med tall og kronbeløp.''';
       allCardIds: allIds, isTrumfMember: isTrumf,
       plan: plan, isPremium: isPremium, isElite: isElite,
     ).replaceFirst('Svar på norsk.', langStr);
+    final fullSystemPrompt = systemPrompt + await _loyaltyContext();
 
     final trimmed = history.length > _maxHistoryMessages
         ? history.sublist(history.length - _maxHistoryMessages)
@@ -178,7 +179,7 @@ Vær spesifikk med tall og kronbeløp.''';
 
     // System prompt som første melding
     final messagesWithSystem = [
-      {'role': 'user', 'content': systemPrompt + '\n\nBruker: ' + (trimmed.isNotEmpty ? trimmed.first['content'] ?? '' : '')},
+      {'role': 'user', 'content': fullSystemPrompt + '\n\nBruker: ' + (trimmed.isNotEmpty ? trimmed.first['content'] ?? '' : '')},
       ...trimmed.skip(1).map((m) => {'role': m['role'] ?? 'user', 'content': m['content'] ?? ''}),
     ];
     final text = await _callViaFunction(messagesWithSystem.cast<Map<String, dynamic>>());
@@ -188,6 +189,39 @@ Vær spesifikk med tall og kronbeløp.''';
       return '⚠️ Jeg er usikker på dette. Jeg har sendt spørsmålet til $_supportEmail – du får svar snart!';
     }
     return text;
+  }
+
+  // ── Poengsaldo og Spenn-kontekst for AI-chatten ─────────────────────────
+  static Future<String> _loyaltyContext() async {
+    try {
+      final eb = await UserState.getEurobonusPoints();
+      final trumf = await UserState.getTrumfPoints();
+      final spenn = await UserState.getBalance('spenn');
+      final cash = await UserState.getBalance('cashpoints');
+      final enabled = await UserState.getEnabledPrograms();
+      final usesSpenn = enabled.contains('spenn') || spenn > 0;
+      final usesCash = enabled.contains('cashpoints') || cash > 0;
+      final sb = StringBuffer()
+        ..writeln()
+        ..writeln()
+        ..writeln('BRUKERENS POENGSALDO (tastet inn av brukeren selv, kan være utdatert):')
+        ..writeln('- EuroBonus: $eb poeng')
+        ..writeln('- Trumf-bonus: $trumf kr');
+      if (usesSpenn) sb.writeln('- Spenn: $spenn Spenn');
+      if (usesCash) sb.writeln('- Norwegian CashPoints: $cash');
+      if (usesSpenn) {
+        sb
+          ..writeln()
+          ..writeln('OM SPENN:')
+          ..writeln('- Spenn er poengprogrammet i Reitan-verdenen (blant annet REMA 1000, Norwegian og Strawberry). Trumf og EuroBonus hører til en annen verden (NorgesGruppen og SAS).')
+          ..writeln('- Ikke anta at poeng kan flyttes mellom Spenn og Trumf/EuroBonus.')
+          ..writeln('- Verdien av én Spenn varierer med hvor den brukes. Oppgi aldri én fast kroneverdi; si at den varierer og henvis til Spenn-appen for dagens satser.')
+          ..writeln('- Er du usikker på en Spenn-regel, si det tydelig i stedet for å gjette.');
+      }
+      return sb.toString();
+    } catch (_) {
+      return '';
+    }
   }
 
   // ── Kortspesifikk kunnskap ───────────────────────────────────────────────

@@ -214,19 +214,28 @@ async function fetchCampaigns() {
   const apiUrl =
     "https://onlineshopping.loyaltykey.com/api/v1/campaigns?filter[channel]=SAS&filter[language]=nb&filter[country]=NO&filter[amount]=20";
 
-  try {
-    const response = await fetch(apiUrl, {
-      headers: {
-        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)",
-        "Accept": "application/json, text/plain, */*",
-      },
-    });
+  // LAGT TIL 2026-09-21: retry ved forbigående feil (rate-limit, kald
+  // Railway-start, nettverksglipp). Bekreftet via /v1/dev/debug-loyaltykey-raw
+  // at API-et og mapping-logikken er sunn - dette gjelder KUN robusthet mot
+  // enkeltstående feilede kall, slik at vi ikke sender et falskt
+  // "0 kampanjer / trolig nede"-varsel pga. ett glipp.
+  const MAX_ATTEMPTS = 3;
+  let lastError = null;
 
-    if (!response.ok) {
-      throw new Error(`LoyaltyKey campaigns failed: ${response.status}`);
-    }
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    try {
+      const response = await fetch(apiUrl, {
+        headers: {
+          "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)",
+          "Accept": "application/json, text/plain, */*",
+        },
+      });
 
-    const payload = await response.json();
+      if (!response.ok) {
+        throw new Error(`LoyaltyKey campaigns failed: ${response.status}`);
+      }
+
+      const payload = await response.json();
     const rawItems = Array.isArray(payload?.data) ? payload.data : [];
 
     const mapped = rawItems
@@ -266,13 +275,22 @@ async function fetchCampaigns() {
       })
       .filter((item) => item.title && item.multiplier != null);
 
-    console.log("fetchCampaigns LoyaltyKey mapped:", mapped.length);
+      console.log("fetchCampaigns LoyaltyKey mapped:", mapped.length);
 
-    return mapped;
-  } catch (e) {
-    console.error("fetchCampaigns LoyaltyKey failed:", String(e));
-    return [];
+      return mapped;
+    } catch (e) {
+      lastError = e;
+      console.error(`fetchCampaigns LoyaltyKey forsøk ${attempt}/${MAX_ATTEMPTS} feilet:`, String(e));
+
+      if (attempt < MAX_ATTEMPTS) {
+        const delayMs = 500 * attempt; // 500ms, så 1000ms
+        await new Promise((resolve) => setTimeout(resolve, delayMs));
+      }
+    }
   }
+
+  console.error("fetchCampaigns LoyaltyKey failed after retries:", String(lastError));
+  return [];
 }
 
 function resetState() {
@@ -1227,7 +1245,8 @@ deviceFavoritesStore.init();
 const TIER_FAVORITE_LIMITS = { free: 0, premium: 5, elite: 10 };
 
 app.post("/v1/devices/favorites", express.json(), (req, res) => {
-  const { trumf = [], sas = [], email = null, telegram = null, tier: rawTier = 'free' } = req.body || {};
+  const { trumf = [], sas = [], email = null, telegram = null, tier: rawTier = 'free', programs = [] } = req.body || {};
+  const programsClean = Array.isArray(programs) ? programs.filter((p) => ['spenn', 'cashpoints'].includes(p)) : [];
   const tier = Object.prototype.hasOwnProperty.call(TIER_FAVORITE_LIMITS, rawTier) ? rawTier : 'free';
   const limit = TIER_FAVORITE_LIMITS[tier];
 
@@ -1235,7 +1254,7 @@ app.post("/v1/devices/favorites", express.json(), (req, res) => {
   const sasCapped = Array.isArray(sas) ? sas.slice(0, limit) : [];
 
   const deviceId = req.headers['x-device-id'] || 'default';
-  deviceFavorites[deviceId] = { trumf: trumfCapped, sas: sasCapped, email, telegram, tier, updatedAt: new Date().toISOString() };
+  deviceFavorites[deviceId] = { trumf: trumfCapped, sas: sasCapped, programs: programsClean, email, telegram, tier, updatedAt: new Date().toISOString() };
 
   deviceFavoritesStore.persist(deviceId, deviceFavorites[deviceId]).catch((err) => {
     console.error(`[v1/devices/favorites] Persistering feilet for ${deviceId}:`, err.message);
@@ -1252,6 +1271,51 @@ app.post("/v1/devices/favorites", express.json(), (req, res) => {
 
 // Telegram-webhook: fanger opp chat_id når en bruker starter/skriver til @bonusvarsel_bot,
 // og kobler det til brukernavnet deres (kun slik kan vi senere sende dem private meldinger).
+// ── Program-varsel (Spenn m.fl.) sendt manuelt av admin ──────────────────────
+// Bruk: POST /v1/admin/program-alert  header x-admin-key: <BV_ADMIN_KEY>
+// body: { program: 'spenn', title, text?, url?, dryRun? }
+const PROGRAM_ALERT_LABELS = { spenn: 'Spenn', cashpoints: 'Norwegian CashPoints' };
+const bvEsc = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+app.post("/v1/admin/program-alert", express.json(), async (req, res) => {
+  const adminKey = process.env.BV_ADMIN_KEY;
+  if (!adminKey || req.headers['x-admin-key'] !== adminKey) {
+    return res.status(401).json({ ok: false, error: 'unauthorized' });
+  }
+  const { program = 'spenn', title = '', text = '', url = '', dryRun = false } = req.body || {};
+  const label = PROGRAM_ALERT_LABELS[program];
+  if (!label || !String(title).trim()) {
+    return res.status(400).json({ ok: false, error: 'program (spenn|cashpoints) og title må være satt' });
+  }
+  const slug = String(title).toLowerCase().replace(/[^a-z0-9æøå]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60);
+  const tgMsg = `💸 <b>${bvEsc(label)}: ${bvEsc(title)}</b>` +
+    (text ? `\n\n${bvEsc(text)}` : '') + (url ? `\n\n${bvEsc(url)}` : '');
+  const html = `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:24px;">` +
+    `<h2 style="color:#0F2340;">💸 ${bvEsc(label)}: ${bvEsc(title)}</h2>` +
+    (text ? `<p>${bvEsc(text)}</p>` : '') +
+    (url ? `<p><a href="${bvEsc(url)}">${bvEsc(url)}</a></p>` : '') + `</div>`;
+
+  const result = { matched: 0, alreadySent: 0, telegram: 0, email: 0, errors: 0 };
+  for (const [deviceId, favs] of Object.entries(deviceFavorites)) {
+    if (!Array.isArray(favs.programs) || !favs.programs.includes(program)) continue;
+    result.matched++;
+    const key = `${deviceId}-${program}-${slug}`;
+    if (sentKeysStore.has(key)) { result.alreadySent++; continue; }
+    if (dryRun) continue;
+    try {
+      const tgChatId = telegramDeviceStore.get(deviceId) || (favs.telegram ? telegramLinkStore.get(favs.telegram) : null);
+      if (tgChatId && await sendTelegram(tgMsg, tgChatId)) result.telegram++;
+      if (favs.email) { await sendEmail(favs.email, `💸 ${label}: ${title}`, html); result.email++; }
+      await sentKeysStore.add(key);
+    } catch (err) {
+      result.errors++;
+      console.error(`[program-alert] ${deviceId}:`, err.message);
+    }
+  }
+  console.log(`[program-alert] ${program} "${title}" dryRun=${dryRun} ${JSON.stringify(result)}`);
+  res.json({ ok: true, program, title, dryRun: !!dryRun, ...result });
+});
+
 app.post("/telegram/webhook", express.json(), async (req, res) => {
   try {
     const msg = req.body && req.body.message;

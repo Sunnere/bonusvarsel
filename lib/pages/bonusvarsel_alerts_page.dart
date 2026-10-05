@@ -9,6 +9,7 @@ import '../models/ad_slot.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:http/http.dart' as http;
+import '../services/user_state.dart';
 import '../services/api_service.dart';
 import '../services/device_id_service.dart';
 import '../services/entitlement_service.dart';
@@ -37,6 +38,7 @@ class _BonusvarselAlertsPageState extends State<BonusvarselAlertsPage> {
   List<String> _sasFavIds = [];
   int _sasCatIdx = 0;
   String _sasSearch = "";
+  bool _spennOn = false;
   bool _showSas = false;
 
   static const _kEmail     = "alert_email";
@@ -145,6 +147,7 @@ class _BonusvarselAlertsPageState extends State<BonusvarselAlertsPage> {
       _telegramCtrl.text = _telegramValue;
       _trumfFavIds = prefs.getStringList(_kTrumfFavs) ?? [];
       _sasFavIds   = prefs.getStringList(_kSasFavs)   ?? [];
+      _spennOn     = (prefs.getStringList('enabled_programs') ?? []).contains('spenn');
     });
   }
 
@@ -276,6 +279,7 @@ class _BonusvarselAlertsPageState extends State<BonusvarselAlertsPage> {
           email: email,
           telegram: _telegramValue.isNotEmpty ? _telegramValue : null,
           tier: EntitlementService.instance.plan,
+          programs: await UserState.getEnabledPrograms(),
         );
       }
     } catch (e) {
@@ -297,6 +301,21 @@ class _BonusvarselAlertsPageState extends State<BonusvarselAlertsPage> {
     } catch (e) {
       debugPrint('Sync Firestore feilet: $e');
     }
+  }
+
+  Future<void> _toggleSpennAlerts(bool on) async {
+    final current = (await UserState.getEnabledPrograms()).toSet();
+    if (on) {
+      current.add('spenn');
+    } else {
+      current.remove('spenn');
+    }
+    await UserState.setEnabledPrograms(current.toList());
+    setState(() => _spennOn = on);
+    await _syncFavoritesToServer(trumf: _trumfFavIds, sas: _sasFavIds);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(on ? 'Spenn-varsler er slått på' : 'Spenn-varsler er slått av')));
   }
 
   Future<void> _toggleTrumf(String id) async {
@@ -402,6 +421,10 @@ class _BonusvarselAlertsPageState extends State<BonusvarselAlertsPage> {
           _badge("✈️ SAS ONLINE SHOPPING", _sBlue),
           const SizedBox(height: 8),
           _sasBox(),
+          const SizedBox(height: 20),
+          _badge("💸 SPENN · REMA 1000, NORWEGIAN M.FL.", _spennColor),
+          const SizedBox(height: 8),
+          _spennBox(),
           const SizedBox(height: 24),
           _h2("📧 E-postvarsler"),
           const SizedBox(height: 8),
@@ -495,6 +518,33 @@ class _BonusvarselAlertsPageState extends State<BonusvarselAlertsPage> {
         _hchip("Trumf", "${_trumfFavIds.length}/$_maxFavs"),
         _hchip("SAS", "${_sasFavIds.length}/$_maxFavs"),
       ]),
+    ]),
+  );
+
+  static const _spennColor = Color(0xFFF97316);
+
+  Widget _spennBox() => Container(
+    decoration: BoxDecoration(
+      color: _spennColor.withValues(alpha: 0.08),
+      borderRadius: BorderRadius.circular(20),
+      border: Border.all(color: _spennColor.withValues(alpha: 0.35))),
+    padding: const EdgeInsets.all(16),
+    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Row(children: [
+        const Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text("Spenn-kampanjer",
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: _spennColor)),
+          SizedBox(height: 2),
+          Text("Superspenn-dager og ekstra Spenn hos REMA 1000, Norwegian m.fl.",
+              style: TextStyle(fontSize: 11, color: Color(0xFFFDBA74))),
+        ])),
+        Switch(value: _spennOn, activeThumbColor: _spennColor, onChanged: _toggleSpennAlerts),
+      ]),
+      if (_spennOn && _emailValue.isEmpty && _telegramValue.isEmpty) ...[
+        const SizedBox(height: 8),
+        const Text("Legg inn e-post eller Telegram lenger ned for å motta varslene.",
+            style: TextStyle(fontSize: 12, color: Color(0xFFFDBA74))),
+      ],
     ]),
   );
 

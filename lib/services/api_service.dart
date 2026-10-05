@@ -63,6 +63,7 @@ class ApiService {
     String? email,
     String? telegram,
     String tier = 'free',
+    List<String> programs = const [],
   }) async {
     final deviceId = await DeviceIdService.getId();
     final res = await http.post(
@@ -71,7 +72,7 @@ class ApiService {
         'Content-Type': 'application/json',
         'x-device-id': deviceId,
       },
-      body: jsonEncode({'trumf': trumfFavs, 'sas': sasFavs, 'email': email, 'telegram': telegram, 'tier': tier}),
+      body: jsonEncode({'trumf': trumfFavs, 'sas': sasFavs, 'email': email, 'telegram': telegram, 'tier': tier, 'programs': programs}),
     ).timeout(const Duration(seconds: 5));
     if (res.statusCode < 200 || res.statusCode >= 300) {
       throw Exception('POST /v1/devices/favorites failed: \${res.statusCode}');

@@ -20,6 +20,7 @@ struct BonusData {
     var cardName: String
     var companionTicket: Bool
     var trumfPoints: Int
+    var spennPoints: Int = 0
 
     static func load() -> BonusData {
         let defaults = UserDefaults(suiteName: appGroupID)
@@ -30,7 +31,8 @@ struct BonusData {
             monthsToGoal:    defaults?.integer(forKey: "widget_months")        ?? 0,
             cardName:        defaults?.string(forKey: "widget_card")           ?? "Amex",
             companionTicket: defaults?.bool(forKey: "widget_companion_ticket") ?? false,
-            trumfPoints:     defaults?.integer(forKey: "widget_trumf_points")  ?? 0
+            trumfPoints:     defaults?.integer(forKey: "widget_trumf_points")  ?? 0,
+            spennPoints:     defaults?.integer(forKey: "widget_spenn_points")  ?? 0
         )
     }
 }
@@ -117,6 +119,15 @@ struct SmallWidgetView: View {
                     .font(.system(size: 10, weight: .bold))
                     .foregroundColor(trumfColor)
             }
+            if data.spennPoints > 0 {
+                HStack(spacing: 4) {
+                    Text("💸")
+                        .font(.system(size: 10))
+                    Text("\(fmt(data.spennPoints)) Spenn")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundColor(warnColor)
+                }
+            }
 
             Spacer()
 
@@ -185,6 +196,15 @@ struct MediumWidgetView: View {
                     Text("\(fmt(data.trumfPoints)) kr Trumf")
                         .font(.system(size: 10, weight: .bold))
                         .foregroundColor(trumfColor)
+                }
+                if data.spennPoints > 0 {
+                    HStack(spacing: 4) {
+                        Text("💸")
+                            .font(.system(size: 11))
+                        Text("\(fmt(data.spennPoints)) Spenn")
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundColor(warnColor)
+                    }
                 }
 
                 Spacer()

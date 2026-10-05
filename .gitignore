@@ -91,3 +91,4 @@ scripts/run_dev.sh
 scripts/run_dev.sh
 *.bak-*
 *.bak_*
+.script_backups/

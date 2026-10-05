@@ -1,6 +1,7 @@
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:flutter/foundation.dart';
+import '../models/loyalty_currency.dart';
 
 /// Globalt signal — trigges når kortvalg endres
 final cardSelectionNotifier = ValueNotifier<int>(0);
@@ -113,6 +114,33 @@ class UserState {
   static Future<List<String>> getFavorites() async {
     final prefs = await _p();
     return prefs.getStringList(_kFavorites) ?? [];
+  }
+
+  // ── Generiske saldoer og valgte programmer (Spenn, CashPoints m.fl.) ──
+  static const _kEnabledPrograms = 'enabled_programs';
+
+  static Future<void> setBalance(String currencyId, int value) async {
+    final cur = LoyaltyCurrency.byId(currencyId);
+    if (cur == null) return;
+    final prefs = await _p();
+    await prefs.setInt(cur.prefsKey, value);
+  }
+
+  static Future<int> getBalance(String currencyId) async {
+    final cur = LoyaltyCurrency.byId(currencyId);
+    if (cur == null) return 0;
+    final prefs = await _p();
+    return prefs.getInt(cur.prefsKey) ?? 0;
+  }
+
+  static Future<List<String>> getEnabledPrograms() async {
+    final prefs = await _p();
+    return prefs.getStringList(_kEnabledPrograms) ?? <String>[];
+  }
+
+  static Future<void> setEnabledPrograms(List<String> ids) async {
+    final prefs = await _p();
+    await prefs.setStringList(_kEnabledPrograms, ids);
   }
 
   // ── Reset ────────────────────────────────────────────────────────────

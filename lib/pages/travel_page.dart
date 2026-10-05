@@ -117,6 +117,11 @@ class _TravelPageState extends State<TravelPage> with WidgetsBindingObserver {
   // Nåværende Trumf-saldo (kr)
   final _trumfKrCtrl = TextEditingController(text: '0');
 
+  // Spenn, Norwegian CashPoints og valgte ekstra-programmer
+  final _spennCtrl = TextEditingController(text: '0');
+  final _cashCtrl = TextEditingController(text: '0');
+  Set<String> _enabledExtra = {};
+
   // Månedlig forbruk (for opptjeningsestimering)
   double _monthlySpend = 20000;
 
@@ -142,6 +147,8 @@ class _TravelPageState extends State<TravelPage> with WidgetsBindingObserver {
     _destCtrl.dispose();
     _pointsCtrl.dispose();
     _trumfKrCtrl.dispose();
+    _spennCtrl.dispose();
+    _cashCtrl.dispose();
     super.dispose();
   }
 
@@ -162,6 +169,9 @@ class _TravelPageState extends State<TravelPage> with WidgetsBindingObserver {
         ids.map((i) => rateMap[i] ?? 10).reduce((a, b) => a > b ? a : b);
     final savedPoints = await UserState.getEurobonusPoints();
     final savedTrumfKr = await UserState.getTrumfPoints();
+    final savedSpenn = await UserState.getBalance('spenn');
+    final savedCash = await UserState.getBalance('cashpoints');
+    final savedEnabled = await UserState.getEnabledPrograms();
     if (!mounted) return;
     setState(() {
       _cardIds = ids;
@@ -170,6 +180,9 @@ class _TravelPageState extends State<TravelPage> with WidgetsBindingObserver {
       _isTrumfMember = trumf;
       if (savedPoints > 0) _pointsCtrl.text = savedPoints.toString();
       if (savedTrumfKr > 0) _trumfKrCtrl.text = savedTrumfKr.toString();
+      if (savedSpenn > 0) _spennCtrl.text = savedSpenn.toString();
+      if (savedCash > 0) _cashCtrl.text = savedCash.toString();
+      _enabledExtra = savedEnabled.toSet();
     });
   }
 
@@ -187,6 +200,31 @@ class _TravelPageState extends State<TravelPage> with WidgetsBindingObserver {
     await UserState.setTrumfPoints(kr);
     await HomeWidget.saveWidgetData<int>('widget_trumf_points', kr);
     await HomeWidget.updateWidget(iOSName: 'BonusWidget');
+  }
+
+  Future<void> _saveBalance(String id, String value, {String? widgetKey}) async {
+    final v = int.tryParse(value.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0;
+    await UserState.setBalance(id, v);
+    if (widgetKey != null) {
+      await HomeWidget.saveWidgetData<int>(widgetKey, v);
+      await HomeWidget.updateWidget(iOSName: 'BonusWidget');
+    }
+  }
+
+  Future<void> _toggleProgram(String id, bool on) async {
+    setState(() {
+      if (on) {
+        _enabledExtra.add(id);
+      } else {
+        _enabledExtra.remove(id);
+      }
+    });
+    await UserState.setEnabledPrograms(_enabledExtra.toList());
+    if (id == 'spenn') {
+      final v = on ? await UserState.getBalance('spenn') : 0;
+      await HomeWidget.saveWidgetData<int>('widget_spenn_points', v);
+      await HomeWidget.updateWidget(iOSName: 'BonusWidget');
+    }
   }
 
   // ── Beregninger ──────────────────────────────────────────────────────────
@@ -803,6 +841,56 @@ class _TravelPageState extends State<TravelPage> with WidgetsBindingObserver {
   }
 
   // ── Poengstatus ──────────────────────────────────────────────────────────
+  Widget _programChips() {
+    const options = {'spenn': 'Spenn', 'cashpoints': 'Norwegian CashPoints'};
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        for (final e in options.entries)
+          FilterChip(
+            label: Text(e.value),
+            selected: _enabledExtra.contains(e.key),
+            onSelected: (v) => _toggleProgram(e.key, v),
+            selectedColor: _primary.withValues(alpha: 0.25),
+            checkmarkColor: _text,
+            backgroundColor: _surface2,
+            side: const BorderSide(color: _border),
+            labelStyle: const TextStyle(color: _text, fontWeight: FontWeight.w700),
+          ),
+      ],
+    );
+  }
+
+  Widget _balanceField(TextEditingController ctrl, String label, String suffix,
+      ValueChanged<String> onChanged) {
+    return TextField(
+      controller: ctrl,
+      onChanged: onChanged,
+      keyboardType: TextInputType.number,
+      style: const TextStyle(color: _text, fontSize: 22, fontWeight: FontWeight.w900),
+      decoration: InputDecoration(
+        labelText: label,
+        labelStyle: const TextStyle(color: _textMuted),
+        filled: true,
+        fillColor: _surface2,
+        border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: _border)),
+        enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: _border)),
+        focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: _primary, width: 1.5)),
+        hintText: '0',
+        hintStyle: const TextStyle(color: Colors.white24),
+        suffixText: suffix,
+        suffixStyle: const TextStyle(color: _textMuted),
+      ),
+    );
+  }
+
   Widget _poengStatusSection() {
     return _card(
       title: '🏆 Dine EuroBonus-poeng nå',
@@ -859,6 +947,25 @@ class _TravelPageState extends State<TravelPage> with WidgetsBindingObserver {
             suffixStyle: const TextStyle(color: _textMuted),
           ),
         ),
+        const SizedBox(height: 16),
+        const Text('Flere programmer',
+            style: TextStyle(color: _textMuted, fontSize: 13, fontWeight: FontWeight.w700)),
+        const SizedBox(height: 8),
+        _programChips(),
+        if (_enabledExtra.contains('spenn')) ...[
+          const SizedBox(height: 12),
+          _balanceField(_spennCtrl, 'Spenn-saldo', 'Spenn', (v) {
+            setState(() {});
+            _saveBalance('spenn', v, widgetKey: 'widget_spenn_points');
+          }),
+        ],
+        if (_enabledExtra.contains('cashpoints')) ...[
+          const SizedBox(height: 12),
+          _balanceField(_cashCtrl, 'Norwegian CashPoints', 'CashPoints', (v) {
+            setState(() {});
+            _saveBalance('cashpoints', v);
+          }),
+        ],
         if (_currentPoints > 0) ...[
           const SizedBox(height: 12),
           _costRow('Trenger', '${_fmt(_pointsNeeded)}p'),

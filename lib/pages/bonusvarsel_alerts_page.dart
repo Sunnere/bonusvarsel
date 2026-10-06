@@ -406,6 +406,8 @@ class _BonusvarselAlertsPageState extends State<BonusvarselAlertsPage> {
           _adBanner('varsler'),
           const SizedBox(height: 8),
           _hero(),
+          const SizedBox(height: 12),
+          _newsCard(),
           const SizedBox(height: 20),
           if (_loading) const Center(child: CircularProgressIndicator())
           else if (_activeAlerts.isNotEmpty) ...[
@@ -494,6 +496,88 @@ class _BonusvarselAlertsPageState extends State<BonusvarselAlertsPage> {
           ],
           const SizedBox(height: 32),
         ]),
+      ),
+    );
+  }
+
+  static const _newsOrange = Color(0xFFF97316);
+
+  Widget _newsCard() => GestureDetector(
+    onTap: _showProgramsInfo,
+    child: Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: _newsOrange.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: _newsOrange.withValues(alpha: 0.4))),
+      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+          decoration: BoxDecoration(color: _newsOrange, borderRadius: BorderRadius.circular(6)),
+          child: const Text("NYTT",
+              style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.white))),
+        const SizedBox(width: 10),
+        const Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text("Spenn er her! 💸",
+              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Color(0xFFF8FAFC))),
+          SizedBox(height: 4),
+          Text("Få varsel om Superspenn og ekstra Spenn hos REMA 1000, Norwegian m.fl.",
+              style: TextStyle(fontSize: 12, color: Color(0xFFCBD5E1), height: 1.35)),
+          SizedBox(height: 6),
+          Text("Kommer snart: Avios · Flying Blue · Miles & More",
+              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFFFDBA74))),
+        ])),
+        const Icon(Icons.info_outline, size: 20, color: Color(0xFFFDBA74)),
+      ]),
+    ),
+  );
+
+  void _showProgramsInfo() {
+    showDialog(
+      context: context,
+      builder: (ctx) => Dialog(
+        backgroundColor: const Color(0xFF0B1728),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(children: [
+                const Icon(Icons.info_outline, color: Color(0xFFFDBA74)),
+                const SizedBox(width: 8),
+                const Expanded(child: Text("Programmer i Bonusvarsel",
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Colors.white))),
+                IconButton(icon: const Icon(Icons.close, color: Colors.white54),
+                    onPressed: () => Navigator.pop(ctx)),
+              ]),
+              const SizedBox(height: 12),
+              const Text("✅ Du kan følge nå",
+                  style: TextStyle(color: Color(0xFF34D399), fontWeight: FontWeight.w700, fontSize: 13)),
+              const SizedBox(height: 8),
+              const Text("• Trumf Netthandel – ekstra bonus i favorittbutikkene dine\n"
+                  "• SAS Online Shopping – ekstra EuroBonus-poeng\n"
+                  "• Spenn – Superspenn-dager og ekstra Spenn hos REMA 1000, Norwegian m.fl.",
+                  style: TextStyle(fontSize: 12, color: Color(0xFFCBD5E1), height: 1.5)),
+              const SizedBox(height: 16),
+              const Text("💸 Slik får du Spenn-varsler",
+                  style: TextStyle(color: Color(0xFFFDBA74), fontWeight: FontWeight.w700, fontSize: 13)),
+              const SizedBox(height: 8),
+              _step("1", "Slå på «Spenn-kampanjer» lenger ned på denne siden"),
+              _step("2", "Legg inn e-post eller koble til Telegram"),
+              _step("3", "Legg gjerne inn Spenn-saldoen din under Reis"),
+              const SizedBox(height: 16),
+              const Text("🔜 Kommer snart",
+                  style: TextStyle(color: Color(0xFF60A5FA), fontWeight: FontWeight.w700, fontSize: 13)),
+              const SizedBox(height: 8),
+              const Text("• Avios (British Airways m.fl.)\n"
+                  "• Flying Blue (Air France-KLM)\n"
+                  "• Miles & More (Lufthansa m.fl.)",
+                  style: TextStyle(fontSize: 12, color: Color(0xFFCBD5E1), height: 1.5)),
+            ],
+          ),
+        ),
       ),
     );
   }

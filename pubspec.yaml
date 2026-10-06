@@ -2,8 +2,7 @@ name: bonusvarsel
 description: Bonusvarsel – SAS EuroBonus companion app
 publish_to: "none"
 
-version: 1.2.5+37
-
+version: 1.3.0+38
 environment:
   sdk: ">=3.2.0 <4.0.0"
 

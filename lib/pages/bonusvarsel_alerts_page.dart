@@ -517,6 +517,7 @@ class _BonusvarselAlertsPageState extends State<BonusvarselAlertsPage> {
         _hchip("Aktive", _activeAlerts.length.toString()),
         _hchip("Trumf", "${_trumfFavIds.length}/$_maxFavs"),
         _hchip("SAS", "${_sasFavIds.length}/$_maxFavs"),
+        _hchip("Spenn", _spennOn ? "på" : "av"),
       ]),
     ]),
   );

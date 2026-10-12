@@ -1295,7 +1295,7 @@ app.post("/v1/admin/program-alert", express.json(), async (req, res) => {
     (text ? `<p>${bvEsc(text)}</p>` : '') +
     (url ? `<p><a href="${bvEsc(url)}">${bvEsc(url)}</a></p>` : '') + `</div>`;
 
-  const result = { matched: 0, alreadySent: 0, telegram: 0, email: 0, errors: 0 };
+  const result = { matched: 0, alreadySent: 0, telegram: 0, telegramFailed: 0, email: 0, emailFailed: 0, errors: 0 };
   for (const [deviceId, favs] of Object.entries(deviceFavorites)) {
     if (!Array.isArray(favs.programs) || !favs.programs.includes(program)) continue;
     result.matched++;
@@ -1304,9 +1304,18 @@ app.post("/v1/admin/program-alert", express.json(), async (req, res) => {
     if (dryRun) continue;
     try {
       const tgChatId = telegramDeviceStore.get(deviceId) || (favs.telegram ? telegramLinkStore.get(favs.telegram) : null);
-      if (tgChatId && await sendTelegram(tgMsg, tgChatId)) result.telegram++;
-      if (favs.email) { await sendEmail(favs.email, `💸 ${label}: ${title}`, html); result.email++; }
-      await sentKeysStore.add(key);
+      let delivered = false;
+      if (tgChatId) {
+        if (await sendTelegram(tgMsg, tgChatId)) { result.telegram++; delivered = true; }
+        else result.telegramFailed++;
+      }
+      if (favs.email) {
+        if (await sendEmail(favs.email, `💸 ${label}: ${title}`, html)) { result.email++; delivered = true; }
+        else result.emailFailed++;
+      }
+      // Marker som sendt kun hvis minst én kanal lyktes – ellers kan samme varsel sendes på nytt
+      if (delivered) await sentKeysStore.add(key);
+      else result.errors++;
     } catch (err) {
       result.errors++;
       console.error(`[program-alert] ${deviceId}:`, err.message);
@@ -1383,19 +1392,37 @@ const TRIPPEL_TRUMF_PREDICTED_DATES_2026 = [
   // ENDRET 2026-09-15: varsel skal nå trigges 2 dager før Trippel
   // Trumf-dagen (var: + 1, dvs. kvelden før). Effekt: 17.sept-varselet
   // sendes 15.sept kl 18:00 i stedet for 16.sept.
-function trippelTrumfDateTomorrow() {
+const TRIPPEL_TRUMF_SLOTS_2026 = {
+  '2026-10-15': [{ daysBefore: 2, hour: 18 }],
+  '2026-11-12': [{ daysBefore: 4, hour: 15 }, { daysBefore: 1, hour: 18 }],
+};
+const TT_MONTHS_NO = ['januar','februar','mars','april','mai','juni','juli','august','september','oktober','november','desember'];
+const TT_WEEKDAYS_NO = ['søndag','mandag','tirsdag','onsdag','torsdag','fredag','lørdag'];
+function trippelTrumfDateOffset(days) {
   const now = osloNow();
-  const tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 2);
-  const yyyy = tomorrow.getFullYear();
-  const mm = String(tomorrow.getMonth() + 1).padStart(2, '0');
-  const dd = String(tomorrow.getDate()).padStart(2, '0');
-  return `${yyyy}-${mm}-${dd}`;
+  const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + days);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
-
-function isTrippelTrumfEveWindow() {
+function trippelTrumfNorskDato(iso) {
+  const [y, m, d] = iso.split('-').map(Number);
+  const wd = TT_WEEKDAYS_NO[new Date(y, m - 1, d).getDay()];
+  return `${wd} ${d}. ${TT_MONTHS_NO[m - 1]}`;
+}
+// Returnerer varselinfo hvis nå er et varselvindu for Trippel Trumf, ellers null
+function trippelTrumfWindow() {
   const now = osloNow();
-  if (now.getHours() !== 18) return false;
-  return TRIPPEL_TRUMF_PREDICTED_DATES_2026.includes(trippelTrumfDateTomorrow());
+  for (const [target, slots] of Object.entries(TRIPPEL_TRUMF_SLOTS_2026)) {
+    for (const s of slots) {
+      if (now.getHours() !== s.hour) continue;
+      if (trippelTrumfDateOffset(s.daysBefore) !== target) continue;
+      return {
+        dateKey: target,
+        daysBefore: s.daysBefore,
+        when: s.daysBefore === 1 ? 'i morgen' : trippelTrumfNorskDato(target),
+      };
+    }
+  }
+  return null;
 }
 
 function pickWeeklyGeneralOffers(campaigns) {
@@ -1442,16 +1469,19 @@ async function checkFavoritesAndNotify() {
       const allFavSlugs = Object.keys(LOYALTY_PROGRAMS).flatMap((programKey) => favs[programKey] || []);
       const isFreeTier = !allFavSlugs.length;
 
-      if (isTrippelTrumfEveWindow()) {
-        const dateKey = trippelTrumfDateTomorrow();
-        const ttKey = `${deviceId}-trippeltrumf-${dateKey}`;
+      const ttW = trippelTrumfWindow();
+      if (ttW) {
+        const { dateKey, daysBefore, when } = ttW;
+        const ttKey = daysBefore === 2
+          ? `${deviceId}-trippeltrumf-${dateKey}`
+          : `${deviceId}-trippeltrumf-${dateKey}-d${daysBefore}`;
         if (!sentKeysStore.has(ttKey)) {
           const tgChatIdTT = telegramDeviceStore.get(deviceId) || (favs.telegram ? telegramLinkStore.get(favs.telegram) : null);
-          const ttMsg = `🔔 <b>Trippel Trumf er trolig i morgen!</b>\n\nHusk å skanne Trumf-kortet ditt i butikk (KIWI, MENY, SPAR, Joker m.fl.) for 3% bonus - 4% med Trumf Pay.\n\n<i>NB: Datoen er ikke offisielt bekreftet av Trumf ennå - sjekk Trumf-appen for siste nytt.</i>`;
+          const ttMsg = `🔔 <b>Trippel Trumf er trolig ${when}!</b>\n\nHusk å skanne Trumf-kortet ditt i butikk (KIWI, MENY, SPAR, Joker m.fl.) for 3% bonus - 4% med Trumf Pay.\n\n<i>NB: Datoen er ikke offisielt bekreftet av Trumf ennå - sjekk Trumf-appen for siste nytt.</i>`;
           if (tgChatIdTT) await sendTelegram(ttMsg, tgChatIdTT);
           if (favs.email) {
-            const ttHtml = `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:24px;"><h2 style="color:#0F2340;">🔔 Trippel Trumf er trolig i morgen!</h2><p>Husk å skanne Trumf-kortet ditt i butikk (KIWI, MENY, SPAR, Joker m.fl.) for 3% bonus - 4% med Trumf Pay.</p><p style="color:#94A3B8;font-size:12px;">NB: Datoen er ikke offisielt bekreftet av Trumf ennå - sjekk Trumf-appen for siste nytt.</p></div>`;
-            await sendEmail(favs.email, '🔔 Trippel Trumf er trolig i morgen!', ttHtml);
+            const ttHtml = `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:24px;"><h2 style="color:#0F2340;">🔔 Trippel Trumf er trolig ${when}!</h2><p>Husk å skanne Trumf-kortet ditt i butikk (KIWI, MENY, SPAR, Joker m.fl.) for 3% bonus - 4% med Trumf Pay.</p><p style="color:#94A3B8;font-size:12px;">NB: Datoen er ikke offisielt bekreftet av Trumf ennå - sjekk Trumf-appen for siste nytt.</p></div>`;
+            await sendEmail(favs.email, `🔔 Trippel Trumf er trolig ${when}!`, ttHtml);
           }
           await sentKeysStore.add(ttKey);
         }

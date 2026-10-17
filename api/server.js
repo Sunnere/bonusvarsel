@@ -623,6 +623,16 @@ app.get("/api/debug", async (_, res) => {
   }
 });
 
+// DEV_GUARD_V1: /dev og /v1/dev krever x-admin-key (BV_ADMIN_KEY)
+const devGuard = (req, res, next) => {
+  const adminKey = process.env.BV_ADMIN_KEY;
+  if (!adminKey || req.headers['x-admin-key'] !== adminKey) {
+    return res.status(401).json({ ok: false, error: 'unauthorized' });
+  }
+  next();
+};
+app.use(["/dev", "/v1/dev"], devGuard);
+
 app.post("/dev/simulate-campaign", async (req, res) => {
   try {
     const result = await runSimulation(req.body ?? {});

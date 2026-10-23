@@ -1,0 +1,26 @@
+name: Awin ukens deal
+on:
+  schedule:
+    - cron: "0 6 * * 6"   # lørdag 06:00 UTC
+  workflow_dispatch: {}
+permissions:
+  contents: write
+jobs:
+  deals:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Finn ukens deals
+        env:
+          AWIN_FEED_KEY: ${{ secrets.AWIN_FEED_KEY }}
+        run: python3 scripts/awin_deals.py
+      - name: Commit data/awin-deals.json
+        run: |
+          git config user.name "awin-deals-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add data/awin-deals.json
+          git diff --cached --quiet || git commit -m "Awin ukens deal $(date -u +%F)"
+          git push

@@ -2,10 +2,10 @@
 """Ukens deal: henter Awin-produktfeeder, finner største prisfall, lager
 ferdige Cloudinary-bilder og skriver data/awin-deals.json for Make.
 Krever env AWIN_FEED_KEY. Kun Python stdlib."""
-import csv, gzip, io, json, os, sys, urllib.parse, urllib.request, datetime
+import csv, gzip, io, json, os, sys, urllib.error, urllib.parse, urllib.request, datetime
 
 PUBLISHER = "3126086"
-KEY = os.environ.get("AWIN_FEED_KEY", "").strip()
+KEY = os.environ.get("AWIN_FEED_KEY", "").strip().strip("/")
 # Annonsører som står på bonusshop.no (advertiserId -> visningsnavn)
 ADVERTISERS = {
     "25181": "Dyson",
@@ -58,7 +58,10 @@ def main():
     if not KEY:
         sys.exit("AWIN_FEED_KEY mangler")
     base = f"https://ui.awin.com/productdata-darwin-download/publisher/{PUBLISHER}/{KEY}/1"
-    rows = list(csv.DictReader(io.StringIO(get(base + "/feedList").decode("utf-8", "ignore"))))
+    try:
+        rows = list(csv.DictReader(io.StringIO(get(base + "/feedList").decode("utf-8", "ignore"))))
+    except urllib.error.HTTPError as e:
+        sys.exit(f"Awin feedList svarte {e.code} – sjekk AWIN_FEED_KEY (lengde {len(KEY)}, skal være 32 tegn)")
     feeds = {}
     for r in rows:
         if r["Advertiser ID"] in ADVERTISERS and r["Membership Status"] == "active" and r["Primary Region"] == "NO":
@@ -71,7 +74,11 @@ def main():
             pass
     cands = []
     for adv, url in feeds.items():
-        raw = get(url)
+        try:
+            raw = get(url)
+        except Exception as e:
+            print(f"Hopper over feed {ADVERTISERS[adv]}: {e}")
+            continue
         try:
             raw = gzip.decompress(raw)
         except OSError:
@@ -84,27 +91,36 @@ def main():
             if p.get("in_stock") not in ("1", "yes", "true") or new < MIN_PRICE or old <= new:
                 continue
             pct = round((1 - new / old) * 100)
-            img = p.get("merchant_image_url") or p.get("aw_image_url")
+            imgs = [u for u in (p.get("merchant_image_url"), p.get("aw_image_url")) if u]
+            img = imgs[0] if imgs else ""
             if pct < MIN_PCT or not img or not p.get("aw_deep_link"):
                 continue
             cands.append({"advertiser_id": adv, "brand": ADVERTISERS[adv], "product_id": p["aw_product_id"],
                           "name": p["product_name"], "price": new, "old_price": old, "pct": pct,
-                          "image": img, "link": p["aw_deep_link"]})
+                          "image": img, "images": imgs, "link": p["aw_deep_link"]})
     cands = [d for d in cands if d["product_id"] not in prev]  # aldri samme produkt to uker på rad
     cands.sort(key=lambda d: -d["pct"])
     deals, per = [], {}
     for d in cands:
         if per.get(d["brand"], 0) >= MAX_PER_BRAND:
             continue
+        pid = None
+        for u in d.pop("images"):
+            try:
+                pid = upload(u)
+                break
+            except Exception as e:
+                print(f"Bilde feilet for {d['name']}: {e}")
+        if not pid:
+            continue
         per[d["brand"]] = per.get(d["brand"], 0) + 1
-        deals.append(d)
-        if len(deals) >= MAX_DEALS:
-            break
-    for d in deals:
         d["short_name"] = short_name(d["name"], d["brand"])
         d["headline"] = f"-{d['pct']} % på {d['short_name']}"
         d["price_text"] = f"Nå {nok(d['price'])} · før {nok(d['old_price'])}"
-        d["media_url"] = ad_url(upload(d["image"]), d["brand"], d["headline"], d["price_text"])
+        d["media_url"] = ad_url(pid, d["brand"], d["headline"], d["price_text"])
+        deals.append(d)
+        if len(deals) >= MAX_DEALS:
+            break
     out = {"generated": datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
            "count": len(deals), "deals": deals,
            "media_items": ",".join(json.dumps({"type": "image", "url": d["media_url"]}) for d in deals),

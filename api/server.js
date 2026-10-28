@@ -100,9 +100,20 @@ function bvPortalLabel(c) {
 function bvPortalColor(c) {
   return c.source === 'trumf' ? '#1F7A4D' : '#0F2340';
 }
-function bvPointsText(c) {
-  if (c.source === 'trumf') return 'ekstra Trumf-bonus nå';
-  if (c.source === 'sas')   return 'ekstra EuroBonus-poeng nå';
+function bvPointsText(c) { // [30] points-text
+  const nok = (n) => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+  if (c.source === 'trumf') {
+    const m = Number(c.multiplier);
+    return m > 0 ? 'opptil ' + String(m).replace('.', ',') + ' % Trumf-bonus nå' : 'ekstra Trumf-bonus nå';
+  }
+  if (c.source === 'sas') {
+    const r = c.raw || {};
+    const camp = Number(r.points_campaign);
+    const ends = r.campaign_ends_date ? ' (til ' + String(r.campaign_ends_date).replace(/[^0-9.]/g, '') + ')' : '';
+    if (camp > 0 && r.commission_type === 'fixed')    return nok(camp) + ' EuroBonus-poeng fast' + ends;
+    if (camp > 0 && r.commission_type === 'variable') return nok(camp) + ' EuroBonus-poeng per 100 kr' + ends;
+    return 'ekstra EuroBonus-poeng nå';
+  }
   return 'kampanje nå';
 }
 function bvOfferCard(c) {
@@ -1370,6 +1381,10 @@ app.post("/telegram/webhook", express.json(), async (req, res) => {
 });
 
 app.get("/v1/devices/favorites", (req, res) => {
+  const adminKey = process.env.BV_ADMIN_KEY; // [29] admin-key
+  if (!adminKey || req.headers['x-admin-key'] !== adminKey) {
+    return res.status(401).json({ ok: false, error: 'unauthorized' });
+  }
   res.json({ ok: true, devices: deviceFavorites });
 });
 

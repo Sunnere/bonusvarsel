@@ -13,6 +13,9 @@ import * as cheerio from "cheerio";
 import * as sentKeysStore from './lib/sentKeysStore.js';
 import * as deviceFavoritesStore from './lib/deviceFavoritesStore.js';
 import * as entitlementStore from './lib/entitlementStore.js';
+// FAV_LOCK_V1
+import { getAuth } from 'firebase-admin/auth';
+import { getFirestore } from 'firebase-admin/firestore';
 import { handleStripeWebhook } from './lib/stripeWebhook.js';
 import { handleGetMe } from './lib/meHandler.js';
 import * as telegramLinkStore from './lib/telegramLinkStore.js';
@@ -330,6 +333,63 @@ function resetState() {
 }
 
 
+// ── QG-START kvalitetsport (script 30) ──
+const QG_MAX_MULTIPLIER = Number(process.env.QG_MAX_MULTIPLIER || 50);
+const QG_MAX_DATA_AGE_MS = Number(process.env.QG_MAX_DATA_AGE_MS || 24 * 60 * 60 * 1000);
+
+function qgNow() {
+  // QG_NOW brukes kun i tester
+  return process.env.QG_NOW ? new Date(process.env.QG_NOW) : new Date();
+}
+
+function qgOsloDay(date) {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Europe/Oslo', year: 'numeric', month: '2-digit', day: '2-digit',
+  }).format(date); // "YYYY-MM-DD"
+}
+
+function qgEndDay(raw) {
+  // LoyaltyKey: campaign_ends_date = "dd.mm.yyyy"
+  const m = String((raw && raw.campaign_ends_date) || '').trim().match(/^(\d{2})\.(\d{2})\.(\d{4})$/);
+  if (!m) return null;
+  return m[3] + '-' + m[2] + '-' + m[1];
+}
+
+function qgReason(c) {
+  if (!c || !String(c.title || '').trim()) return 'mangler tittel';
+  const mult = Number(c.multiplier);
+  if (!Number.isFinite(mult) || mult <= 1) return 'ugyldig multiplier';
+  if (mult > QG_MAX_MULTIPLIER) return 'urimelig multiplier';
+  const raw = c.raw || null;
+  if (raw && raw.has_campaign !== undefined && Number(raw.has_campaign) === 0) return 'ingen aktiv kampanje';
+  if (raw && raw.campaign_ends_date !== undefined) {
+    const end = qgEndDay(raw);
+    if (!end) return 'ugyldig sluttdato';
+    if (end < qgOsloDay(qgNow())) return 'utgått';
+  }
+  return null;
+}
+
+function qgFilter(list, label) {
+  const kept = [];
+  const rejected = {};
+  for (const c of list) {
+    const reason = qgReason(c);
+    if (reason) rejected[reason] = (rejected[reason] || 0) + 1;
+    else kept.push(c);
+  }
+  if (Object.keys(rejected).length) {
+    console.log('[QG] ' + label + ': beholdt ' + kept.length + ', forkastet ' + JSON.stringify(rejected));
+  }
+  return kept;
+}
+
+function qgDataFresh() {
+  const at = Date.parse((state && state.lastGoodCampaignsAt) || '');
+  return Number.isFinite(at) && (qgNow().getTime() - at) <= QG_MAX_DATA_AGE_MS;
+}
+// ── QG-END ──
+
 function campaignKey(item) {
   return `${item.url || "no-url"}::${item.title || "untitled"}`;
 }
@@ -449,6 +509,7 @@ async function fetchAllCampaigns(plan = 'free') {
     ...eliteCampaigns.map(c => ({ ...c, source: 'elite', minPlan: 'elite' })),
   ];
 
+  all.splice(0, all.length, ...qgFilter(all, 'favoritter'));
   const planLevel = { free: 0, premium: 1, elite: 2 };
   const userLevel = planLevel[plan] ?? 0;
 
@@ -742,6 +803,8 @@ async function evaluateLivePipelineTick() {
     }
   }
 
+  if (usedCache && !qgDataFresh()) { console.log('[QG] cache for gammel, sender ingenting'); campaigns = []; }
+  campaigns = qgFilter(campaigns, 'pipeline');
   const sorted = [...campaigns]
     .sort((a, b) => Number(b.multiplier || 0) - Number(a.multiplier || 0))
     .slice(0, 20);
@@ -1265,7 +1328,104 @@ deviceFavoritesStore.init();
 
 const TIER_FAVORITE_LIMITS = { free: 0, premium: 5, elite: 10 };
 
-app.post("/v1/devices/favorites", express.json(), (req, res) => {
+// FAV_LOCK_V1: favoritter krever innlogging, og grensene styres av serveren
+const FAV_PROGRAM_KEYS = ['spenn', 'cashpoints', 'avios', 'amexmr'];
+const FAV_LIMITS = {
+  free:    { trumf: 1, sas: 1, spenn: 1, cashpoints: 0, avios: 0, amexmr: 0 },
+  premium: { trumf: 5, sas: 5, spenn: 5, cashpoints: 5, avios: 5, amexmr: 5 },
+  elite:   { trumf: 10, sas: 10, spenn: 10, cashpoints: 10, avios: 10, amexmr: 10 },
+};
+
+async function favRequireUser(req, res) {
+  const h = String(req.headers.authorization || '');
+  const token = h.startsWith('Bearer ') ? h.slice(7) : null;
+  if (!token) {
+    res.status(401).json({ ok: false, error: 'login_required' });
+    return null;
+  }
+  try {
+    const decoded = await getAuth().verifyIdToken(token);
+    return { uid: decoded.uid, email: decoded.email ? String(decoded.email).toLowerCase() : null };
+  } catch (e) {
+    res.status(401).json({ ok: false, error: 'invalid_token' });
+    return null;
+  }
+}
+
+async function favResolveTier(uid, email) {
+  try {
+    const db = getFirestore();
+    const paid = (p) => p === 'premium' || p === 'elite';
+    if (uid) {
+      const s = await db.collection('subscriptions').doc(uid).get();
+      if (s.exists) {
+        const d = s.data();
+        const expired = d.source === 'google_play' && d.playExpiryTime && d.playExpiryTime.toMillis() < Date.now();
+        if (!expired && paid(d.plan)) return d.plan;
+      }
+    }
+    if (email) {
+      const p = await db.collection('pending_subscriptions').doc(email.toLowerCase()).get();
+      if (p.exists && paid(p.data().plan)) return p.data().plan;
+    }
+  } catch (e) {
+    console.error('[favResolveTier] feil:', e.message);
+  }
+  return 'free';
+}
+
+function favCapArr(arr, n) {
+  if (!Array.isArray(arr)) return [];
+  return arr
+    .filter((x) => typeof x === 'string')
+    .filter((x, i, a) => a.indexOf(x) === i)
+    .slice(0, n);
+}
+
+async function favCapStored(favs) {
+  const tier = await favResolveTier(favs.uid || null, favs.email || null);
+  const lim = FAV_LIMITS[tier];
+  favs.tier = tier;
+  favs.trumf = favCapArr(favs.trumf, lim.trumf);
+  favs.sas = favCapArr(favs.sas, lim.sas);
+  favs.programs = (Array.isArray(favs.programs) ? favs.programs : [])
+    .filter((p) => FAV_PROGRAM_KEYS.includes(p) && lim[p] > 0)
+    .filter((p, i, a) => a.indexOf(p) === i);
+}
+
+app.post("/v1/devices/favorites", express.json(), async (req, res) => {
+  const user = await favRequireUser(req, res);
+  if (!user) return;
+  const deviceId = String(req.headers['x-device-id'] || '').trim();
+  if (!deviceId) return res.status(400).json({ ok: false, error: 'x-device-id mangler' });
+  const existing = deviceFavorites[deviceId];
+  if (existing && existing.uid && existing.uid !== user.uid) {
+    return res.status(403).json({ ok: false, error: 'device_owned_by_other_user' });
+  }
+  const tier = await favResolveTier(user.uid, user.email);
+  const lim = FAV_LIMITS[tier];
+  const body = req.body || {};
+  const programs = (Array.isArray(body.programs) ? body.programs : [])
+    .filter((p) => FAV_PROGRAM_KEYS.includes(p) && lim[p] > 0)
+    .filter((p, i, a) => a.indexOf(p) === i);
+  const record = {
+    uid: user.uid,
+    email: user.email,
+    telegram: typeof body.telegram === 'string' ? body.telegram : null,
+    tier,
+    trumf: favCapArr(body.trumf, lim.trumf),
+    sas: favCapArr(body.sas, lim.sas),
+    programs,
+    updatedAt: new Date().toISOString(),
+  };
+  deviceFavorites[deviceId] = record;
+  deviceFavoritesStore.persist(deviceId, record).catch((err) => {
+    console.error(`[v1/devices/favorites] Persistering feilet for ${deviceId}:`, err.message);
+  });
+  res.json({ ok: true, tier, limits: lim });
+});
+
+app.post("/v1/devices/favorites_legacy_disabled", express.json(), (req, res) => {
   const { trumf = [], sas = [], email = null, telegram = null, tier: rawTier = 'free', programs = [] } = req.body || {};
   const programsClean = Array.isArray(programs) ? programs.filter((p) => ['spenn', 'cashpoints'].includes(p)) : [];
   const tier = Object.prototype.hasOwnProperty.call(TIER_FAVORITE_LIMITS, rawTier) ? rawTier : 'free';
@@ -1295,7 +1455,8 @@ app.post("/v1/devices/favorites", express.json(), (req, res) => {
 // ── Program-varsel (Spenn m.fl.) sendt manuelt av admin ──────────────────────
 // Bruk: POST /v1/admin/program-alert  header x-admin-key: <BV_ADMIN_KEY>
 // body: { program: 'spenn', title, text?, url?, dryRun? }
-const PROGRAM_ALERT_LABELS = { spenn: 'Spenn', cashpoints: 'Norwegian CashPoints' };
+const PROGRAM_ALERT_LABELS = { spenn: 'Spenn', cashpoints: 'Norwegian CashPoints', avios: 'Avios', amexmr: 'Amex Membership Rewards' };
+const PROGRAM_ALERT_ICONS = { spenn: '💸', cashpoints: '💸', avios: '🛩️', amexmr: '💳' };
 const bvEsc = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
 app.post("/v1/admin/program-alert", express.json(), async (req, res) => {
@@ -1305,14 +1466,15 @@ app.post("/v1/admin/program-alert", express.json(), async (req, res) => {
   }
   const { program = 'spenn', title = '', text = '', url = '', dryRun = false } = req.body || {};
   const label = PROGRAM_ALERT_LABELS[program];
+  const icon = PROGRAM_ALERT_ICONS[program] || '💸';
   if (!label || !String(title).trim()) {
-    return res.status(400).json({ ok: false, error: 'program (spenn|cashpoints) og title må være satt' });
+    return res.status(400).json({ ok: false, error: 'program (spenn|cashpoints|avios|amexmr) og title må være satt' });
   }
   const slug = String(title).toLowerCase().replace(/[^a-z0-9æøå]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60);
-  const tgMsg = `💸 <b>${bvEsc(label)}: ${bvEsc(title)}</b>` +
+  const tgMsg = `${icon} <b>${bvEsc(label)}: ${bvEsc(title)}</b>` +
     (text ? `\n\n${bvEsc(text)}` : '') + (url ? `\n\n${bvEsc(url)}` : '');
   const html = `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:24px;">` +
-    `<h2 style="color:#0F2340;">💸 ${bvEsc(label)}: ${bvEsc(title)}</h2>` +
+    `<h2 style="color:#0F2340;">${icon} ${bvEsc(label)}: ${bvEsc(title)}</h2>` +
     (text ? `<p>${bvEsc(text)}</p>` : '') +
     (url ? `<p><a href="${bvEsc(url)}">${bvEsc(url)}</a></p>` : '') + `</div>`;
 
@@ -1331,7 +1493,7 @@ app.post("/v1/admin/program-alert", express.json(), async (req, res) => {
         else result.telegramFailed++;
       }
       if (favs.email) {
-        if (await sendEmail(favs.email, `💸 ${label}: ${title}`, html)) { result.email++; delivered = true; }
+        if (await sendEmail(favs.email, `${icon} ${label}: ${title}`, html)) { result.email++; delivered = true; }
         else result.emailFailed++;
       }
       // Marker som sendt kun hvis minst én kanal lyktes – ellers kan samme varsel sendes på nytt
@@ -1491,6 +1653,7 @@ async function checkFavoritesAndNotify() {
     if (!campaigns.length) return;
 
     for (const [deviceId, favs] of Object.entries(deviceFavorites)) {
+      await favCapStored(favs);
       const allFavSlugs = Object.keys(LOYALTY_PROGRAMS).flatMap((programKey) => favs[programKey] || []);
       const isFreeTier = !allFavSlugs.length;
 

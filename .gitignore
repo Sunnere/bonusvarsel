@@ -92,3 +92,7 @@ scripts/run_dev.sh
 *.bak-*
 *.bak_*
 .script_backups/
+
+# Privat App Store-nøkkel – aldri i git
+functions/keys/
+*.p8

@@ -12,6 +12,9 @@ ADVERTISERS = {
     "81671": "SharkNinja",
     "62437": "Pergolux",
     "109844": "DB Journey",
+    "24784": "Acer",
+    "116085": "Sofas and More",
+    "125850": "Dr. Stine",
 }
 MAX_DEALS, MAX_PER_BRAND, MIN_PCT, MIN_PRICE = 3, 2, 15, 200
 CLOUD, PRESET = "ds3xrvivm", "bonusshop_ads"
@@ -85,7 +88,7 @@ def main():
             pass
         for p in csv.DictReader(io.StringIO(raw.decode("utf-8", "ignore"))):
             try:
-                new, old = float(p.get("search_price") or 0), float(p.get("product_price_old") or 0)
+                new, old = float(p.get("search_price") or 0), float(p.get("product_price_old") or p.get("rrp_price") or 0)
             except ValueError:
                 continue
             if p.get("in_stock") not in ("1", "yes", "true") or new < MIN_PRICE or old <= new:

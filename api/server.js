@@ -1383,6 +1383,7 @@ function favCapArr(arr, n) {
 }
 
 async function favCapStored(favs) {
+  if (!favs || !favs.uid) return; // [32] skip-legacy: ingen uid = lagret før innlogging, ikke nedgrader
   const tier = await favResolveTier(favs.uid || null, favs.email || null);
   const lim = FAV_LIMITS[tier];
   favs.tier = tier;

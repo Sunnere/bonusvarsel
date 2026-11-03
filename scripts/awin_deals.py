@@ -2,6 +2,7 @@
 """Ukens deal: henter Awin-produktfeeder, finner største prisfall, lager
 ferdige Cloudinary-bilder og skriver data/awin-deals.json for Make.
 Krever env AWIN_FEED_KEY. Kun Python stdlib."""
+import re
 import csv, gzip, io, json, os, sys, urllib.error, urllib.parse, urllib.request, datetime
 
 PUBLISHER = "3126086"
@@ -16,6 +17,8 @@ ADVERTISERS = {
     "116085": "Sofas and More",
     "125850": "Dr. Stine",
 }
+SKIP_NAME = re.compile(r"garanti|carry-in|care ?plus|forsikring|warranty|gavekort|gift card", re.I)
+BAD_IMG = re.compile(r"no_selection|placeholder|noimage|no-image|no_image", re.I)
 MAX_DEALS, MAX_PER_BRAND, MIN_PCT, MIN_PRICE = 3, 2, 15, 200
 CLOUD, PRESET = "ds3xrvivm", "bonusshop_ads"
 OUT = os.path.join(os.path.dirname(__file__), "..", "data", "awin-deals.json")
@@ -94,9 +97,9 @@ def main():
             if p.get("in_stock") not in ("1", "yes", "true") or new < MIN_PRICE or old <= new:
                 continue
             pct = round((1 - new / old) * 100)
-            imgs = [u for u in (p.get("merchant_image_url"), p.get("aw_image_url")) if u]
+            imgs = [u for u in (p.get("merchant_image_url"), p.get("aw_image_url")) if u and not BAD_IMG.search(u)]
             img = imgs[0] if imgs else ""
-            if pct < MIN_PCT or not img or not p.get("aw_deep_link"):
+            if pct < MIN_PCT or not img or not p.get("aw_deep_link") or SKIP_NAME.search(p.get("product_name", "")):
                 continue
             cands.append({"advertiser_id": adv, "brand": ADVERTISERS[adv], "product_id": p["aw_product_id"],
                           "name": p["product_name"], "price": new, "old_price": old, "pct": pct,

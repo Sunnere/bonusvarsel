@@ -1551,6 +1551,20 @@ app.get("/v1/devices/favorites", (req, res) => {
   res.json({ ok: true, devices: deviceFavorites });
 });
 
+// [33] devices-stats: kun aggregerte tall, ingen id/e-post/favoritter
+app.get("/v1/stats/devices", (req, res) => {
+  const byTier = { free: 0, premium: 0, elite: 0 };
+  let total = 0, loggedIn = 0;
+  for (const d of Object.values(deviceFavorites || {})) {
+    if (!d) continue;
+    total++;
+    if (d.uid) loggedIn++;
+    const t = byTier[d.tier] !== undefined ? d.tier : 'free';
+    byTier[t]++;
+  }
+  res.json({ ok: true, total, loggedIn, byTier });
+});
+
 
 
 function osloNow() {

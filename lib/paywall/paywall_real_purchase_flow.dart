@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../pages/checkout_page.dart';
 import '../services/checkout_service.dart';
+import '../services/entitlement_service.dart';
 
 class PaywallRealPurchaseFlow {
   static Future<void> startPurchaseFlow(
@@ -55,16 +56,27 @@ class PaywallRealPurchaseFlow {
     }
 
     if (!context.mounted) return;
+    final messenger = ScaffoldMessenger.of(context);
 
     try {
+      EntitlementService.lastIapDebug = '';
       await CheckoutService.instance.restorePurchases();
-      if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Gjenoppretting startet.')),
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Gjenoppretting startet - vent noen sekunder...')),
+      );
+      await Future<void>.delayed(const Duration(seconds: 6));
+      messenger.showSnackBar(
+        SnackBar(
+          duration: const Duration(seconds: 10),
+          content: Text(
+            EntitlementService.lastIapDebug.isEmpty
+                ? 'Apple fant ingen kjøp å gjenopprette for denne Apple-ID-en.'
+                : EntitlementService.lastIapDebug,
+          ),
+        ),
       );
     } catch (e) {
-      if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
+      messenger.showSnackBar(
         SnackBar(content: Text('Kunne ikke gjenopprette: $e')),
       );
     }

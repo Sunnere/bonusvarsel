@@ -1,6 +1,6 @@
 /// Register over bonusvalutaer appen kan vise saldo for.
 /// Verdier (kr per poeng) ligger IKKE her. De hentes fra loyalty_config (Fase 3).
-enum LoyaltyWorld { trumfEuroBonus, reitan }
+enum LoyaltyWorld { trumfEuroBonus, reitan, amexAvios }
 
 class LoyaltyCurrency {
   final String id;
@@ -35,7 +35,15 @@ class LoyaltyCurrency {
     id: 'cashpoints', name: 'Norwegian CashPoints', unit: 'CashPoints',
     world: LoyaltyWorld.reitan, prefsKey: 'cashpoints_points');
 
-  static const List<LoyaltyCurrency> all = [eurobonus, trumf, spenn, cashpoints];
+  static const avios = LoyaltyCurrency(
+    id: 'avios', name: 'Avios', unit: 'Avios',
+    world: LoyaltyWorld.amexAvios, prefsKey: 'avios_points');
+
+  static const amexmr = LoyaltyCurrency(
+    id: 'amexmr', name: 'Amex Membership Rewards', unit: 'poeng',
+    world: LoyaltyWorld.amexAvios, prefsKey: 'amex_mr_points');
+
+  static const List<LoyaltyCurrency> all = [eurobonus, trumf, spenn, cashpoints, avios, amexmr];
 
   static LoyaltyCurrency? byId(String id) {
     for (final c in all) {

@@ -168,6 +168,11 @@ class _AdSlotCardState extends State<AdSlotCard> {
 
     final lockAccent = _isElitePlacement ? elitePurple : premiumGreen;
 
+    final img = slot.imageUrl;
+    if (img != null && img.isNotEmpty && !_isLocked) {
+      return _imageCard(img, cta);
+    }
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Opacity(
@@ -345,6 +350,91 @@ class _AdSlotCardState extends State<AdSlotCard> {
                       ),
                     ],
                   ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _imageCard(String img, String cta) {
+    final Widget image = img.startsWith('http')
+        ? Image.network(
+            img,
+            fit: BoxFit.cover,
+            alignment: Alignment.topCenter,
+            errorBuilder: (_, __, ___) => const SizedBox(height: 160),
+          )
+        : Image.asset(img, fit: BoxFit.cover, alignment: Alignment.topCenter);
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: GestureDetector(
+        onTap: _handleTap,
+        child: Container(
+          clipBehavior: Clip.antiAlias,
+          decoration: BoxDecoration(
+            color: const Color(0xFF163A70),
+            borderRadius: BorderRadius.circular(18),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.16),
+                blurRadius: 18,
+                offset: const Offset(0, 10),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Stack(
+                children: [
+                  AspectRatio(aspectRatio: 1.5, child: image),
+                  Positioned(
+                    top: 10,
+                    right: 10,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 3,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.6),
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      child: const Text(
+                        'Annonse',
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
+                child: FilledButton.icon(
+                  style: FilledButton.styleFrom(
+                    backgroundColor: BrandTheme.gold,
+                    foregroundColor: Colors.black,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  onPressed: _handleTap,
+                  icon: const Icon(Icons.open_in_new, size: 18),
+                  label: Text(
+                    cta,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontWeight: FontWeight.w800),
+                  ),
                 ),
               ),
             ],

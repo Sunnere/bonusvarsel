@@ -1,3 +1,4 @@
+import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -85,6 +86,13 @@ class EntitlementService extends ChangeNotifier {
 
         if (isDowngrade && _source == 'iap') {
           debugPrint('EntitlementService.syncFromBackend: backend sier $backendPlan, men lokal status ($_plan) er IAP-bekreftet - beholder lokal status');
+          if (Platform.isIOS) {
+            final prefs = await SharedPreferences.getInstance();
+            final txn = prefs.getString('entitlement_txn_id');
+            if (txn != null && txn.isNotEmpty) {
+              await verifyAppStorePurchaseWithBackend(txn, _productId);
+            }
+          }
           return;
         }
 
@@ -95,6 +103,50 @@ class EntitlementService extends ChangeNotifier {
       }
     } catch (e) {
       debugPrint('EntitlementService.syncFromBackend feilet (beholder lokal status): $e');
+    }
+  }
+
+  /// Sender App Store-transaksjonen til serveren (verifyAppStorePurchase), som
+  /// sjekker den hos Apple og lagrer planen i subscriptions/{uid}. Feiler trygt:
+  /// lokal IAP-status beholdes uansett.
+  static String lastIapDebug = '';
+
+  Future<void> verifyAppStorePurchaseWithBackend(String transactionId, String productId) async {
+    try {
+      lastIapDebug = 'Sender kjøp til server...';
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('entitlement_txn_id', transactionId);
+      final callable = FirebaseFunctions.instance.httpsCallable('verifyAppStorePurchase');
+      final result = await callable.call({'transactionId': transactionId});
+      final active = result.data?['active'] as bool? ?? false;
+      final plan = (result.data?['plan'] as String?) ?? 'free';
+      debugPrint('verifyAppStorePurchaseWithBackend: active=$active plan=$plan for $productId');
+      lastIapDebug = active ? 'Server godkjente: plan=$plan' : 'Server: kjøpet er ikke aktivt (utløpt/refundert)';
+    } catch (e) {
+      debugPrint('verifyAppStorePurchaseWithBackend feilet (beholder lokal iap-status): $e');
+      lastIapDebug = 'Serverfeil: $e';
+    }
+  }
+
+  /// Verifiserer et Google Play-kjøp server-side via Cloud Function
+  /// verifyPlayPurchase, og oppdaterer entitlement med source='google_play'
+  /// hvis aktivt. Feiler trygt: ved nettverksfeil beholdes lokal IAP-status
+  /// uendret (unlock() med source='iap' er allerede kjørt før dette kalles).
+  Future<void> verifyPlayPurchaseWithBackend(String purchaseToken, String productId) async {
+    try {
+      final callable = FirebaseFunctions.instance.httpsCallable('verifyPlayPurchase');
+      final result = await callable.call({'purchaseToken': purchaseToken});
+      final active = result.data?['active'] as bool? ?? false;
+      final backendPlan = (result.data?['plan'] as String?) ?? 'free';
+
+      if (active) {
+        debugPrint('verifyPlayPurchaseWithBackend: bekreftet aktivt ($backendPlan) for $productId');
+        await unlock(productId, source: 'google_play');
+      } else {
+        debugPrint('verifyPlayPurchaseWithBackend: Google sier IKKE aktivt for $productId (plan=$backendPlan) - beholder lokal iap-status');
+      }
+    } catch (e) {
+      debugPrint('verifyPlayPurchaseWithBackend feilet (beholder lokal iap-status): $e');
     }
   }
 

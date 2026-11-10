@@ -14,6 +14,7 @@ import 'cards_page.dart';
 import 'trumf_kalkulator_page.dart';
 import 'bonusvarsel_alerts_page.dart';
 import '../services/onboarding_service.dart';
+import '../services/tab_nav.dart';
 import '../widgets/paywall_scroll_wrapper.dart';
 
 class HomePage extends StatefulWidget {
@@ -49,7 +50,24 @@ class _HomePageState extends State<HomePage> {
     super.initState();
     final idx = widget.initialIndex;
     _index = (idx >= 0 && idx < _pages.length) ? idx : 0;
+    homeTabRequest.addListener(_onTabRequest);
     WidgetsBinding.instance.addPostFrameCallback((_) => _checkWhatsNew());
+  }
+
+  void _onTabRequest() {
+    final i = homeTabRequest.value;
+    if (i == null) return;
+    homeTabRequest.value = null;
+    if (mounted && i >= 0 && i < _pages.length) {
+      setState(() => _index = i);
+      homeTabIndex.value = i;
+    }
+  }
+
+  @override
+  void dispose() {
+    homeTabRequest.removeListener(_onTabRequest);
+    super.dispose();
   }
 
   Future<void> _checkWhatsNew() async {
@@ -116,8 +134,9 @@ class _HomePageState extends State<HomePage> {
     return Scaffold(
       appBar: _buildAppBar(),
       body: IndexedStack(index: _index, children: _pages),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      floatingActionButton: FloatingActionButton.small(
+        elevation: 2,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.88),
         tooltip: 'Spør Bonusvarsel',
         onPressed: () => Navigator.push(
           context,
@@ -127,7 +146,10 @@ class _HomePageState extends State<HomePage> {
       ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _index,
-        onDestinationSelected: (i) => setState(() => _index = i),
+        onDestinationSelected: (i) {
+          setState(() => _index = i);
+          homeTabIndex.value = i;
+        },
         destinations: const [
           NavigationDestination(
             icon: Icon(Icons.stars_outlined),

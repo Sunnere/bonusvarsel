@@ -34,9 +34,9 @@ class _PaywallScrollWrapperState extends State<PaywallScrollWrapper> {
           await PaywallTriggerService.showPaywall(
             context,
             source: 'shopping_scroll',
-            title: 'Få mer ut av bonusen',
+            title: 'Lås opp Premium-fordeler',
             subtitle:
-                'Premium gir høyere poengrate og smartere valg – så du tjener mer per kjøp.',
+                'Premium gir høyere bonusrate, smartere valg og bedre oversikt.',
           );
 
           await PaywallTriggerService.markScrollDepthSeen();

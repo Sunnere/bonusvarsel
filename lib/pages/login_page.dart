@@ -266,6 +266,9 @@ class _LoginPageState extends State<LoginPage> {
               TextField(
                 controller: _emailCtrl,
                 keyboardType: TextInputType.emailAddress,
+                autocorrect: false,
+                enableSuggestions: false,
+                textCapitalization: TextCapitalization.none,
                 style: const TextStyle(color: Colors.white),
                 decoration: InputDecoration(
                   labelText: 'E-post',
@@ -378,8 +381,16 @@ class _LoginPageState extends State<LoginPage> {
                       setState(() => _error = 'Skriv inn e-post først');
                       return;
                     }
-                    await AuthService.instance
-                        .sendPasswordReset(_emailCtrl.text.trim());
+                    try {
+                      await AuthService.instance
+                          .sendPasswordReset(_emailCtrl.text.trim());
+                    } catch (_) {
+                      if (mounted) {
+                        setState(() => _error =
+                            'Klarte ikke sende e-post. Sjekk at adressen er skrevet riktig.');
+                      }
+                      return;
+                    }
                     if (!mounted) return;
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(

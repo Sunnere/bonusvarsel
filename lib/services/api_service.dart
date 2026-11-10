@@ -10,6 +10,7 @@ import '../models/activated_notification.dart';
 import '../models/feed_item.dart';
 import '../models/offer_record.dart';
 import '../models/push_dispatch_preview.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class ApiService {
 
@@ -66,16 +67,23 @@ class ApiService {
     List<String> programs = const [],
   }) async {
     final deviceId = await DeviceIdService.getId();
+    // FAV_AUTH_V1: favoritter krever innlogging. Tokenet sendes til serveren.
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      throw Exception('Logg inn for å lagre favoritter');
+    }
+    final idToken = await user.getIdToken();
     final res = await http.post(
       _uri('/v1/devices/favorites'),
       headers: {
         'Content-Type': 'application/json',
         'x-device-id': deviceId,
+        'Authorization': 'Bearer $idToken',
       },
       body: jsonEncode({'trumf': trumfFavs, 'sas': sasFavs, 'email': email, 'telegram': telegram, 'tier': tier, 'programs': programs}),
     ).timeout(const Duration(seconds: 5));
     if (res.statusCode < 200 || res.statusCode >= 300) {
-      throw Exception('POST /v1/devices/favorites failed: \${res.statusCode}');
+      throw Exception('POST /v1/devices/favorites failed: ${res.statusCode}');
     }
   }
 

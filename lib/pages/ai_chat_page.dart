@@ -20,6 +20,7 @@ class _AiChatPageState extends State<AiChatPage> {
   bool _loading = false;
   bool _historyLoaded = false;
   bool _norwegianMode = true;
+  bool _flyingMode = false;
 
   @override
   void initState() {
@@ -54,7 +55,11 @@ class _AiChatPageState extends State<AiChatPage> {
     _scrollDown();
 
     try {
-      final reply = await AiService.sendMessage(List.from(_history), _plan, norwegianMode: _norwegianMode);
+      final reply = _flyingMode
+          ? await AiService.sendFlyingAgent(List.from(_history),
+              norwegianMode: _norwegianMode)
+          : await AiService.sendMessage(List.from(_history), _plan,
+              norwegianMode: _norwegianMode);
       setState(() {
         _history.add({'role': 'assistant', 'content': reply});
         _loading = false;
@@ -64,7 +69,8 @@ class _AiChatPageState extends State<AiChatPage> {
       setState(() {
         _history.add({
           'role': 'assistant',
-          'content': '❌ Noe gikk galt. Prøv igjen eller kontakt support@bonusvarsel.no',
+          'content':
+              '❌ Noe gikk galt. Prøv igjen eller kontakt support@bonusvarsel.no',
         });
         _loading = false;
       });
@@ -89,7 +95,6 @@ class _AiChatPageState extends State<AiChatPage> {
     setState(() => _history.clear());
   }
 
-
   Widget _adBanner(String placement) {
     return FutureBuilder<List<AdSlot>>(
       future: AdService.instance.pickAds(placement: placement, count: 1),
@@ -107,13 +112,27 @@ class _AiChatPageState extends State<AiChatPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Spør Bonusvarsel'),
+        title: Text(_flyingMode ? 'Flying Agent ✈️' : 'Spør Bonusvarsel'),
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         foregroundColor: Colors.white,
         actions: [
           IconButton(
+            icon: Icon(Icons.flight,
+                color: _flyingMode ? Colors.amber : Colors.white70),
+            tooltip: _flyingMode ? 'Flying Agent er på' : 'Slå på Flying Agent',
+            onPressed: () {
+              setState(() => _flyingMode = !_flyingMode);
+              ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                content: Text(_flyingMode
+                    ? 'Flying Agent på: spør om SAS, SkyTeam, Flying Blue, Avios og Norwegian.'
+                    : 'Tilbake til vanlig Bonusvarsel-chat.'),
+                duration: const Duration(seconds: 3),
+              ));
+            },
+          ),
+          IconButton(
             icon: Text(_norwegianMode ? '🇳🇴' : '🇬🇧',
-              style: const TextStyle(fontSize: 20)),
+                style: const TextStyle(fontSize: 20)),
             onPressed: () => setState(() => _norwegianMode = !_norwegianMode),
             tooltip: _norwegianMode ? 'Switch to English' : 'Bytt til norsk',
           ),
@@ -162,86 +181,146 @@ class _AiChatPageState extends State<AiChatPage> {
                                     context: context,
                                     backgroundColor: const Color(0xFF152B4A),
                                     shape: const RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+                                        borderRadius: BorderRadius.vertical(
+                                            top: Radius.circular(20))),
                                     builder: (_) => Padding(
                                       padding: const EdgeInsets.all(24),
                                       child: Column(
                                         mainAxisSize: MainAxisSize.min,
-                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
                                         children: [
-                                          Text(_norwegianMode
-                                              ? '🇳🇴🇬🇧  AI-assistenten snakker begge språk!'
-                                              : '🇳🇴🇬🇧  The AI speaks both languages!',
-                                            style: const TextStyle(color: Color(0xFFF8FAFC), fontSize: 17, fontWeight: FontWeight.w800)),
+                                          Text(
+                                              _norwegianMode
+                                                  ? '🇳🇴🇬🇧  AI-assistenten snakker begge språk!'
+                                                  : '🇳🇴🇬🇧  The AI speaks both languages!',
+                                              style: const TextStyle(
+                                                  color: Color(0xFFF8FAFC),
+                                                  fontSize: 17,
+                                                  fontWeight: FontWeight.w800)),
                                           const SizedBox(height: 12),
                                           Text(
-                                            _norwegianMode
-                                              ? 'Bonusvarsel AI forstår og svarer på både norsk og engelsk.\n\n'
-                                                '🇳🇴  Skriv på norsk → får svar på norsk\n'
-                                                '🇬🇧  Write in English → get answer in English\n\n'
-                                                'Perfekt hvis du vil ha hjelp med SAS EuroBonus på reise!\n\n'
-                                                '👆 Trykk på flagget øverst til høyre for å bytte språk.'
-                                              : 'Bonusvarsel AI understands and replies in both Norwegian and English.\n\n'
-                                                '🇳🇴  Skriv på norsk → får svar på norsk\n'
-                                                '🇬🇧  Write in English → get answer in English\n\n'
-                                                'Perfect when travelling or sharing tips with friends abroad!\n\n'
-                                                '👆 Tap the flag in the top right to switch language.',
-                                            style: const TextStyle(color: Color(0xFFC8D8E8), fontSize: 14, height: 1.6)),
+                                              _norwegianMode
+                                                  ? 'Bonusvarsel AI forstår og svarer på både norsk og engelsk.\n\n'
+                                                      '🇳🇴  Skriv på norsk → får svar på norsk\n'
+                                                      '🇬🇧  Write in English → get answer in English\n\n'
+                                                      'Perfekt hvis du vil ha hjelp med SAS EuroBonus på reise!\n\n'
+                                                      '👆 Trykk på flagget øverst til høyre for å bytte språk.'
+                                                  : 'Bonusvarsel AI understands and replies in both Norwegian and English.\n\n'
+                                                      '🇳🇴  Skriv på norsk → får svar på norsk\n'
+                                                      '🇬🇧  Write in English → get answer in English\n\n'
+                                                      'Perfect when travelling or sharing tips with friends abroad!\n\n'
+                                                      '👆 Tap the flag in the top right to switch language.',
+                                              style: const TextStyle(
+                                                  color: Color(0xFFC8D8E8),
+                                                  fontSize: 14,
+                                                  height: 1.6)),
                                           const SizedBox(height: 20),
-                                          SizedBox(width: double.infinity,
-                                            child: FilledButton(
-                                              style: FilledButton.styleFrom(
-                                                backgroundColor: const Color(0xFF60A5FA),
-                                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-                                              onPressed: () => Navigator.pop(context),
-                                              child: const Text('Forstått!', style: TextStyle(fontWeight: FontWeight.w800)),
-                                            )),
+                                          SizedBox(
+                                              width: double.infinity,
+                                              child: FilledButton(
+                                                style: FilledButton.styleFrom(
+                                                    backgroundColor:
+                                                        const Color(0xFF60A5FA),
+                                                    shape:
+                                                        RoundedRectangleBorder(
+                                                            borderRadius:
+                                                                BorderRadius
+                                                                    .circular(
+                                                                        12))),
+                                                onPressed: () =>
+                                                    Navigator.pop(context),
+                                                child: const Text('Forstått!',
+                                                    style: TextStyle(
+                                                        fontWeight:
+                                                            FontWeight.w800)),
+                                              )),
                                         ],
                                       ),
                                     ),
                                   ),
                                   child: Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 16, vertical: 12),
                                     decoration: BoxDecoration(
                                       color: const Color(0xFF1C3860),
                                       borderRadius: BorderRadius.circular(16),
-                                      border: Border.all(color: const Color(0xFF3D6490)),
+                                      border: Border.all(
+                                          color: const Color(0xFF3D6490)),
                                     ),
                                     child: Row(children: [
-                                      const Text('🇳🇴🇬🇧', style: TextStyle(fontSize: 22)),
+                                      const Text('🇳🇴🇬🇧',
+                                          style: TextStyle(fontSize: 22)),
                                       const SizedBox(width: 12),
-                                      const Expanded(child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                      const Expanded(
+                                          child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
                                         children: [
                                           Text('AI på norsk og engelsk',
-                                            style: TextStyle(color: Color(0xFFF8FAFC), fontSize: 14, fontWeight: FontWeight.w700)),
+                                              style: TextStyle(
+                                                  color: Color(0xFFF8FAFC),
+                                                  fontSize: 14,
+                                                  fontWeight: FontWeight.w700)),
                                           Text('Trykk for å lese mer',
-                                            style: TextStyle(color: Color(0xFFC8D8E8), fontSize: 12)),
+                                              style: TextStyle(
+                                                  color: Color(0xFFC8D8E8),
+                                                  fontSize: 12)),
                                         ],
                                       )),
-                                      const Icon(Icons.info_outline, color: Color(0xFF60A5FA), size: 20),
+                                      const Icon(Icons.info_outline,
+                                          color: Color(0xFF60A5FA), size: 20),
                                     ]),
                                   ),
                                 ),
                                 const SizedBox(height: 24),
                                 // Velkomsttekst
-                                Text(_norwegianMode ? 'Hei! 👋' : 'Hi there! 👋',
-                                  style: const TextStyle(color: Color(0xFFF8FAFC), fontSize: 24, fontWeight: FontWeight.w800)),
+                                Text(
+                                    _norwegianMode ? 'Hei! 👋' : 'Hi there! 👋',
+                                    style: const TextStyle(
+                                        color: Color(0xFFF8FAFC),
+                                        fontSize: 24,
+                                        fontWeight: FontWeight.w800)),
                                 const SizedBox(height: 8),
                                 Text(
-                                  _norwegianMode
-                                    ? 'Jeg hjelper deg å få mest mulig ut av EuroBonus-poengene dine.\n\nSpør meg om:'
-                                    : 'I help you get the most out of your EuroBonus points.\n\nAsk me about:',
-                                  textAlign: TextAlign.center,
-                                  style: const TextStyle(color: Color(0xFFC8D8E8), fontSize: 15, height: 1.5)),
+                                    _flyingMode
+                                        ? (_norwegianMode
+                                            ? 'Flying Agent ✈️ hjelper deg å finne og booke fly på poeng.\n\nSpør meg om:'
+                                            : 'Flying Agent ✈️ helps you find and book flights with points.\n\nAsk me about:')
+                                        : _norwegianMode
+                                            ? 'Jeg hjelper deg å få mest mulig ut av EuroBonus-poengene dine.\n\nSpør meg om:'
+                                            : 'I help you get the most out of your EuroBonus points.\n\nAsk me about:',
+                                    textAlign: TextAlign.center,
+                                    style: const TextStyle(
+                                        color: Color(0xFFC8D8E8),
+                                        fontSize: 15,
+                                        height: 1.5)),
                                 const SizedBox(height: 16),
                                 // Tips-chips
-                                Wrap(spacing: 8, runSpacing: 8, alignment: WrapAlignment.center, children: [
-                                  _tipChip(_norwegianMode ? '💳 Hvilket kort gir mest poeng?' : '💳 Which card gives the most points?'),
-                                  _tipChip(_norwegianMode ? '✈️ Hvor mange poeng trenger jeg til London?' : '✈️ How many points do I need for London?'),
-                                  _tipChip(_norwegianMode ? '🛒 Hvordan fungerer dobbel dip?' : '🛒 How does double dip work?'),
-                                  _tipChip(_norwegianMode ? '🏆 Hva er forskjellen på Premium og Elite?' : '🏆 What is the difference between Premium and Elite?'),
-                                ]),
+                                Wrap(
+                                    spacing: 8,
+                                    runSpacing: 8,
+                                    alignment: WrapAlignment.center,
+                                    children: _flyingMode
+                                        ? _flyingTipChips()
+                                        : [
+                                            _tipChip(_norwegianMode
+                                                ? '💳 Hvilket kort gir mest poeng?'
+                                                : '💳 Which card gives the most points?'),
+                                            _tipChip(_norwegianMode
+                                                ? '✈️ Hvor mange poeng trenger jeg til London?'
+                                                : '✈️ How many points do I need for London?'),
+                                            _tipChip(_norwegianMode
+                                                ? '🛒 Hvordan fungerer dobbel dip?'
+                                                : '🛒 How does double dip work?'),
+                                            _tipChip(_norwegianMode
+                                                ? '🏆 Hva er forskjellen på Premium og Elite?'
+                                                : '🏆 What is the difference between Premium and Elite?'),
+                                          ]),
+                                if (!_flyingMode) ...[
+                                  const SizedBox(height: 20),
+                                  _flyHintCard(),
+                                ],
                               ],
                             ),
                           ),
@@ -339,7 +418,8 @@ class _AiChatPageState extends State<AiChatPage> {
                             Expanded(
                               child: TextField(
                                 controller: _ctrl,
-                                textCapitalization: TextCapitalization.sentences,
+                                textCapitalization:
+                                    TextCapitalization.sentences,
                                 decoration: InputDecoration(
                                   hintText: 'Skriv et spørsmål...',
                                   border: OutlineInputBorder(
@@ -353,7 +433,8 @@ class _AiChatPageState extends State<AiChatPage> {
                             ),
                             const SizedBox(width: 8),
                             CircleAvatar(
-                              backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+                              backgroundColor:
+                                  Theme.of(context).scaffoldBackgroundColor,
                               child: IconButton(
                                 icon: const Icon(Icons.send,
                                     color: Colors.white, size: 18),
@@ -371,23 +452,81 @@ class _AiChatPageState extends State<AiChatPage> {
     );
   }
 
+  // ── Flying Agent: sporsmalsforslag og hint ──
+  List<Widget> _flyingTipChips() => [
+        _tipChip(_norwegianMode
+            ? '🔎 Finn fly på poeng fra Oslo til London'
+            : '🔎 Find a flight with points from Oslo to London'),
+        _tipChip(_norwegianMode
+            ? '⚖️ EuroBonus, Flying Blue eller Avios – hva lønner seg?'
+            : '⚖️ EuroBonus, Flying Blue or Avios – which pays off?'),
+        _tipChip(_norwegianMode
+            ? '💳 Sammenlign SAS Amex Classic, Premium og Elite'
+            : '💳 Compare SAS Amex Classic, Premium and Elite'),
+        _tipChip(_norwegianMode
+            ? '💸 Hvordan fungerer 50 % poengrabatten med Amex?'
+            : '💸 How does the 50% points discount with Amex work?'),
+        _tipChip(_norwegianMode
+            ? '🔁 Hvordan overfører jeg poeng mellom programmene?'
+            : '🔁 How do I transfer points between programs?'),
+      ];
+
+  Widget _flyHintCard() => GestureDetector(
+        onTap: () => setState(() => _flyingMode = true),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(
+            color: const Color(0xFF1C3860),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: const Color(0xFF3D6490)),
+          ),
+          child: Row(children: [
+            const Text('✈️', style: TextStyle(fontSize: 22)),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                      _norwegianMode
+                          ? 'Skal du finne eller booke fly på poeng?'
+                          : 'Want to find or book flights with points?',
+                      style: const TextStyle(
+                          color: Color(0xFFF8FAFC),
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700)),
+                  Text(
+                      _norwegianMode
+                          ? 'Trykk her eller på flyet øverst for Flying Agent'
+                          : 'Tap here or the plane at the top for Flying Agent',
+                      style: const TextStyle(
+                          color: Color(0xFFC8D8E8), fontSize: 12)),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right, color: Color(0xFF60A5FA), size: 22),
+          ]),
+        ),
+      );
+
   Widget _tipChip(String label) => GestureDetector(
-    onTap: () {
-      _ctrl.text = label;
-      _send();
-    },
-    child: Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-      decoration: BoxDecoration(
-        color: const Color(0xFF1C3860),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFF3D6490)),
-      ),
-      child: Text(label,
-        style: const TextStyle(
-            color: Color(0xFFF8FAFC),
-            fontSize: 13,
-            fontWeight: FontWeight.w600)),
-    ),
-  );
+        onTap: () {
+          _ctrl.text = label;
+          _send();
+        },
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          decoration: BoxDecoration(
+            color: const Color(0xFF1C3860),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: const Color(0xFF3D6490)),
+          ),
+          child: Text(label,
+              style: const TextStyle(
+                  color: Color(0xFFF8FAFC),
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600)),
+        ),
+      );
 }

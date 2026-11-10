@@ -14,10 +14,14 @@ class AuthService {
   bool get isLoggedIn => currentUser != null;
   Stream<User?> get authStateChanges => _auth.authStateChanges();
 
+  /// Fjerner mellomrom og usynlige tegn (nullbredde, NBSP) og gjør små bokstaver.
+  static String cleanEmail(String e) =>
+      e.replaceAll(RegExp(r'[\s\u00A0\u200B-\u200D\u2060\uFEFF]'), '').toLowerCase();
+
   // E-post registrering
   Future<UserCredential> registerWithEmail(String email, String password) async {
     return await _auth.createUserWithEmailAndPassword(
-      email: email,
+      email: cleanEmail(email),
       password: password,
     );
   }
@@ -25,7 +29,7 @@ class AuthService {
   // E-post innlogging
   Future<UserCredential> signInWithEmail(String email, String password) async {
     return await _auth.signInWithEmailAndPassword(
-      email: email,
+      email: cleanEmail(email),
       password: password,
     );
   }
@@ -77,7 +81,7 @@ class AuthService {
 
   // Glemt passord
   Future<void> sendPasswordReset(String email) async {
-    await _auth.sendPasswordResetEmail(email: email);
+    await _auth.sendPasswordResetEmail(email: cleanEmail(email));
   }
 }
 

@@ -390,7 +390,6 @@ class _SettingsPageState extends State<SettingsPage> {
                   _statusRow('✅', '10 Trumf Netthandel-favoritter'),
                   _statusRow('✅', '10 SAS Shopping-favoritter'),
                   _statusRow('✅', 'SAS Bonusreiser-oversikt'),
-                  _statusRow('✅', 'SkyTeam-flyselskaper'),
                   _statusRow('✅', 'VIP-varsler'),
                 ] : [
                   _statusRow('✅', 'Alt i Gratis'),
@@ -599,7 +598,7 @@ class _SettingsPageState extends State<SettingsPage> {
             ('💳 Hvordan betale? / How to pay?',
               'Trykk på "Mitt abonnement" for å se abonnementsvalg. Betaling skjer via Apple In-App Purchase eller Stripe på bonusvarsel.no.\n\nTap "My subscription" to see subscription options. Payment is via Apple In-App Purchase or Stripe at bonusvarsel.no.'),
             ('🏆 Hva er forskjellen på Premium og Elite? / Premium vs Elite?',
-              'Premium (49 kr/mnd): 5 favoritter, AI-rådgiver, personlige varsler.\nElite (89 kr/mnd): 10 favoritter, SkyTeam-bonus, VIP-varsler, concierge-support.\n\nPremium (NOK 49/month): 5 favourites, AI advisor, personal alerts.\nElite (NOK 89/month): 10 favourites, SkyTeam bonus, VIP alerts, concierge support.'),
+              'Premium (49 kr/mnd): 5 favoritter, AI-rådgiver, personlige varsler.\nElite (89 kr/mnd): 10 favoritter, SkyTeam-bonus, VIP-varsler, prioritert support.\n\nPremium (NOK 49/month): 5 favourites, AI advisor, personal alerts.\nElite (NOK 89/month): 10 favourites, SkyTeam bonus, VIP alerts, priority support.'),
             ('❓ Trenger jeg hjelp? / Need help?',
               'Kontakt oss på support@bonusvarsel.no — vi svarer så fort vi kan!\n\nContact us at support@bonusvarsel.no — we reply as soon as possible!'),
           ].map((faq) => _FaqItem(question: faq.$1, answer: faq.$2)).toList(),

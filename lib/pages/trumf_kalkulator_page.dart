@@ -10,6 +10,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../services/trumf_calculator.dart';
 import '../services/entitlement_service.dart';
 import 'paywall_page.dart';
+import '../widgets/cashback_to_points_card.dart';
+import '../widgets/points_earn_card.dart';
+import '../services/tab_nav.dart';
 
 class TrumfKalkulatorPage extends StatefulWidget {
   const TrumfKalkulatorPage({super.key});
@@ -198,7 +201,7 @@ class _TrumfKalkulatorPageState extends State<TrumfKalkulatorPage> {
 
   static const _infoTekster = {
     "bankkort": "Registrer bankkortet ditt i Trumf-appen én gang.\n\nHver gang du betaler med det kortet i KIWI, MENY, SPAR, Joker eller Nærbutikken, registreres 1% bonus automatisk. Du trenger ikke gjøre noe i kassen.\n\n💡 Har du SAS Amex eller EuroBonus Mastercard? Registrer det og få Trumf-bonus OG EuroBonus-poeng på samme handletur – dobbel dip!",
-    "qr": "Åpne Trumf-appen og trykk på QR-ikonet. Vis koden til kassapersonalet før du betaler.\n\nDu får 2% bonus – gratis og enkelt.\n\nBetaler du med SAS Amex etterpå får du 20 EuroBonus-poeng per 100 kr i tillegg.\n\n💡 Eksempel 1 000 kr med QR + SAS Amex:\n• 20 kr Trumf-bonus (2%)\n• 200 EuroBonus-poeng\n• = 270 poeng totalt ved automatisk overføring",
+    "qr": "Åpne Trumf-appen og trykk på QR-ikonet. Vis koden til kassapersonalet før du betaler.\n\nDu får 2% bonus – gratis og enkelt.\n\nBetaler du med SAS Amex etterpå får du 10–20 EuroBonus-poeng per 100 kr i tillegg (Classic 10, Premium 15, Elite 20).\n\n💡 Eksempel 1 000 kr med QR + SAS Amex Elite:\n• 20 kr Trumf-bonus (2%)\n• 200 EuroBonus-poeng\n• = 270 poeng totalt ved automatisk overføring",
     "trumfpay": "Trumf Pay er betaling direkte fra Trumf-appen. Du får 2% bonus.\n\nMerk: Med Trumf Pay kan du ikke betale med kredittkort samtidig. QR-kode + SAS kredittkort gir derfor mer totalt.",
     "kredittkort": "Trumf Kredittkort gir 3% bonus normalt og 5% på Trippel-Trumf Torsdag.\n\n💡 Eksempel 1 000 kr på Trippel-Torsdag:\n• Vanlig bankkort: 10 kr (1%)\n• Trumf Kredittkort: 50 kr (5%)\n• 40 kr ekstra – bare fordi du byttet kort!",
   };
@@ -216,7 +219,7 @@ class _TrumfKalkulatorPageState extends State<TrumfKalkulatorPage> {
       length: 2,
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('Trumf-kalkulator'),
+          title: const Text('Spar til ferien'),
           bottom: const TabBar(tabs: [
             Tab(text: 'Kalkulator'),
             Tab(text: 'Favoritter'),
@@ -230,11 +233,65 @@ class _TrumfKalkulatorPageState extends State<TrumfKalkulatorPage> {
     );
   }
 
+  // ── PROGRAMRAD (script 58) ────────────────────────────────
+  Widget _stripChip(String label, {bool active = false, VoidCallback? onTap}) {
+    final c = active ? const Color(0xFF34D399) : Colors.white70;
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: active ? c.withOpacity(0.12) : Colors.transparent,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: active ? c : Colors.white24),
+        ),
+        child: Text(label,
+            style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: onTap == null && !active ? Colors.white38 : c)),
+      ),
+    );
+  }
+
+  Widget _programStrip() => Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.05),
+          borderRadius: BorderRadius.circular(16),
+          border: AppTheme.activeBorder(),
+        ),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          const Text('Hva regner vi på?',
+              style: TextStyle(
+                  fontSize: 15, fontWeight: FontWeight.w800, color: Colors.white)),
+          const SizedBox(height: 10),
+          Wrap(spacing: 8, runSpacing: 8, children: [
+            _stripChip('🛒 Trumf → EuroBonus', active: true),
+            _stripChip('✈️ SAS Online Shopping', onTap: () => goToHomeTab(3)),
+            _stripChip('💸 Spenn', onTap: () => goToHomeTab(3)),
+            _stripChip('Flying Blue · kommer'),
+            _stripChip('Miles & More · kommer'),
+          ]),
+          const SizedBox(height: 10),
+          Text(
+            'Kalkulatoren under regner på Trumf-bonus som blir EuroBonus-poeng. '
+            'SAS Online Shopping, Spenn-kampanjer og favorittbutikkene dine finner du under Varsler.',
+            style: TextStyle(fontSize: 12, color: Colors.grey[400], height: 1.4),
+          ),
+        ]),
+      );
+
   Widget _buildKalkulator() {
-    return ListView(padding: const EdgeInsets.fromLTRB(16, 16, 16, 32), children: [
+    return ListView(
+        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+        children: [
 
       _adBanner('spar'),
       const SizedBox(height: 8),
+      _programStrip(),
       // ── Forbruk ──────────────────────────────────────────
       _card([
         Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
@@ -426,9 +483,12 @@ class _TrumfKalkulatorPageState extends State<TrumfKalkulatorPage> {
       ),
 
       // ── Råd ──────────────────────────────────────────────
+      const SizedBox(height: 16),
       _secLabel('Råd for deg'),
       const SizedBox(height: 8),
       ..._tips(),
+      const CashbackToPointsCard(),
+      const PointsEarnCard(),
     ]);
   }
 

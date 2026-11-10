@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../services/checkout_service.dart';
+import '../services/stripe_links.dart';
 import '../services/entitlement_service.dart';
 
 class CheckoutPage extends StatefulWidget {
@@ -145,12 +146,16 @@ class _CheckoutPageState extends State<CheckoutPage> {
       _status = null;
     });
     try {
+      EntitlementService.lastIapDebug = '';
       await _checkout.restorePurchases();
+      await Future<void>.delayed(const Duration(seconds: 6));
       if (!mounted) return;
-      const msg = 'Gjenoppretting startet.';
+      final msg = EntitlementService.lastIapDebug.isEmpty
+          ? 'Apple fant ingen kjøp å gjenopprette for denne Apple-ID-en.'
+          : EntitlementService.lastIapDebug;
       setState(() => _status = msg);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text(msg)),
+        SnackBar(content: Text(msg)),
       );
     } catch (e) {
       if (!mounted) return;
@@ -226,7 +231,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
                           const SizedBox(height: 8),
                           Text(
                             isElite
-                                ? 'Opptil 8 000+ poeng per måned'
+                                ? 'Alle programmer og prioriterte varsler'
                                 : 'Typisk 1 500–4 000 ekstra poeng per måned',
                             style: const TextStyle(color: Colors.white70),
                           ),
@@ -337,7 +342,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
                         final url = isElite
                           ? 'https://buy.stripe.com/bJecN600a8j8f7P8bvcQU06'
                           : 'https://buy.stripe.com/9B65kE28i7f44tbcrLcQU05';
-                        await launchUrl(Uri.parse(url),
+                        await launchUrl(stripeCheckoutUri(url),
                           mode: LaunchMode.externalApplication);
                       },
                       child: Text(

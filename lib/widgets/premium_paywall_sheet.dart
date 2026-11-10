@@ -97,20 +97,20 @@ class _PremiumPaywallSheetState extends State<PremiumPaywallSheet> {
               const SizedBox(height: 14),
               const SizedBox(height: 18),
               _infoCard(
-                title: 'Du kan gå glipp av bedre rate',
+                title: 'Se hva som faktisk lønner seg før du handler.',
                 body:
                     'Premium gjør det enklere å se hva som faktisk lønner seg før du handler.',
               ),
               const SizedBox(height: 16),
               _planCard(
                 title: 'Premium',
-                note: 'Typisk +1 500–4 000 poeng i måneden',
+                note: 'Estimert 1 500–4 000 poeng i måneden',
                 price: '49 kr/mnd',
                 selected: _selectedPlan == 'monthly',
                 accent: const Color(0xFF8CFF64),
                 bullets: const [
                   'Se flere butikker og tilbud',
-                  'Få høyere bonusrate',
+                  'Se bonusrate per butikk før du handler',
                   'Lås opp boost og kampanjer',
                   'Velg smartere før du klikker',
                 ],
@@ -119,14 +119,13 @@ class _PremiumPaywallSheetState extends State<PremiumPaywallSheet> {
               const SizedBox(height: 14),
               _planCard(
                 title: 'Elite',
-                note: 'Opptil 8 000+ poeng i måneden',
+                note: 'Estimert opptil 8 000 poeng i måneden',
                 price: '89 kr/mnd',
                 selected: _selectedPlan == 'yearly',
                 accent: const Color(0xFFFFC44D),
                 bullets: const [
                   'Alt i Premium',
-                  'Flere programmer og prioriterte valg',
-                  'Enda sterkere verdi og maks synlighet',
+                  'Alle poengprogrammer, inkl. Avios og Amex MR (Flying Blue kommer)',
                   'Best for deg som vil gå all-in',
                 ],
                 onTap: () => setState(() => _selectedPlan = 'yearly'),

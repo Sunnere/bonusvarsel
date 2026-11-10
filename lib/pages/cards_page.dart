@@ -162,11 +162,21 @@ class _CardsPageState extends State<CardsPage> {
   Set<String> _selectedCardIds = {};
 
   static const _cards = [
-    _CardInfo(id: 'sas_amex', name: 'SAS EuroBonus American Express', network: 'Amex',
+    _CardInfo(id: 'sas_amex_elite', name: 'SAS EuroBonus Amex Elite', network: 'Amex',
       ratePer100: 20,
       activeColor: Color(0xFF60A5FA), activeBg: Color(0xFF1C3860), borderColor: Color(0xFF1D4ED8),
-      description: 'Beste SAS-kort. 20 poeng per 100 kr på alle kjøp. Søk direkte hos American Express Norge.',
+      description: 'Beste SAS-kort. 20 poeng per 100 kr. Companion Ticket ved 150 000 kr/år (to ved 300 000 kr), gjelder alle klasser. Søk hos American Express Norge.',
       url: 'https://www.americanexpress.com/no/', badge: 'Mest poeng'),
+    _CardInfo(id: 'sas_amex_premium', name: 'SAS EuroBonus Amex Premium', network: 'Amex',
+      ratePer100: 15,
+      activeColor: Color(0xFF60A5FA), activeBg: Color(0xFF1C3860), borderColor: Color(0xFF1D4ED8),
+      description: '15 poeng per 100 kr. Companion Ticket ved 150 000 kr/år (Economy og Premium Economy hos SAS og SkyTeam). Søk hos American Express Norge.',
+      url: 'https://www.americanexpress.com/no/', badge: null),
+    _CardInfo(id: 'sas_amex_classic', name: 'SAS EuroBonus Amex Classic', network: 'Amex',
+      ratePer100: 10,
+      activeColor: Color(0xFF60A5FA), activeBg: Color(0xFF1C3860), borderColor: Color(0xFF1D4ED8),
+      description: '10 poeng per 100 kr. Companion Ticket ved 100 000 kr/år, gjelder bare SAS-fly i Europa. Søk hos American Express Norge.',
+      url: 'https://www.americanexpress.com/no/', badge: null),
     _CardInfo(id: 'sas_mc', name: 'SAS EuroBonus Mastercard', network: 'Mastercard',
       ratePer100: 15,
       activeColor: Color(0xFF60A5FA), activeBg: Color(0xFF1C3860), borderColor: Color(0xFF1D4ED8),
@@ -197,6 +207,13 @@ class _CardsPageState extends State<CardsPage> {
     if (ids.isEmpty) {
       final id = await UserState.getSelectedCardId();
       if (id != null) ids.add(id);
+    }
+    // Gammelt valg 'sas_amex' (20 poeng) flyttes til Elite
+    if (ids.contains('sas_amex')) {
+      ids.remove('sas_amex');
+      if (!ids.contains('sas_amex_elite')) ids.add('sas_amex_elite');
+      await UserState.removeSelectedCard('sas_amex');
+      await UserState.addSelectedCard('sas_amex_elite');
     }
     if (!mounted) return;
     setState(() => _selectedCardIds = ids.toSet());

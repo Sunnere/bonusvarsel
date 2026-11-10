@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
+import '../widgets/programs_info.dart';
+import '../widgets/cashback_to_points_card.dart';
 import '../widgets/ad_slot.dart';
 import '../services/ad_service.dart';
 import '../models/ad_slot.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/entitlement_service.dart';
+import '../services/tab_nav.dart';
+import '../services/user_state.dart';
 import '../theme/app_theme.dart';
 import '../widgets/info_image.dart';
 import '../widgets/info_video.dart';
@@ -29,6 +33,8 @@ class _EbShoppingPageState extends State<EbShoppingPage> {
   void initState() {
     super.initState();
     _loadTopCampaigns();
+    _loadMyPoints();
+    homeTabIndex.addListener(_onTabChanged);
   }
 
   Future<void> _loadTopCampaigns() async {
@@ -140,6 +146,16 @@ class _EbShoppingPageState extends State<EbShoppingPage> {
       "image": "telegram-varsel-eksempel",
       "detail": "Gå til Varsler-siden og velg butikkene du handler i. Vi sender deg melding på e-post eller Telegram når de har ekstra bonus.\n\nEksempel: Outnorth har normalt 25 poeng/100kr. Ved kampanje stiger det til 50 – da varsler vi deg!\n\n💡 Premium og Elite gir personlige varsler på opptil 5 eller 10 favorittbutikker.",
     },
+    {
+      "title": "Har du Spenn? Slå på varsler",
+      "short": "Superspenn-dager og ekstra Spenn hos REMA 1000, Norwegian m.fl.",
+      "detail": "Gå til Varsler-fanen og slå på «Spenn-kampanjer».\n\nLegg inn e-post eller koble til Telegram, så får du beskjed når det er ekstra Spenn.\n\nTips: Legg inn Spenn-saldoen din under Reis-fanen, så ser du den sammen med de andre poengene dine.",
+    },
+    {
+      "title": "Avios og Amex Membership Rewards",
+      "short": "Flere programmer samlet på ett sted (Premium)",
+      "detail": "Avios er poengene i British Airways Club. Avios kan ikke overføres til EuroBonus. Amex Membership Rewards (MR) er poeng fra enkelte Amex-kort, og vilkår og kampanjer varierer, så sjekk alltid gjeldende vilkår hos Amex.\n\n1. Reis-fanen → Flere programmer → slå på Avios og/eller Amex MR og skriv inn saldoen. Eller trykk «Importer saldo fra skjermbilde» (Premium og Elite).\n2. Varsler-fanen → slå på Avios- og MR-varsler (Premium) for å få beskjed om overføringsbonus.",
+    },
   ];
 
   bool get _isPremium =>
@@ -232,17 +248,202 @@ class _EbShoppingPageState extends State<EbShoppingPage> {
       body: CustomScrollView(
         slivers: [
           SliverToBoxAdapter(child: _hero()),
+          SliverToBoxAdapter(child: _myPointsStrip()),
+          SliverToBoxAdapter(child: _bestNowSection()),
           SliverToBoxAdapter(child: _stepsSection()),
-          SliverToBoxAdapter(child: _doubelDip()),
-          SliverToBoxAdapter(child: _trumfSection()),
-          SliverToBoxAdapter(child: _sasSection()),
-          SliverToBoxAdapter(child: _tipBox()),
           SliverToBoxAdapter(child: _adBanner('poeng')),
           const SliverToBoxAdapter(child: SizedBox(height: 32)),
         ],
       ),
     );
   }
+
+  // ── DINE POENG + BESTE NÅ (script 57) ────────────────────
+  Map<String, int> _myPoints = {};
+  bool _pointsLoaded = false;
+  bool _stepsOpen = true;
+  bool _stepsTouched = false;
+
+  Future<void> _loadMyPoints() async {
+    try {
+      final eb = await UserState.getEurobonusPoints();
+      final tr = await UserState.getTrumfPoints();
+      final sp = await UserState.getBalance('spenn');
+      final av = await UserState.getBalance('avios');
+      final mr = await UserState.getBalance('amexmr');
+      if (!mounted) return;
+      setState(() {
+        _myPoints = {'eurobonus': eb, 'trumf': tr, 'spenn': sp, 'avios': av, 'amexmr': mr};
+        _pointsLoaded = true;
+        if (!_stepsTouched && _myPoints.values.any((v) => v > 0)) _stepsOpen = false;
+      });
+    } catch (_) {
+      if (mounted) setState(() => _pointsLoaded = true);
+    }
+  }
+
+  void _onTabChanged() {
+    if (homeTabIndex.value == 0) _loadMyPoints();
+  }
+
+  @override
+  void dispose() {
+    homeTabIndex.removeListener(_onTabChanged);
+    super.dispose();
+  }
+
+  String _fmtNum(int v) => v.toString().replaceAllMapped(
+      RegExp(r'(\d)(?=(\d{3})+$)'), (m) => '${m[1]} ');
+
+  Widget _myPointsStrip() {
+    if (!_pointsLoaded) return const SizedBox(height: 16);
+    final tiles = <List<String>>[];
+    void add(String id, String label, String unit) {
+      final v = _myPoints[id] ?? 0;
+      if (v > 0) tiles.add([label, _fmtNum(v), unit]);
+    }
+    add('eurobonus', 'EuroBonus', 'poeng');
+    add('trumf', 'Trumf', 'kr');
+    add('spenn', 'Spenn', 'poeng');
+    add('avios', 'Avios', 'poeng');
+    add('amexmr', 'Amex MR', 'poeng');
+    final tileW = (MediaQuery.of(context).size.width - 32 - 32 - 20) / 3;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+      child: GestureDetector(
+        onTap: () => goToHomeTab(4),
+        child: Container(
+          decoration: BoxDecoration(
+            color: _tBg,
+            borderRadius: BorderRadius.circular(18),
+            border: AppTheme.activeBorder(),
+          ),
+          padding: const EdgeInsets.all(16),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Row(children: [
+              const Expanded(
+                child: Text("Dine poeng",
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900)),
+              ),
+              Text(tiles.isEmpty ? "Legg inn →" : "Oppdater →",
+                  style: const TextStyle(
+                      fontSize: 12, fontWeight: FontWeight.w700, color: _sBlue)),
+            ]),
+            const SizedBox(height: 12),
+            if (tiles.isEmpty)
+              Text(
+                "Legg inn saldoene dine under Reis, eller importer dem fra et skjermbilde, så ser du alle poengene dine samlet her.",
+                style: TextStyle(fontSize: 13, color: Colors.grey[400], height: 1.4),
+              )
+            else
+              Wrap(
+                spacing: 10,
+                runSpacing: 10,
+                children: tiles
+                    .map((t) => Container(
+                          width: tileW,
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF0F2340),
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                            FittedBox(
+                              fit: BoxFit.scaleDown,
+                              alignment: Alignment.centerLeft,
+                              child: Text(t[1],
+                                  style: const TextStyle(
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.w900,
+                                      color: Colors.white)),
+                            ),
+                            const SizedBox(height: 2),
+                            Text("${t[0]} · ${t[2]}",
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(fontSize: 11, color: Colors.grey[400])),
+                          ]),
+                        ))
+                    .toList(),
+              ),
+          ]),
+        ),
+      ),
+    );
+  }
+
+  Widget _bestCard(String program, Color accent, String label) {
+    final top = program == 'trumf' ? _topTrumf : _topSas;
+    Widget body;
+    if (_loadingTop) {
+      body = const Center(
+        child: SizedBox(
+            width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)),
+      );
+    } else if (top == null) {
+      body = Text("Ingen aktive kampanjer nå",
+          style: TextStyle(fontSize: 12, color: Colors.grey[400]));
+    } else {
+      final m = (top['multiplier'] is num) ? (top['multiplier'] as num).toDouble() : 0.0;
+      final mText = m.toStringAsFixed(m % 1 == 0 ? 0 : 1);
+      body = Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text((top['title'] ?? '').toString(),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800)),
+        const SizedBox(height: 6),
+        Text(mText,
+            style: TextStyle(fontSize: 30, fontWeight: FontWeight.w900, color: accent)),
+        Text("poeng / 100 kr",
+            style: TextStyle(fontSize: 11, color: Colors.grey[400])),
+      ]);
+    }
+    final url = (top?['url'] ?? '').toString();
+    return GestureDetector(
+      onTap: url.isEmpty ? null : () => _open(url),
+      child: Container(
+        constraints: const BoxConstraints(minHeight: 128),
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: const Color(0xFF0F2340),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: accent.withOpacity(.45)),
+        ),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          _sectionBadge(label, accent),
+          const SizedBox(height: 10),
+          body,
+        ]),
+      ),
+    );
+  }
+
+  Widget _bestNowSection() => Padding(
+        padding: const EdgeInsets.fromLTRB(16, 20, 16, 0),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          _secLabel("🔥 BESTE NÅ"),
+          const Text("Ekstra bonus akkurat nå",
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900)),
+          const SizedBox(height: 12),
+          Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Expanded(child: _bestCard('trumf', _tGreen, "🛒 TRUMF")),
+            const SizedBox(width: 10),
+            Expanded(child: _bestCard('sas', _sBlue, "✈️ EUROBONUS")),
+          ]),
+          const SizedBox(height: 10),
+          GestureDetector(
+            onTap: () => goToHomeTab(3),
+            child: const Center(
+              child: Padding(
+                padding: EdgeInsets.symmetric(vertical: 6),
+                child: Text("Se alle butikker og velg favoritter →",
+                    style: TextStyle(
+                        fontSize: 13, fontWeight: FontWeight.w700, color: _sBlue)),
+              ),
+            ),
+          ),
+        ]),
+      );
 
   // ── HERO ─────────────────────────────────────────────────
   Widget _hero() {
@@ -271,20 +472,16 @@ class _EbShoppingPageState extends State<EbShoppingPage> {
                   height: 1.2)),
           const SizedBox(height: 10),
           const Text(
-            "Du handler mat uansett. Du betaler strøm uansett. La oss hjelpe deg å tjene flypoeng på hverdagen – og bruke dem på ferie.",
+            "Tjen flypoeng på hverdagen, og bruk dem på ferie.",
             style: TextStyle(
                 fontSize: 14, color: Colors.white70, height: 1.5),
           ),
           const SizedBox(height: 14),
           Wrap(spacing: 6, runSpacing: 8, children: [
-            _infoChip(context, "🛒 Dagligvare", "🛒 Dagligvare",
-              "Du tjener bonus når du handler mat på KIWI, MENY, SPAR, Joker og Nærbutikken.\n\nSlik gjør du det:\n1. Last ned Trumf-appen\n2. Registrer bankkortet ditt én gang\n3. Betal med kortet i butikken\n4. Bonus registreres automatisk!\n\nFinn det i appen: Spar-fanen øverst."),
-            _infoChip(context, "✈️ Fly & hotell", "✈️ Fly & hotell",
-              "Bestill fly, hotell og leiebil via SAS sin portal og tjen EuroBonus-poeng.\n\nEksempel: Hotell for 1 200 kr = 480 poeng. Poengene kan brukes til flyreiser!\n\nFinn det i appen: Poeng-fanen → SAS Online Shopping, eller Reis-fanen for reisekalkulator."),
-            _infoChip(context, "🛍️ Netthandel", "🛍️ Netthandel",
-              "Handle på nett og tjen bonus automatisk hos over 250 butikker.\n\nEksempel: Joggesko på Outnorth for 800 kr = 400 Trumf-poeng!\n\nFinn det i appen: Poeng-fanen → Trumf Netthandel eller SAS Online Shopping."),
-            _infoChip(context, "🔔 Varsler", "🔔 Varsler",
-              "Velg favorittbutikkene dine og få varsel når de har ekstra bonus.\n\nEksempel: Outnorth normalt 25p/100kr. Kampanje: 50p/100kr — da varsler vi deg!\n\nFinn det i appen: Varsler-fanen. Premium: 5 favoritter. Elite: 10 favoritter."),
+            _infoChip(context, "✈️ EuroBonus", eurobonusInfoTitle, eurobonusInfoText),
+            _infoChip(context, "💸 Spenn", programsInfoTitle, programsInfoText),
+            _infoChip(context, "🛩️ Avios & Amex MR", aviosInfoTitle, aviosInfoText),
+            _infoChip(context, "🔜 Kommer", comingInfoTitle, comingInfoText),
           ]),
         ]),
       ));
@@ -294,15 +491,32 @@ class _EbShoppingPageState extends State<EbShoppingPage> {
   Widget _stepsSection() => Padding(
         padding: const EdgeInsets.fromLTRB(16, 24, 16, 0),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          _secLabel("Kom i gang"),
-          const Text("4 enkle steg 👇",
-              style: TextStyle(
-                  fontSize: 20, fontWeight: FontWeight.w900)),
-          const SizedBox(height: 4),
-          Text("Trykk på ℹ️ for å lese mer om hvert steg",
-              style: TextStyle(fontSize: 13, color: Colors.grey[500])),
-          const SizedBox(height: 14),
-          ...List.generate(_steps.length, (i) => _stepCard(i)),
+          GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () => setState(() {
+              _stepsTouched = true;
+              _stepsOpen = !_stepsOpen;
+            }),
+            child: Row(children: [
+              Expanded(
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  _secLabel("Kom i gang"),
+                  Text("${_steps.length} enkle steg 👇",
+                      style: const TextStyle(
+                          fontSize: 20, fontWeight: FontWeight.w900)),
+                ]),
+              ),
+              Icon(_stepsOpen ? Icons.expand_less : Icons.expand_more,
+                  color: Colors.grey[500]),
+            ]),
+          ),
+          if (_stepsOpen) ...[
+            const SizedBox(height: 4),
+            Text("Trykk på ℹ️ for å lese mer om hvert steg",
+                style: TextStyle(fontSize: 13, color: Colors.grey[500])),
+            const SizedBox(height: 14),
+            ...List.generate(_steps.length, (i) => _stepCard(i)),
+          ],
         ]),
       );
 
@@ -544,43 +758,8 @@ class _EbShoppingPageState extends State<EbShoppingPage> {
           const Text("Handle på nett – tjen bonus",
               style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900)),
           const SizedBox(height: 4),
-          Text("Trykk på en kategori eller butikk for å gå direkte dit. Bonus registreres automatisk når du handler via lenken – du trenger ikke gjøre noe ekstra.",
+          Text("Her ser du beste kampanje akkurat nå. Alle butikkene og favorittene dine finner du under Varsler.",
               style: TextStyle(fontSize: 13, color: Colors.grey[500])),
-          const SizedBox(height: 12),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: List.generate(_trumfCats.length, (i) {
-                final cat = _trumfCats[i];
-                final isSel = _trumfCatIdx == i;
-                return GestureDetector(
-                  onTap: () { setState(() => _trumfCatIdx = i); _open((_trumfCats[i]["url"] ?? "https://trumfnetthandel.no/") as String); },
-                  child: Container(
-                    margin: const EdgeInsets.only(right: 8),
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: isSel
-                          ? _tGreen
-                          : _tGreen.withOpacity(.08),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(
-                          color: isSel
-                              ? _tGreen
-                              : _tGreen.withOpacity(.3)),
-                    ),
-                    child: Text(
-                      "${cat["icon"]} ${cat["name"]}",
-                      style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: isSel ? Colors.white : _tGreen),
-                    ),
-                  ),
-                );
-              }),
-            ),
-          ),
           const SizedBox(height: 12),
           Container(
             decoration: BoxDecoration(
@@ -593,8 +772,7 @@ class _EbShoppingPageState extends State<EbShoppingPage> {
               _topCampaignCard(program: 'trumf', accent: _tGreen, bg: _tBg),
               const SizedBox(height: 4),
               GestureDetector(
-                onTap: () =>
-                    _open("https://trumfnetthandel.no/"),
+                onTap: () => goToHomeTab(3),
                 child: Center(
                   child: Text(
                     "Se alle 250+ butikker på Varsler-siden →",
@@ -631,41 +809,6 @@ class _EbShoppingPageState extends State<EbShoppingPage> {
               "400+ butikker – poengene kan brukes på flyreiser og hotell",
               style: TextStyle(fontSize: 13, color: Colors.grey[500])),
           const SizedBox(height: 12),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: List.generate(_sasCats.length, (i) {
-                final cat = _sasCats[i];
-                final isSel = _sasCatIdx == i;
-                return GestureDetector(
-                  onTap: () { setState(() => _sasCatIdx = i); _open((_sasCats[i]["url"] ?? "https://onlineshopping.flysas.com/nb-NO") as String); },
-                  child: Container(
-                    margin: const EdgeInsets.only(right: 8),
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: isSel
-                          ? _sBlue
-                          : _sBlue.withOpacity(.08),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(
-                          color: isSel
-                              ? _sBlue
-                              : _sBlue.withOpacity(.3)),
-                    ),
-                    child: Text(
-                      "${cat["icon"]} ${cat["name"]}",
-                      style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: isSel ? Colors.white : _sBlue),
-                    ),
-                  ),
-                );
-              }),
-            ),
-          ),
-          const SizedBox(height: 12),
           Container(
             decoration: BoxDecoration(
               color: _sBg,
@@ -677,8 +820,7 @@ class _EbShoppingPageState extends State<EbShoppingPage> {
               _topCampaignCard(program: 'sas', accent: _sBlue, bg: _sBg),
               const SizedBox(height: 4),
               GestureDetector(
-                onTap: () => _open(
-                    "https://onlineshopping.flysas.com/nb-NO"),
+                onTap: () => goToHomeTab(3),
                 child: Center(
                   child: Text(
                     "Se alle 400+ butikker på Varsler-siden →",

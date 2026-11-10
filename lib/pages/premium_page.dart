@@ -3,6 +3,7 @@ import '../services/auth_service.dart';
 import 'login_page.dart';
 import '../services/entitlement_service.dart';
 import '../services/checkout_service.dart';
+import '../services/stripe_links.dart';
 import 'checkout_page.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:bonusvarsel/widgets/ad_slot.dart';
@@ -158,7 +159,7 @@ await launchUrl(
                 const SizedBox(height: 8),
                 Text(
                   isCurrentElite
-                    ? 'Du har tilgang til alle funksjoner inkludert SkyTeam, 10 favoritter og VIP-varsler.'
+                    ? 'Du har tilgang til alle funksjoner inkludert 10 favoritter og VIP-varsler.'
                     : 'Du har tilgang til 5 favoritter, AI-analyse og personlige varsler.',
                   style: const TextStyle(color: Color(0xFFCBD5E1), fontSize: 14, height: 1.5),
                   textAlign: TextAlign.center,
@@ -183,8 +184,7 @@ await launchUrl(
                         '✅ 10 Trumf Netthandel-favoritter',
                         '✅ 10 SAS Shopping-favoritter',
                         '✅ SAS Bonusreise-oversikt',
-                        '✅ SkyTeam-flyselskaper (Air France, KLM, Delta)',
-                        '✅ VIP-varsler og concierge-support',
+                        '✅ VIP-varsler og prioritert support',
                       ] : [
                         '✅ 5 Trumf Netthandel-favoritter',
                         '✅ 5 SAS Shopping-favoritter',
@@ -221,7 +221,7 @@ await launchUrl(
                       ]),
                       const SizedBox(height: 8),
                       const Text(
-                        'Få 10 favoritter, SkyTeam-bonus, VIP-varsler og concierge-support.',
+                        'Få 10 favoritter, VIP-varsler og prioritert support.',
                         style: TextStyle(color: Color(0xFFC8D8E8), fontSize: 13, height: 1.5)),
                       const SizedBox(height: 6),
                       const Text('Kun 40 kr ekstra per måned',
@@ -237,7 +237,7 @@ await launchUrl(
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12))),
                           onPressed: () async {
-                            final url = Uri.parse('https://buy.stripe.com/bJecN600a8j8f7P8bvcQU06');
+                            final url = stripeCheckoutUri('https://buy.stripe.com/9B65kE28i7f44tbcrLcQU05');
                             if (await canLaunchUrl(url)) {
                               await launchUrl(url, mode: LaunchMode.externalApplication);
                             }
@@ -1101,7 +1101,7 @@ class _PlanPicker extends StatelessWidget {
           onTap: () => onSelect('Elite'),
           ctaLabel: 'Elite',
           ctaColor: const Color(0xFFD4AF37),
-          note: '89 kr/mnd · Opptil 8 000+ poeng/mnd',
+          note: '89 kr/mnd · Estimert opptil 8 000 poeng/mnd',
           onCta: () => onCheckout('Elite'),
         ),
       ],

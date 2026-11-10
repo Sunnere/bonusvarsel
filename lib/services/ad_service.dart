@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/ad_slot.dart';
@@ -161,6 +162,17 @@ final Map<String, double> _userAffinity = {};
         ),
         // ── REISE-FANEN ─────────────────────────────────────────────────
         AdSlot(
+          id: 'flyhjelp_1',
+          isSponsored: true,
+          imageUrl: 'assets/brands/flyhjelp_banner.jpg',
+          guaranteePerDay: 3,
+          title: 'Forsinket fly? Få kompensasjon',
+          body: 'Du kan ha krav på opptil 600 €. Sjekk kravet gratis hos Flyhjelp.',
+          cta: 'Sjekk kravet ditt',
+          link: 'https://dot.flyhjelp.no/t/t?a=1870470470&as=2074526845&t=2&tk=1',
+          tags: ['reis', 'flyhjelp'],
+        ),
+        AdSlot(
           id: 'betalo_reise',
           title: '✈️ Nå målet raskere med Betalo',
           body: 'Betal reiseutgifter med Amex via Betalo og tjen ekstra poeng.',
@@ -287,6 +299,78 @@ final Map<String, double> _userAffinity = {};
     return a.tags.any((t) => wanted.contains(t.toLowerCase()));
   }
 
+
+  // ── Remote inventar: Firestore-samling "ads" (dokument-id = annonse-id) ──
+  // Overstyrer hardkodet annonse med samme id, legger til nye, active:false skjuler.
+  Map<String, AdSlot?>? _remoteDocs;
+  DateTime? _remoteAt;
+  static const Duration _remoteTtl = Duration(minutes: 10);
+
+  AdSlot? _adFromDoc(String id, Map<String, dynamic> d) {
+    if (d['active'] == false) return null;
+    final now = DateTime.now();
+    final s = d['startDate'];
+    final e = d['endDate'];
+    if (s is Timestamp && s.toDate().isAfter(now)) return null;
+    if (e is Timestamp && e.toDate().isBefore(now)) return null;
+    final title = (d['title'] ?? '').toString();
+    final link = (d['link'] ?? '').toString();
+    if (title.isEmpty || link.isEmpty) return null;
+    final img = (d['imageUrl'] ?? '').toString();
+    final tags = d['tags'] is List
+        ? (d['tags'] as List).map((x) => x.toString()).toList()
+        : <String>[];
+    return AdSlot(
+      id: id,
+      title: title,
+      body: (d['body'] ?? '').toString(),
+      cta: (d['cta'] ?? 'Les mer').toString(),
+      link: link,
+      imageUrl: img.isEmpty ? null : img,
+      tags: tags,
+      isSponsored: d['isSponsored'] == true,
+      bidCpm: (d['bidCpm'] as num?)?.toDouble() ?? 0.0,
+      guaranteePerDay: (d['guaranteePerDay'] as num?)?.toInt() ?? 0,
+      priority: (d['priority'] as num?)?.toInt() ?? 0,
+      premiumOnly: d['premiumOnly'] == true,
+    );
+  }
+
+  Future<List<AdSlot>> _inventory() async {
+    final base = getCreative();
+    try {
+      final fresh = _remoteAt != null &&
+          DateTime.now().difference(_remoteAt!) < _remoteTtl;
+      if (!fresh) {
+        final snap = await FirebaseFirestore.instance
+            .collection('ads')
+            .get()
+            .timeout(const Duration(seconds: 4));
+        final m = <String, AdSlot?>{};
+        for (final doc in snap.docs) {
+          m[doc.id] = _adFromDoc(doc.id, doc.data());
+        }
+        _remoteDocs = m;
+        _remoteAt = DateTime.now();
+      }
+    } catch (_) {
+      // Ingen nett / ingen tilgang: bruk forrige cache eller hardkodet liste.
+      // Prøv igjen om ca. ett minutt.
+      _remoteAt ??= DateTime.now().subtract(_remoteTtl - const Duration(minutes: 1));
+    }
+    final remote = _remoteDocs;
+    if (remote == null || remote.isEmpty) return base;
+    final out = <String, AdSlot>{for (final a in base) a.id: a};
+    remote.forEach((id, ad) {
+      if (ad == null) {
+        out.remove(id);
+      } else {
+        out[id] = ad;
+      }
+    });
+    return out.values.toList();
+  }
+
   Future<List<AdSlot>> pickAds({
     required String placement,
     int count = 1,
@@ -298,7 +382,7 @@ final Map<String, double> _userAffinity = {};
 
     final prefs = await _prefs();
 
-    final inv = getCreative();
+    final inv = await _inventory();
 
     var pool = inv;
     if (requireAnyTags.isNotEmpty) {
@@ -311,6 +395,14 @@ final Map<String, double> _userAffinity = {};
     if (segmentTags.isNotEmpty) {
       pool = pool.where((a) => _matchesSegment(a, segmentTags)).toList();
     }
+
+    // Annonser med 'place:<navn>'-tagg vises bare på de plasseringene.
+    pool = pool.where((a) {
+      final places = a.tags
+          .where((t) => t.startsWith('place:'))
+          .map((t) => t.substring(6).toLowerCase());
+      return places.isEmpty || places.contains(placement.toLowerCase());
+    }).toList();
 
     if (enforceSessionCap) {
       final capped = pool.where((a) => _underSessCap(placement, a.id)).toList();

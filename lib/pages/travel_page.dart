@@ -11,6 +11,8 @@ import '../services/entitlement_service.dart';
 import 'package:home_widget/home_widget.dart';
 import '../services/ai_service.dart';
 import 'premium_page.dart';
+import '../services/balance_import_service.dart';
+import '../widgets/balance_import_sheet.dart';
 import 'premium_page.dart';
 
 // ─── Poengkostnader EuroBonus (per person, én vei) ───────────────────────────
@@ -120,6 +122,9 @@ class _TravelPageState extends State<TravelPage> with WidgetsBindingObserver {
   // Spenn, Norwegian CashPoints og valgte ekstra-programmer
   final _spennCtrl = TextEditingController(text: '0');
   final _cashCtrl = TextEditingController(text: '0');
+  final _aviosCtrl = TextEditingController(text: '0');
+  bool _importing = false;
+  final _mrCtrl = TextEditingController(text: '0');
   Set<String> _enabledExtra = {};
 
   // Månedlig forbruk (for opptjeningsestimering)
@@ -149,6 +154,8 @@ class _TravelPageState extends State<TravelPage> with WidgetsBindingObserver {
     _trumfKrCtrl.dispose();
     _spennCtrl.dispose();
     _cashCtrl.dispose();
+    _aviosCtrl.dispose();
+    _mrCtrl.dispose();
     super.dispose();
   }
 
@@ -164,24 +171,28 @@ class _TravelPageState extends State<TravelPage> with WidgetsBindingObserver {
       if (id != null) ids.add(id);
     }
     final trumf = await UserState.isTrumfMember();
-    const rateMap = {'sas_amex':20,'sas_mc':15,'sas_visa':10,'trumf_visa':10,'trumf_mc':8};
+    const rateMap = {'sas_amex':20,'sas_amex_elite':20,'sas_amex_premium':15,'sas_amex_classic':10,'sas_mc':15,'sas_visa':10,'trumf_visa':10,'trumf_mc':8};
     final best = ids.isEmpty ? 15 :
         ids.map((i) => rateMap[i] ?? 10).reduce((a, b) => a > b ? a : b);
     final savedPoints = await UserState.getEurobonusPoints();
     final savedTrumfKr = await UserState.getTrumfPoints();
     final savedSpenn = await UserState.getBalance('spenn');
     final savedCash = await UserState.getBalance('cashpoints');
+    final savedAvios = await UserState.getBalance('avios');
+    final savedMr = await UserState.getBalance('amexmr');
     final savedEnabled = await UserState.getEnabledPrograms();
     if (!mounted) return;
     setState(() {
       _cardIds = ids;
       _cardRatePer100 = best;
-      _hasAmex = ids.contains('sas_amex');
+      _hasAmex = ids.any((i) => i == 'sas_amex' || i == 'sas_amex_elite' || i == 'sas_amex_premium');
       _isTrumfMember = trumf;
       if (savedPoints > 0) _pointsCtrl.text = savedPoints.toString();
       if (savedTrumfKr > 0) _trumfKrCtrl.text = savedTrumfKr.toString();
       if (savedSpenn > 0) _spennCtrl.text = savedSpenn.toString();
       if (savedCash > 0) _cashCtrl.text = savedCash.toString();
+      if (savedAvios > 0) _aviosCtrl.text = savedAvios.toString();
+      if (savedMr > 0) _mrCtrl.text = savedMr.toString();
       _enabledExtra = savedEnabled.toSet();
     });
   }
@@ -225,6 +236,54 @@ class _TravelPageState extends State<TravelPage> with WidgetsBindingObserver {
       await HomeWidget.saveWidgetData<int>('widget_spenn_points', v);
       await HomeWidget.updateWidget(iOSName: 'BonusWidget');
     }
+  }
+
+  // ── Import fra skjermbilde (Fase 2, Premium/Elite) ───────────────────────
+  Future<void> _importFromScreenshot() async {
+    if (!EntitlementService.instance.isPremium) {
+      Navigator.of(context).push(MaterialPageRoute(builder: (_) => const PremiumPage()));
+      return;
+    }
+    final messenger = ScaffoldMessenger.of(context);
+    setState(() => _importing = true);
+    try {
+      final found = await BalanceImportService.pickAndRead();
+      if (found == null || !mounted) return;
+      final picked = await showBalanceImportSheet(context, found);
+      if (picked == null || picked.isEmpty) return;
+      await _applyImported(picked);
+      messenger.showSnackBar(SnackBar(content: Text('Lagret ${picked.length} saldo(er)')));
+    } on BalanceImportException catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text(e.message)));
+    } finally {
+      if (mounted) setState(() => _importing = false);
+    }
+  }
+
+  Future<void> _applyImported(Map<String, int> picked) async {
+    for (final e in picked.entries) {
+      final id = e.key;
+      final v = e.value;
+      if (id == 'eurobonus') {
+        _pointsCtrl.text = '$v';
+        await _saveEuroBonusPoints('$v');
+      } else if (id == 'trumf') {
+        _trumfKrCtrl.text = '$v';
+        await _saveTrumfKr('$v');
+      } else {
+        final ctrl = {
+          'spenn': _spennCtrl,
+          'cashpoints': _cashCtrl,
+          'avios': _aviosCtrl,
+          'amexmr': _mrCtrl,
+        }[id];
+        if (ctrl == null) continue;
+        ctrl.text = '$v';
+        await _saveBalance(id, '$v', widgetKey: id == 'spenn' ? 'widget_spenn_points' : null);
+        if (!_enabledExtra.contains(id)) await _toggleProgram(id, true);
+      }
+    }
+    if (mounted) setState(() {});
   }
 
   // ── Beregninger ──────────────────────────────────────────────────────────
@@ -634,7 +693,7 @@ class _TravelPageState extends State<TravelPage> with WidgetsBindingObserver {
             Text(_fmt(_pointsNeeded),
               style: const TextStyle(color: _text, fontWeight: FontWeight.w900, fontSize: 22)),
             if (_hasAmex)
-              const Text('inkl. Companion Ticket 🎟️',
+              const Text('inkl. Amex-rabatt (50 % for to) 🎟️',
                 style: TextStyle(color: _warning, fontSize: 11, fontWeight: FontWeight.w700)),
           ]),
           Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
@@ -811,7 +870,7 @@ class _TravelPageState extends State<TravelPage> with WidgetsBindingObserver {
                 child: Row(children: [
                   const Text('🎟️ ', style: TextStyle(fontSize: 12)),
                   Expanded(child: Text(
-                    'Companion Ticket: én voksen flyr gratis t/r (Amex 150 000 kr/år)',
+                    'Amex-rabatt: 50 % poengrabatt på bonusreise for to personer (150 000 kr/år, skatter kommer i tillegg)',
                     style: const TextStyle(color: _warning, fontSize: 11, height: 1.4))),
                 ]),
               ),
@@ -842,7 +901,12 @@ class _TravelPageState extends State<TravelPage> with WidgetsBindingObserver {
 
   // ── Poengstatus ──────────────────────────────────────────────────────────
   Widget _programChips() {
-    const options = {'spenn': 'Spenn', 'cashpoints': 'Norwegian CashPoints'};
+    const options = {
+      'spenn': 'Spenn',
+      'cashpoints': 'Norwegian CashPoints',
+      'avios': 'Avios',
+      'amexmr': 'Amex Membership Rewards',
+    };
     return Wrap(
       spacing: 8,
       runSpacing: 8,
@@ -896,6 +960,28 @@ class _TravelPageState extends State<TravelPage> with WidgetsBindingObserver {
       title: '🏆 Dine EuroBonus-poeng nå',
       info: 'Logg inn på sas.no/eurobonus eller åpne SAS-appen. Poengene dine vises på forsiden under «Min konto». Skriv inn tallet her så regner vi ut hva du mangler til drømmeturen.',
       children: [
+        SizedBox(
+          width: double.infinity,
+          child: OutlinedButton.icon(
+            onPressed: _importFromScreenshot,
+            icon: const Icon(Icons.photo_camera_outlined, size: 18),
+            label: const Text('Les saldo fra skjermbilde',
+                style: TextStyle(fontWeight: FontWeight.w800)),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: _primary,
+              side: const BorderSide(color: _primary),
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12)),
+            ),
+          ),
+        ),
+        const SizedBox(height: 6),
+        const Text(
+          'Premium/Elite. Bildet sendes til AI for å lese tallet og lagres ikke. Du bekrefter før noe oppdateres.',
+          style: TextStyle(color: _textMuted, fontSize: 11, height: 1.4),
+        ),
+        const SizedBox(height: 12),
         TextField(
           controller: _pointsCtrl,
           onChanged: (v) { setState(() {}); _saveEuroBonusPoints(v); },
@@ -948,6 +1034,18 @@ class _TravelPageState extends State<TravelPage> with WidgetsBindingObserver {
           ),
         ),
         const SizedBox(height: 16),
+        OutlinedButton.icon(
+          onPressed: _importing ? null : _importFromScreenshot,
+          icon: Icon(_importing ? Icons.hourglass_empty : Icons.photo_camera_outlined, size: 18),
+          label: Text(EntitlementService.instance.isPremium
+              ? 'Importer saldo fra skjermbilde'
+              : 'Importer saldo fra skjermbilde (Premium)'),
+          style: OutlinedButton.styleFrom(
+            foregroundColor: _primary,
+            side: const BorderSide(color: _border),
+            minimumSize: const Size.fromHeight(44),
+          ),
+        ),
         const Text('Flere programmer',
             style: TextStyle(color: _textMuted, fontSize: 13, fontWeight: FontWeight.w700)),
         const SizedBox(height: 8),
@@ -964,6 +1062,20 @@ class _TravelPageState extends State<TravelPage> with WidgetsBindingObserver {
           _balanceField(_cashCtrl, 'Norwegian CashPoints', 'CashPoints', (v) {
             setState(() {});
             _saveBalance('cashpoints', v);
+          }),
+        ],
+        if (_enabledExtra.contains('avios')) ...[
+          const SizedBox(height: 12),
+          _balanceField(_aviosCtrl, 'Avios-saldo', 'Avios', (v) {
+            setState(() {});
+            _saveBalance('avios', v);
+          }),
+        ],
+        if (_enabledExtra.contains('amexmr')) ...[
+          const SizedBox(height: 12),
+          _balanceField(_mrCtrl, 'Amex Membership Rewards', 'poeng', (v) {
+            setState(() {});
+            _saveBalance('amexmr', v);
           }),
         ],
         if (_currentPoints > 0) ...[
@@ -983,14 +1095,14 @@ class _TravelPageState extends State<TravelPage> with WidgetsBindingObserver {
   Widget _opptjeningSection() {
     final kortNavn = _cardIds.isEmpty ? 'Ingen kort valgt'
         : _cardIds.map((id) {
-            const n = {'sas_amex':'Amex','sas_mc':'MC SAS',
+            const n = {'sas_amex':'Amex Elite','sas_amex_elite':'Amex Elite','sas_amex_premium':'Amex Premium','sas_amex_classic':'Amex Classic','sas_mc':'MC SAS',
                 'sas_visa':'Visa SAS','trumf_visa':'Trumf Visa','trumf_mc':'Trumf MC'};
             return n[id] ?? id;
           }).join(' + ');
 
     return _card(
       title: '📈 Hvor raskt tjener du poeng?',
-      info: 'Dra i slideren for å justere hva du bruker på kortet per måned. Vi regner ut hvor lang tid det tar å nå poengs målet ditt. Husk: bruk Amex der det aksepteres for 20p/100kr.',
+      info: 'Dra i slideren for å justere hva du bruker på kortet per måned. Vi regner ut hvor lang tid det tar å nå poengs målet ditt. Husk: bruk Amex der det aksepteres (Classic 10, Premium 15, Elite 20 poeng per 100 kr).',
       children: [
         // Månedlig forbruk-slider
         Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
@@ -1057,15 +1169,15 @@ class _TravelPageState extends State<TravelPage> with WidgetsBindingObserver {
                 children: [
                   Text(
                     _onTrackForCT
-                        ? 'På vei mot Companion Ticket!'
-                        : 'Companion Ticket krever 150 000 kr/år',
+                        ? 'På vei mot Amex-rabatt!'
+                        : 'Amex-rabatt krever 150 000 kr/år',
                     style: TextStyle(
                       color: _onTrackForCT ? _success : _warning,
                       fontWeight: FontWeight.w800, fontSize: 13)),
                   const SizedBox(height: 2),
                   Text(
                     _onTrackForCT
-                        ? 'Du er på ${(_monthlySpend * 12 / 150000 * 100).round()}% av 150 000 kr/år – én voksen flyr gratis!'
+                        ? 'Du er på ${(_monthlySpend * 12 / 150000 * 100).round()}% av 150 000 kr/år – 50 % poengrabatt for to personer!'
                         : 'Øk til ${_fmt(12500)} kr/mnd for å nå 150 000 kr/år',
                     style: const TextStyle(color: Colors.white54, fontSize: 12)),
                 ],
@@ -1207,8 +1319,7 @@ class _TravelPageState extends State<TravelPage> with WidgetsBindingObserver {
                   '• Alt i Premium\n'
                   '• 10 favoritter per program\n'
                   '• SAS Bonusreise-oversikt\n'
-                  '• SkyTeam-flyselskaper (Air France, KLM, Delta)\n'
-                  '• VIP-varsler og concierge-support',
+                  '• VIP-varsler og prioritert support',
                   style: TextStyle(color: _textMuted, fontSize: 12, height: 1.5)),
                 const SizedBox(height: 10),
                 Container(
@@ -1311,14 +1422,14 @@ class _TravelPageState extends State<TravelPage> with WidgetsBindingObserver {
         _eliteBtn(
           icon: '🌍',
           label: 'SkyTeam-flyselskaper',
-          subtitle: 'Air France, KLM, Delta og 16 andre',
+          subtitle: 'Air France, KLM, Delta og flere',
           url: 'https://www.skyteam.com/en/earn-and-redeem/',
         ),
         const SizedBox(height: 8),
         _eliteBtn(
           icon: '🇫🇷',
           label: 'Air France',
-          subtitle: 'Bruk EuroBonus-poeng på Air France',
+          subtitle: 'Se SkyTeam-partnere i appen',
           url: 'https://www.airfrance.no/',
         ),
         const SizedBox(height: 8),
@@ -1362,7 +1473,7 @@ class _TravelPageState extends State<TravelPage> with WidgetsBindingObserver {
   
   Widget _adBanner(String placement) {
     return FutureBuilder<List<AdSlot>>(
-      future: AdService.instance.pickAds(placement: placement, count: 1),
+      future: AdService.instance.pickAds(placement: placement, count: 1, requireAnyTags: [placement]),
       builder: (context, snap) {
         if (!snap.hasData || snap.data!.isEmpty) return const SizedBox.shrink();
         return AdSlotCard(slot: snap.data!.first, placement: placement);

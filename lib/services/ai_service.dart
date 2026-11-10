@@ -88,7 +88,7 @@ class AiService {
 
     // Beste rate
     const rateMap = {
-      'sas_amex':20,'sas_mc':15,'sas_visa':10,'trumf_visa':10,'trumf_mc':8
+      'sas_amex':20,'sas_amex_elite':20,'sas_amex_premium':15,'sas_amex_classic':10,'sas_mc':15,'sas_visa':10,'trumf_visa':10,'trumf_mc':8
     };
     final bestRate = cardIds.isEmpty ? 15
         : cardIds.map((id) => rateMap[id] ?? 10).reduce((a, b) => a > b ? a : b);
@@ -191,6 +191,44 @@ Vær spesifikk med tall og kronbeløp.''';
     return text;
   }
 
+  // ── Flying Agent (SAS/SkyTeam, Flying Blue, Avios, Norwegian) ─────────────
+  // Egen Firebase-funksjon "flyingAgent" med daglig grense og kilder fra nettsøk.
+  static Future<String> sendFlyingAgent(
+    List<Map<String, String>> history, {
+    bool norwegianMode = true,
+  }) async {
+    try {
+      if (FirebaseAuth.instance.currentUser == null) {
+        await FirebaseAuth.instance.signInAnonymously();
+      }
+      final trimmed = history.length > _maxHistoryMessages
+          ? history.sublist(history.length - _maxHistoryMessages)
+          : history;
+      final callable = FirebaseFunctions.instance.httpsCallable(
+        'flyingAgent',
+        options: HttpsCallableOptions(timeout: const Duration(seconds: 120)),
+      );
+      final result = await callable.call({
+        'messages': trimmed
+            .map((m) => {'role': m['role'] ?? 'user', 'content': m['content'] ?? ''})
+            .toList(),
+        'lang': norwegianMode ? 'no' : 'en',
+        'context': await _loyaltyContext(),
+      });
+      final content = result.data['content'];
+      return content is String && content.isNotEmpty
+          ? content
+          : '❌ Tomt svar fra Flying Agent. Prøv igjen.';
+    } on FirebaseFunctionsException catch (e) {
+      if (e.code == 'resource-exhausted') {
+        return '✈️ ${e.message ?? 'Daglig grense nådd. Prøv igjen i morgen.'}';
+      }
+      return '❌ Flying Agent feilet (${e.code}). Prøv igjen om litt.';
+    } catch (e) {
+      return '❌ Feil: $e';
+    }
+  }
+
   // ── Poengsaldo og Spenn-kontekst for AI-chatten ─────────────────────────
   static Future<String> _loyaltyContext() async {
     try {
@@ -198,9 +236,13 @@ Vær spesifikk med tall og kronbeløp.''';
       final trumf = await UserState.getTrumfPoints();
       final spenn = await UserState.getBalance('spenn');
       final cash = await UserState.getBalance('cashpoints');
+      final avios = await UserState.getBalance('avios');
+      final amexMr = await UserState.getBalance('amexmr');
       final enabled = await UserState.getEnabledPrograms();
       final usesSpenn = enabled.contains('spenn') || spenn > 0;
       final usesCash = enabled.contains('cashpoints') || cash > 0;
+      final usesAvios = enabled.contains('avios') || avios > 0;
+      final usesMr = enabled.contains('amexmr') || amexMr > 0;
       final sb = StringBuffer()
         ..writeln()
         ..writeln()
@@ -209,6 +251,16 @@ Vær spesifikk med tall og kronbeløp.''';
         ..writeln('- Trumf-bonus: $trumf kr');
       if (usesSpenn) sb.writeln('- Spenn: $spenn Spenn');
       if (usesCash) sb.writeln('- Norwegian CashPoints: $cash');
+      if (usesAvios) sb.writeln('- Avios (British Airways Club): $avios Avios');
+      if (usesMr) sb.writeln('- Amex Membership Rewards: $amexMr poeng');
+      if (usesAvios || usesMr) {
+        sb
+          ..writeln()
+          ..writeln('OM AVIOS OG AMEX MR:')
+          ..writeln('- Membership Rewards-poeng kan i enkelte tilfeller overføres til Avios, men overføringsforhold og kampanjer varierer. Si fra at brukeren må sjekke gjeldende forhold hos Amex.')
+          ..writeln('- Ikke anta at Avios kan flyttes til EuroBonus eller Trumf.')
+          ..writeln('- Er du usikker på en regel, si det tydelig i stedet for å gjette.');
+      }
       if (usesSpenn) {
         sb
           ..writeln()
@@ -228,10 +280,27 @@ Vær spesifikk med tall og kronbeløp.''';
   static List<Map<String, String>> _buildCardDetails(List<String> ids) {
     const details = {
       'sas_amex': {
-        'name': 'SAS EuroBonus American Express',
-        'benefits': '20p/100kr. Companion ticket (2-for-1) ved 75 000kr/år. '
-            'Reiseforsikring inkludert. Ikke akseptert overalt – bruk MC/Visa som backup. '
+        'name': 'SAS EuroBonus Amex Elite',
+        'benefits': '20p/100kr. Companion Ticket ved 150 000kr/år (to ved 300 000kr), alle klasser. '
+            'Ikke akseptert overalt – bruk MC/Visa som backup. '
             'Kan IKKE betale regninger via AvtaleGiro.',
+      },
+      'sas_amex_elite': {
+        'name': 'SAS EuroBonus Amex Elite',
+        'benefits': '20p/100kr. Companion Ticket ved 150 000kr/år (to ved 300 000kr), alle klasser. '
+            'Ikke akseptert overalt – bruk MC/Visa som backup. '
+            'Kan IKKE betale regninger via AvtaleGiro.',
+      },
+      'sas_amex_premium': {
+        'name': 'SAS EuroBonus Amex Premium',
+        'benefits': '15p/100kr. Companion Ticket ved 150 000kr/år (Economy og Premium Economy hos SAS og SkyTeam). '
+            'Ikke akseptert overalt – bruk MC/Visa som backup. '
+            'Kan IKKE betale regninger via AvtaleGiro.',
+      },
+      'sas_amex_classic': {
+        'name': 'SAS EuroBonus Amex Classic',
+        'benefits': '10p/100kr. Companion Ticket ved 100 000kr/år, gjelder bare SAS-fly i Europa. '
+            'Ikke akseptert overalt – bruk MC/Visa som backup.',
       },
       'sas_mc': {
         'name': 'SAS EuroBonus Mastercard',
@@ -313,7 +382,7 @@ $cardKnowledge
 
 NØKKELSTRATEGIER:
 - Amex overalt der akseptert + MC/Visa for regninger via AvtaleGiro
-- Mål 75 000kr/år på Amex → Companion Ticket (2-for-1 bonusreise)
+- Mål 150 000kr/år på Amex Premium/Elite (100 000kr på Classic) → Companion Ticket (2-for-1 bonusreise)
 - Trumf QR + Amex i NorgesGruppen = dobbel opptjening
 - Billkill.no: betal fakturaer med kort og tjen poeng
 - Trumf → EuroBonus: Trumf-app → Bruk bonus → Opprett overføring

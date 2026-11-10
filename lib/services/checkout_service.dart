@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io' show Platform;
 
 import 'package:flutter/foundation.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
@@ -210,10 +211,33 @@ class CheckoutService {
 
         case PurchaseStatus.purchased:
         case PurchaseStatus.restored:
+          EntitlementService.lastIapDebug = 'Apple ga kjøp: ${purchase.productID} (${purchase.status.name}) id=${purchase.purchaseID}';
           await EntitlementService.instance.unlock(purchase.productID);
           debugPrint(
             'Unlocked plan=${EntitlementService.instance.plan} via ${purchase.productID} (${purchase.status.name})',
           );
+          if (Platform.isAndroid) {
+            final token = purchase.verificationData.serverVerificationData;
+            if (token.isNotEmpty) {
+              await EntitlementService.instance.verifyPlayPurchaseWithBackend(
+                token,
+                purchase.productID,
+              );
+            } else {
+              debugPrint('Android-kjøp uten serverVerificationData - hopper over backend-verifisering');
+            }
+          }
+          if (Platform.isIOS) {
+            final txn = purchase.purchaseID;
+            if (txn != null && txn.isNotEmpty) {
+              await EntitlementService.instance.verifyAppStorePurchaseWithBackend(
+                txn,
+                purchase.productID,
+              );
+            } else {
+              debugPrint('iOS-kjøp uten purchaseID - hopper over backend-verifisering');
+            }
+          }
           if (purchase.pendingCompletePurchase) {
             await _iap.completePurchase(purchase);
           }

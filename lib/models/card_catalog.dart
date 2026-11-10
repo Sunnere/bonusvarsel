@@ -1,7 +1,10 @@
 class CardCatalog {
   // Poeng per 100 NOK (int)
   static const Map<String, int> rates = {
-    'sas_amex': 20,
+    'sas_amex': 20, // gammelt valg, behandles som Elite
+    'sas_amex_elite': 20,
+    'sas_amex_premium': 15,
+    'sas_amex_classic': 10,
     'sas_mc': 15,
     'sas_visa': 10,
     'trumf_visa': 10,
@@ -10,6 +13,9 @@ class CardCatalog {
 
   static const Map<String, String> names = {
     'sas_amex': 'SAS Amex',
+    'sas_amex_elite': 'SAS Amex Elite',
+    'sas_amex_premium': 'SAS Amex Premium',
+    'sas_amex_classic': 'SAS Amex Classic',
     'sas_mc': 'SAS Mastercard',
     'sas_visa': 'SAS Visa',
     'trumf_visa': 'Trumf Visa',

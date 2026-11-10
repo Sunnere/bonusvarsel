@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../widgets/programs_info.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../services/onboarding_service.dart';
@@ -372,7 +373,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
       title: 'Vi viser deg hvor du tjener mest',
       subtitle: 'Bonusvarsel samler relevante muligheter på ett sted.\nWe show you where to earn the most — all in one place.',
       accent: _blue,
-      highlight: 'SAS + Trumf + kort + kampanjer',
+      highlight: 'SAS + Spenn + Trumf + kort + kampanjer',
       children: [
         _bullet(
           icon: Icons.flight,
@@ -391,6 +392,27 @@ class _OnboardingPageState extends State<OnboardingPage> {
           title: 'Kort og kampanjer',
           subtitle: 'Se hvilke valg som kan gi mest verdi.',
           accent: _blue,
+        ),
+        _bullet(
+          icon: Icons.savings_outlined,
+          title: 'Spenn',
+          subtitle: 'Tjen poeng på dagligvarer, bensin og kort.',
+          accent: _blue,
+        ),
+        _bullet(
+          icon: Icons.schedule,
+          title: 'Kommer snart',
+          subtitle: 'Flying Blue og Miles & More. Premium varsler deg når de er klare.',
+          accent: Colors.grey,
+        ),
+        GestureDetector(
+          onTap: () => showProgramsInfo(context),
+          child: _bullet(
+            icon: Icons.info_outline,
+            title: 'NYTT: Spenn-, Avios- og MR-varsler 💸',
+            subtitle: 'Trykk for å se hva du kan følge nå – og hva som kommer snart (Flying Blue, Miles & More).',
+            accent: Colors.orangeAccent,
+          ),
         ),
       ],
       primaryLabel: 'Fortsett',

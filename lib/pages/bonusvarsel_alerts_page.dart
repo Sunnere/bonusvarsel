@@ -1,4 +1,5 @@
 import 'dart:convert';
+import '../widgets/programs_info.dart';
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -39,6 +40,8 @@ class _BonusvarselAlertsPageState extends State<BonusvarselAlertsPage> {
   int _sasCatIdx = 0;
   String _sasSearch = "";
   bool _spennOn = false;
+  bool _aviosOn = false;
+  bool _mrOn = false;
   bool _showSas = false;
 
   static const _kEmail     = "alert_email";
@@ -148,6 +151,8 @@ class _BonusvarselAlertsPageState extends State<BonusvarselAlertsPage> {
       _trumfFavIds = prefs.getStringList(_kTrumfFavs) ?? [];
       _sasFavIds   = prefs.getStringList(_kSasFavs)   ?? [];
       _spennOn     = (prefs.getStringList('enabled_programs') ?? []).contains('spenn');
+      _aviosOn     = (prefs.getStringList('enabled_programs') ?? []).contains('avios');
+      _mrOn        = (prefs.getStringList('enabled_programs') ?? []).contains('amexmr');
     });
   }
 
@@ -318,6 +323,26 @@ class _BonusvarselAlertsPageState extends State<BonusvarselAlertsPage> {
         content: Text(on ? 'Spenn-varsler er slått på' : 'Spenn-varsler er slått av')));
   }
 
+  // Avios og Amex MR: samme mønster som Spenn, men krever Premium
+  Future<void> _toggleProgramAlerts(String id, String label, bool on) async {
+    if (on && !_isPremium) { Navigator.of(context).pushNamed("/premium"); return; }
+    final current = (await UserState.getEnabledPrograms()).toSet();
+    if (on) {
+      current.add(id);
+    } else {
+      current.remove(id);
+    }
+    await UserState.setEnabledPrograms(current.toList());
+    setState(() {
+      if (id == 'avios') _aviosOn = on;
+      if (id == 'amexmr') _mrOn = on;
+    });
+    await _syncFavoritesToServer(trumf: _trumfFavIds, sas: _sasFavIds);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(on ? '$label-varsler er slått på' : '$label-varsler er slått av')));
+  }
+
   Future<void> _toggleTrumf(String id) async {
     if (!_isPremium) { Navigator.of(context).pushNamed("/premium"); return; }
     final prefs = await SharedPreferences.getInstance();
@@ -427,6 +452,22 @@ class _BonusvarselAlertsPageState extends State<BonusvarselAlertsPage> {
           _badge("💸 SPENN · REMA 1000, NORWEGIAN M.FL.", _spennColor),
           const SizedBox(height: 8),
           _spennBox(),
+          const SizedBox(height: 20),
+          _badge("🛩️ AVIOS · BRITISH AIRWAYS, FINNAIR M.FL.", _aviosColor),
+          const SizedBox(height: 8),
+          _programBox(
+            title: "Avios-varsler",
+            subtitle: "Overføringsbonus og kampanjer på Avios. Krever Premium.",
+            on: _aviosOn,
+            color: _aviosColor,
+            onChanged: (v) => _toggleProgramAlerts('avios', 'Avios', v)),
+          const SizedBox(height: 12),
+          _programBox(
+            title: "Amex Membership Rewards",
+            subtitle: "Bonus når du overfører MR-poeng til Avios og andre. Krever Premium.",
+            on: _mrOn,
+            color: _aviosColor,
+            onChanged: (v) => _toggleProgramAlerts('amexmr', 'Amex MR', v)),
           const SizedBox(height: 24),
           _h2("📧 E-postvarsler"),
           const SizedBox(height: 8),
@@ -524,7 +565,7 @@ class _BonusvarselAlertsPageState extends State<BonusvarselAlertsPage> {
           Text("Få varsel om Superspenn og ekstra Spenn hos REMA 1000, Norwegian m.fl.",
               style: TextStyle(fontSize: 12, color: Color(0xFFCBD5E1), height: 1.35)),
           SizedBox(height: 6),
-          Text("Kommer snart: Avios · Flying Blue · Miles & More",
+          Text("Nå også: Avios og Amex MR · Kommer snart: Flying Blue · Miles & More",
               style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFFFDBA74))),
         ])),
         const Icon(Icons.info_outline, size: 20, color: Color(0xFFFDBA74)),
@@ -532,55 +573,7 @@ class _BonusvarselAlertsPageState extends State<BonusvarselAlertsPage> {
     ),
   );
 
-  void _showProgramsInfo() {
-    showDialog(
-      context: context,
-      builder: (ctx) => Dialog(
-        backgroundColor: const Color(0xFF0B1728),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(children: [
-                const Icon(Icons.info_outline, color: Color(0xFFFDBA74)),
-                const SizedBox(width: 8),
-                const Expanded(child: Text("Programmer i Bonusvarsel",
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Colors.white))),
-                IconButton(icon: const Icon(Icons.close, color: Colors.white54),
-                    onPressed: () => Navigator.pop(ctx)),
-              ]),
-              const SizedBox(height: 12),
-              const Text("✅ Du kan følge nå",
-                  style: TextStyle(color: Color(0xFF34D399), fontWeight: FontWeight.w700, fontSize: 13)),
-              const SizedBox(height: 8),
-              const Text("• Trumf Netthandel – ekstra bonus i favorittbutikkene dine\n"
-                  "• SAS Online Shopping – ekstra EuroBonus-poeng\n"
-                  "• Spenn – Superspenn-dager og ekstra Spenn hos REMA 1000, Norwegian m.fl.",
-                  style: TextStyle(fontSize: 12, color: Color(0xFFCBD5E1), height: 1.5)),
-              const SizedBox(height: 16),
-              const Text("💸 Slik får du Spenn-varsler",
-                  style: TextStyle(color: Color(0xFFFDBA74), fontWeight: FontWeight.w700, fontSize: 13)),
-              const SizedBox(height: 8),
-              _step("1", "Slå på «Spenn-kampanjer» lenger ned på denne siden"),
-              _step("2", "Legg inn e-post eller koble til Telegram"),
-              _step("3", "Legg gjerne inn Spenn-saldoen din under Reis"),
-              const SizedBox(height: 16),
-              const Text("🔜 Kommer snart",
-                  style: TextStyle(color: Color(0xFF60A5FA), fontWeight: FontWeight.w700, fontSize: 13)),
-              const SizedBox(height: 8),
-              const Text("• Avios (British Airways m.fl.)\n"
-                  "• Flying Blue (Air France-KLM)\n"
-                  "• Miles & More (Lufthansa m.fl.)",
-                  style: TextStyle(fontSize: 12, color: Color(0xFFCBD5E1), height: 1.5)),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
+  void _showProgramsInfo() => showProgramsInfo(context);
 
   Widget _hero() => Container(
     padding: const EdgeInsets.all(20),
@@ -597,16 +590,50 @@ class _BonusvarselAlertsPageState extends State<BonusvarselAlertsPage> {
       const Text("Velg butikkene du handler i. Vi varsler deg når de har ekstra bonus.",
           style: TextStyle(color: Colors.white70, height: 1.4)),
       const SizedBox(height: 12),
-      Wrap(spacing: 8, children: [
+      Wrap(spacing: 8, runSpacing: 8, children: [
         _hchip("Aktive", _activeAlerts.length.toString()),
         _hchip("Trumf", "${_trumfFavIds.length}/$_maxFavs"),
         _hchip("SAS", "${_sasFavIds.length}/$_maxFavs"),
         _hchip("Spenn", _spennOn ? "på" : "av"),
+        _hchip("Avios", _aviosOn ? "på" : "av"),
+        _hchip("Amex MR", _mrOn ? "på" : "av"),
       ]),
     ]),
   );
 
   static const _spennColor = Color(0xFFF97316);
+  static const _aviosColor = Color(0xFF38BDF8);
+
+  Widget _programBox({
+    required String title,
+    required String subtitle,
+    required bool on,
+    required Color color,
+    required ValueChanged<bool> onChanged,
+  }) => Container(
+    decoration: BoxDecoration(
+      color: color.withValues(alpha: 0.08),
+      borderRadius: BorderRadius.circular(20),
+      border: Border.all(color: color.withValues(alpha: 0.35))),
+    padding: const EdgeInsets.all(16),
+    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Row(children: [
+        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(title,
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: color)),
+          const SizedBox(height: 2),
+          Text(subtitle,
+              style: const TextStyle(fontSize: 11, color: Color(0xFFBAE6FD))),
+        ])),
+        Switch(value: on, activeThumbColor: color, onChanged: onChanged),
+      ]),
+      if (on && _emailValue.isEmpty && _telegramValue.isEmpty) ...[
+        const SizedBox(height: 8),
+        const Text("Legg inn e-post eller Telegram lenger ned for å motta varslene.",
+            style: TextStyle(fontSize: 12, color: Color(0xFFBAE6FD))),
+      ],
+    ]),
+  );
 
   Widget _spennBox() => Container(
     decoration: BoxDecoration(

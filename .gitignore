@@ -96,3 +96,5 @@ scripts/run_dev.sh
 # Privat App Store-nøkkel – aldri i git
 functions/keys/
 *.p8
+*.pem
+serviceAccount*.json

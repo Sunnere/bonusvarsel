@@ -14,7 +14,7 @@ if (!admin.apps.length) {
 const db = admin.firestore();
 
 // ── App Store promo offer signing ─────────────────────────────────────────────
-const KEY_ID = "ZQF632P8J4";
+const KEY_ID = "6572G9CBWF";
 const BUNDLE_ID = "com.royrotvold.bonusvarsel";
 
 function loadPrivateKey() {

@@ -7,7 +7,7 @@ const crypto = require("crypto");
 const fs = require("fs");
 const path = require("path");
 
-const KEY_ID = "ZQF632P8J4";
+const KEY_ID = "6572G9CBWF";
 const BUNDLE_ID = "com.royrotvold.bonusvarsel";
 const PLAN_RANK = { free: 0, premium: 1, pro: 1, elite: 2 };
 const PROD = "https://api.storekit.itunes.apple.com";

@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -7,7 +6,6 @@ import 'user_state.dart';
 import '../models/card_catalog.dart';
 
 class AiService {
-  static const String _apiUrl = 'https://api.anthropic.com/v1/messages';
   static const String _compiledKey =
       String.fromEnvironment('ANTHROPIC_API_KEY', defaultValue: '');
   static const String _supportEmail = 'support@bonusvarsel.no';

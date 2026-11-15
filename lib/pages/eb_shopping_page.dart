@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
 import '../widgets/programs_info.dart';
-import '../widgets/cashback_to_points_card.dart';
 import '../widgets/ad_slot.dart';
 import '../services/ad_service.dart';
 import '../models/ad_slot.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../services/entitlement_service.dart';
 import '../services/tab_nav.dart';
 import '../services/user_state.dart';
@@ -22,8 +20,6 @@ class EbShoppingPage extends StatefulWidget {
 
 class _EbShoppingPageState extends State<EbShoppingPage> {
   final Set<int> _openSteps = {};
-  int _trumfCatIdx = 0;
-  int _sasCatIdx = 0;
 
   Map<String, dynamic>? _topTrumf;
   Map<String, dynamic>? _topSas;
@@ -95,10 +91,8 @@ class _EbShoppingPageState extends State<EbShoppingPage> {
 
   static const _tGreen  = Color(0xFF34D399);
   static const _tBg     = Color(0xFF152B4A);
-  static const _tBorder = Color(0xFF2E7A55);
   static const _sBlue   = Color(0xFF60A5FA);
   static const _sBg     = Color(0xFF0F2D4A);
-  static const _sBorder = Color(0xFF1D4ED8);
 
   static const _trumfCats = [
     {"name": "Alle kampanjer", "icon": "⭐", "url": "https://trumfnetthandel.no/"},

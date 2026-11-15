@@ -52,11 +52,9 @@ class _BonusvarselAlertsPageState extends State<BonusvarselAlertsPage> {
   static const _tGreen  = Color(0xFF16a34a);
   static const _tGreenL = Color(0xFF4ADE80);
   static const _tBg     = Color(0xFF0B1728);
-  static const _tBorder = Color(0xFF34D399);
   static const _sBlue   = Color(0xFF2563eb);
   static const _sBlueL  = Color(0xFF93c5fd);
   static const _sBg     = Color(0xFF0B1728);
-  static const _sBorder = Color(0xFF60A5FA);
 
   static const _trumfCats = [
     {"id": -1, "icon": "⭐", "name": "Kampanjer"},

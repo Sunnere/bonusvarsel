@@ -61,7 +61,6 @@ class _BonusvarselHomeMockState extends State<BonusvarselHomeMock> {
   // Theme-ish tokens
   static const _brandBlueA = Color(0xFF2F80ED);
   static const _brandBlueB = Color(0xFF0B4AA2);
-  static const _bg = Color(0xFFF6F7FB);
 
   @override
   Widget build(BuildContext context) {

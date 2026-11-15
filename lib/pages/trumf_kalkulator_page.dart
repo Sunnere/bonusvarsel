@@ -7,8 +7,6 @@ import '../services/ad_service.dart';
 import '../models/ad_slot.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../services/trumf_calculator.dart';
-import '../services/entitlement_service.dart';
 import 'paywall_page.dart';
 import '../widgets/cashback_to_points_card.dart';
 import '../widgets/points_earn_card.dart';

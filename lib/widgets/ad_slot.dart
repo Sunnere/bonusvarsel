@@ -26,7 +26,6 @@ class AdSlotCard extends StatefulWidget {
 class _AdSlotCardState extends State<AdSlotCard> {
 
   static const int _safeMaxLinesTitle = 2;
-  static const int _safeMaxLinesBody = 2;
 
   bool _counted = false;
 

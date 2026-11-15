@@ -5,7 +5,6 @@ import '../widgets/ad_slot.dart';
 import '../services/ad_service.dart';
 import '../models/ad_slot.dart';
 import 'package:url_launcher/url_launcher.dart';
-import '../models/card_catalog.dart';
 import '../services/user_state.dart';
 import '../services/entitlement_service.dart';
 import 'package:home_widget/home_widget.dart';
@@ -13,7 +12,6 @@ import '../services/ai_service.dart';
 import 'premium_page.dart';
 import '../services/balance_import_service.dart';
 import '../widgets/balance_import_sheet.dart';
-import 'premium_page.dart';
 
 // ─── Poengkostnader EuroBonus (per person, én vei) ───────────────────────────
 // Kilde: SAS EuroBonus bonustabell
@@ -570,7 +568,6 @@ class _TravelPageState extends State<TravelPage> with WidgetsBindingObserver {
   }
 
   // ── UI ───────────────────────────────────────────────────────────────────
-  static const _bg      = Color(0xFF0F2340);
   static const _surface = Color(0xFF0F2340);
   static const _surface2= Color(0xFF152B4A);
   static const _border  = Color(0xFF2F435C);

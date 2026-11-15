@@ -1,11 +1,8 @@
 import 'ai_chat_page.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'settings_page.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
-import 'bonusvarsel_admin_offers_page.dart';
-import 'ad_debug_page.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import '../services/whats_new_service.dart';
 import 'eb_shopping_page.dart';

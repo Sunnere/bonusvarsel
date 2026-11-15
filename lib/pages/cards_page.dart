@@ -1,6 +1,4 @@
-import 'dart:math' as math;
 import 'package:flutter/material.dart';
-import '../services/entitlement_service.dart';
 import '../theme/app_theme.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:firebase_auth/firebase_auth.dart';

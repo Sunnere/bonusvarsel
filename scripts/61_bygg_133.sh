@@ -1,12 +1,12 @@
 #!/bin/bash
-# 61: Bygg 1.3.2+40 for App Store (ipa) og Google Play (aab). Stopper ved feil.
+# 61: Bygg 1.3.3+41 for App Store (ipa) og Google Play (aab). Stopper ved feil.
 # Kjør: bash scripts/61_bygg_132.sh   (REPO=... for annen mappe)
 set -euo pipefail
 REPO="${REPO:-$HOME/bonusvarsel}"
 cd "$REPO"
 
 VER=$(grep -E '^version:' pubspec.yaml | awk '{print $2}')
-[ "$VER" = "1.3.2+40" ] || { echo "❌ pubspec har versjon $VER, forventet 1.3.2+40"; exit 1; }
+[ "$VER" = "1.3.3+41" ] || { echo "❌ pubspec har versjon $VER, forventet 1.3.3+41"; exit 1; }
 echo "== Bygger $VER"
 
 flutter pub get

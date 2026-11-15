@@ -83,14 +83,7 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Bonusvarsel bruker valgt skjermbilde til å lese saldoen din. Bildet lagres ikke.</string>
 </dict>
 </plist>
-	<key>CFBundleURLTypes</key>
-	<array>
-		<dict>
-			<key>CFBundleURLSchemes</key>
-			<array>
-				<string>bonusvarsel</string>
-			</array>
-		</dict>
-	</array>

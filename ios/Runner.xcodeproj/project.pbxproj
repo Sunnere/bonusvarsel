@@ -10,7 +10,7 @@
 		1498D2341E8E89220040F4C2 /* GeneratedPluginRegistrant.m in Sources */ = {isa = PBXBuildFile; fileRef = 1498D2331E8E89220040F4C2 /* GeneratedPluginRegistrant.m */; };
 		331C808B294A63AB00263BE5 /* RunnerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 331C807B294A618700263BE5 /* RunnerTests.swift */; };
 		3B3967161E833CAA004F5970 /* AppFrameworkInfo.plist in Resources */ = {isa = PBXBuildFile; fileRef = 3B3967151E833CAA004F5970 /* AppFrameworkInfo.plist */; };
-		5667D63B304B6990002142D0 /* BonusWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 56F55D262FB79A1E006E2830 /* BonusWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		5667D63B304B6990002142D0 /* ¨˙BonusWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 56F55D262FB79A1E006E2830 /* ¨˙BonusWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		56A738652F960E4700BCEC36 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 56A738642F960E4700BCEC36 /* GoogleService-Info.plist */; };
 		56F55D272FB79A1E006E2830 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 56F55D072FB799CF006E2830 /* WidgetKit.framework */; };
 		56F55D282FB79A1E006E2830 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 56F55D092FB799CF006E2830 /* SwiftUI.framework */; };
@@ -46,7 +46,7 @@
 			dstPath = "";
 			dstSubfolderSpec = 13;
 			files = (
-				5667D63B304B6990002142D0 /* BonusWidgetExtension.appex in Embed Foundation Extensions */,
+				5667D63B304B6990002142D0 /* ¨˙BonusWidgetExtension.appex in Embed Foundation Extensions */,
 			);
 			name = "Embed Foundation Extensions";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -76,7 +76,7 @@
 		56DBAB273044822B008B509D /* BonusWidgetExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = BonusWidgetExtension.entitlements; sourceTree = "<group>"; };
 		56F55D072FB799CF006E2830 /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
 		56F55D092FB799CF006E2830 /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
-		56F55D262FB79A1E006E2830 /* BonusWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = BonusWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		56F55D262FB79A1E006E2830 /* ¨˙BonusWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = "¨˙BonusWidgetExtension.appex"; sourceTree = BUILT_PRODUCTS_DIR; };
 		6BF1479CC5E1B0E4B32D5E3D /* Pods-Runner.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner.debug.xcconfig"; path = "Target Support Files/Pods-Runner/Pods-Runner.debug.xcconfig"; sourceTree = "<group>"; };
 		70C3953ACFCACCF26FB0741E /* Pods_Runner.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_Runner.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		74858FAD1ED2DC5600515810 /* Runner-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "Runner-Bridging-Header.h"; sourceTree = "<group>"; };
@@ -96,13 +96,13 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		56FD7CAB2FB7C6340083316D /* Exceptions for "BonusWidget" folder in "BonusWidgetExtension" target */ = {
+		56FD7CAB2FB7C6340083316D /* Exceptions for "BonusWidget" folder in "¨˙BonusWidgetExtension" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				BonusWidget.swift,
 				BonusWidgetBundle.swift,
 			);
-			target = 56F55D252FB79A1E006E2830 /* BonusWidgetExtension */;
+			target = 56F55D252FB79A1E006E2830 /* ¨˙BonusWidgetExtension */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
@@ -110,7 +110,7 @@
 		56F55D462FB79A6B006E2830 /* BonusWidget */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
-				56FD7CAB2FB7C6340083316D /* Exceptions for "BonusWidget" folder in "BonusWidgetExtension" target */,
+				56FD7CAB2FB7C6340083316D /* Exceptions for "BonusWidget" folder in "¨˙BonusWidgetExtension" target */,
 			);
 			explicitFileTypes = {
 			};
@@ -213,7 +213,7 @@
 			children = (
 				97C146EE1CF9000F007C117D /* Runner.app */,
 				331C8081294A63A400263BE5 /* RunnerTests.xctest */,
-				56F55D262FB79A1E006E2830 /* BonusWidgetExtension.appex */,
+				56F55D262FB79A1E006E2830 /* ¨˙BonusWidgetExtension.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -256,9 +256,9 @@
 			productReference = 331C8081294A63A400263BE5 /* RunnerTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
-		56F55D252FB79A1E006E2830 /* BonusWidgetExtension */ = {
+		56F55D252FB79A1E006E2830 /* ¨˙BonusWidgetExtension */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 56F55D3B2FB79A1F006E2830 /* Build configuration list for PBXNativeTarget "BonusWidgetExtension" */;
+			buildConfigurationList = 56F55D3B2FB79A1F006E2830 /* Build configuration list for PBXNativeTarget "¨˙BonusWidgetExtension" */;
 			buildPhases = (
 				56F55D222FB79A1E006E2830 /* Sources */,
 				56F55D232FB79A1E006E2830 /* Frameworks */,
@@ -268,9 +268,9 @@
 			);
 			dependencies = (
 			);
-			name = BonusWidgetExtension;
+			name = "¨˙BonusWidgetExtension";
 			productName = BonusWidgetExtension;
-			productReference = 56F55D262FB79A1E006E2830 /* BonusWidgetExtension.appex */;
+			productReference = 56F55D262FB79A1E006E2830 /* ¨˙BonusWidgetExtension.appex */;
 			productType = "com.apple.product-type.app-extension";
 		};
 		97C146ED1CF9000F007C117D /* Runner */ = {
@@ -337,7 +337,7 @@
 			targets = (
 				97C146ED1CF9000F007C117D /* Runner */,
 				331C8080294A63A400263BE5 /* RunnerTests */,
-				56F55D252FB79A1E006E2830 /* BonusWidgetExtension */,
+				56F55D252FB79A1E006E2830 /* ¨˙BonusWidgetExtension */,
 			);
 		};
 /* End PBXProject section */
@@ -518,7 +518,7 @@
 		};
 		56F55D382FB79A1F006E2830 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = 56F55D252FB79A1E006E2830 /* BonusWidgetExtension */;
+			target = 56F55D252FB79A1E006E2830 /* ¨˙BonusWidgetExtension */;
 			targetProxy = 56F55D372FB79A1F006E2830 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
@@ -587,7 +587,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 13.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				SDKROOT = iphoneos;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -612,6 +612,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
+				MARKETING_VERSION = 1.2.5;
 				PRODUCT_BUNDLE_IDENTIFIER = com.royrotvold.bonusvarsel;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
@@ -683,7 +684,7 @@
 				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
 				CODE_SIGN_ENTITLEMENTS = BonusWidgetExtension.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 37;
 				DEVELOPMENT_TEAM = ZG8AAY73DY;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu17;
@@ -698,7 +699,7 @@
 					"@executable_path/../../Frameworks",
 				);
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.2.5;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				PRODUCT_BUNDLE_IDENTIFIER = com.royrotvold.bonusvarsel.BonusWidgetExtension;
@@ -728,7 +729,7 @@
 				CODE_SIGN_ENTITLEMENTS = BonusWidgetExtension.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 37;
 				DEVELOPMENT_TEAM = ZG8AAY73DY;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu17;
@@ -743,7 +744,7 @@
 					"@executable_path/../../Frameworks",
 				);
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.2.5;
 				MTL_FAST_MATH = YES;
 				PRODUCT_BUNDLE_IDENTIFIER = com.royrotvold.bonusvarsel.BonusWidgetExtension;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -769,7 +770,7 @@
 				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
 				CODE_SIGN_ENTITLEMENTS = BonusWidgetExtension.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 37;
 				DEVELOPMENT_TEAM = ZG8AAY73DY;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu17;
@@ -784,7 +785,7 @@
 					"@executable_path/../../Frameworks",
 				);
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.2.5;
 				MTL_FAST_MATH = YES;
 				PRODUCT_BUNDLE_IDENTIFIER = com.royrotvold.bonusvarsel.BonusWidgetExtension;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -848,7 +849,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 13.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				MTL_ENABLE_DEBUG_INFO = YES;
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = iphoneos;
@@ -901,7 +902,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 13.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				SDKROOT = iphoneos;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -928,6 +929,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
+				MARKETING_VERSION = 1.2.5;
 				PRODUCT_BUNDLE_IDENTIFIER = com.royrotvold.bonusvarsel;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
@@ -954,6 +956,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
+				MARKETING_VERSION = 1.2.5;
 				PRODUCT_BUNDLE_IDENTIFIER = com.royrotvold.bonusvarsel;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -976,7 +979,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		56F55D3B2FB79A1F006E2830 /* Build configuration list for PBXNativeTarget "BonusWidgetExtension" */ = {
+		56F55D3B2FB79A1F006E2830 /* Build configuration list for PBXNativeTarget "¨˙BonusWidgetExtension" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				56F55D3C2FB79A1F006E2830 /* Debug */,

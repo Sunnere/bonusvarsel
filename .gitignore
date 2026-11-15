@@ -98,3 +98,7 @@ functions/keys/
 *.p8
 *.pem
 serviceAccount*.json
+Claude outputs/
+launchd_disabled/
+generate_campaign_image.py
+openai_test_image.py

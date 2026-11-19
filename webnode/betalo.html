@@ -1,0 +1,231 @@
+<style>
+.bt{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;color:#1B2433;line-height:1.55;background:#FFFFFF}
+.bt *{box-sizing:border-box}
+.bt p{color:#4A556B;font-size:16px;margin:0 0 12px}
+.bt-hero{background:#0B1F3A;color:#FFFFFF;padding:48px 20px 56px;text-align:center}
+.bt-eyebrow{text-transform:uppercase;letter-spacing:2px;font-size:12px;color:#8FB0FF;margin-bottom:14px}
+.bt-hero h1{font-size:30px;line-height:1.15;margin:0 auto 16px;max-width:760px;color:#FFFFFF}
+.bt-hero p{font-size:17px;color:#C9D6EE;max-width:620px;margin:0 auto}
+.bt-sec{padding:48px 20px;max-width:1040px;margin:0 auto}
+.bt h2{font-size:25px;line-height:1.2;color:#0B1F3A;margin:0 0 10px}
+.bt-grid{display:grid;grid-template-columns:1fr;gap:16px;margin-top:22px}
+.bt-card{background:#F5F7FB;border-radius:16px;padding:24px 20px;text-align:center}
+.bt-amt{font-size:18px;font-weight:700;color:#0B1F3A}
+.bt-year{font-size:14px;color:#6B7690;margin-bottom:12px}
+.bt-pts{font-size:46px;font-weight:800;color:#2F6BFF;line-height:1.05}
+.bt-ptsl{font-size:12px;color:#6B7690;text-transform:uppercase;letter-spacing:1px;margin-top:4px}
+.bt-note{border-left:4px solid #2F6BFF;background:#F5F7FB;border-radius:0 12px 12px 0;padding:14px 16px;margin-top:22px;font-size:14px;color:#4A556B}
+.bt-note b{color:#0B1F3A}
+.bt-two{background:#0B1F3A;border-radius:20px;padding:32px 22px;text-align:center;margin:0 20px}
+.bt-two h2{color:#FFFFFF}
+.bt-two p{color:#C9D6EE;max-width:560px;margin:0 auto 18px}
+.bt-btn{display:inline-block;padding:14px 28px;border-radius:12px;font-weight:700;font-size:16px;background:#2F6BFF;text-decoration:none;margin:4px 0;cursor:pointer;border:0}
+.bt-btn.alt{background:#FFFFFF}
+.bt-wrap{max-width:1040px;margin:0 auto}
+.bt-calc{background:#F5F7FB;border-radius:20px;padding:24px 20px;max-width:560px}
+.bt-lab{display:block;font-size:14px;font-weight:700;color:#0B1F3A;margin:14px 0 6px}
+.bt-inp{display:flex;align-items:center;background:#FFFFFF;border:2px solid #D5DCEB;border-radius:12px;padding:0 14px}
+.bt-inp input{flex:1;min-width:0;border:0;outline:0;background:transparent;font-size:22px;font-weight:700;color:#0B1F3A;padding:12px 0;font-family:inherit}
+.bt-inp span{color:#6B7690;font-weight:700}
+.bt-res{background:#FFFFFF;border-radius:14px;padding:18px;margin-top:18px}
+.bt-miss{font-size:15px;color:#4A556B}
+.bt-miss b{display:block;font-size:30px;color:#0B1F3A;line-height:1.15}
+.bt-per{font-size:15px;color:#4A556B;margin-top:10px}
+.bt-fee{font-size:14px;color:#6B7690;margin-top:8px}
+.bt-aff{font-size:12px;color:#6B7690;margin-left:8px}
+.bt-det{margin-top:18px;background:#F5F7FB;border-radius:12px;padding:12px 16px}
+.bt-det summary{cursor:pointer;font-weight:700;color:#0B1F3A}
+.bt-det h3{font-size:15px;color:#0B1F3A;margin:14px 0 4px}
+.bt-det ul{margin:0;padding-left:20px;color:#4A556B;font-size:14px}
+.bt-disc{background:#F5F7FB;padding:28px 20px}
+.bt-disc div{max-width:1040px;margin:0 auto;font-size:13px;color:#6B7690;line-height:1.6}
+.bt-disc b{color:#4A556B}
+@media (min-width:700px){
+.bt-hero{padding:72px 24px 80px}
+.bt-hero h1{font-size:42px}
+.bt-hero p{font-size:19px}
+.bt-sec{padding:64px 24px}
+.bt h2{font-size:32px}
+.bt-grid{grid-template-columns:repeat(3,1fr);gap:20px}
+.bt-two{margin:0 auto;width:calc(100% - 48px);max-width:992px;padding:48px 40px}
+}
+</style>
+
+<div class="bt">
+
+<div class="bt-hero">
+  <div class="bt-eyebrow">Betalo og EuroBonus</div>
+  <h1>Kan vanlige regninger hjelpe deg mot flere EuroBonus-poeng?</h1>
+  <p>Har du regninger du uansett skal betale? Med Betalo kan du betale enkelte regninger med kort. Dersom betalingen kvalifiserer for kortopptjening, kan dette bidra til at du samler flere EuroBonus-poeng.</p>
+</div>
+
+<div class="bt-sec">
+  <h2>Se hva regningsbeløpet kan utgjøre</h2>
+  <p>Beregnet eksempel med SAS Amex Elite.</p>
+  <div class="bt-grid">
+    <div class="bt-card">
+      <div class="bt-amt" id="bt-m0">5&nbsp;000 kr per måned</div>
+      <div class="bt-year" id="bt-y0">60&nbsp;000 kr per år</div>
+      <div class="bt-pts" id="bt-p0">12&nbsp;000</div>
+      <div class="bt-ptsl">Eksempel: EuroBonus-poeng</div>
+    </div>
+    <div class="bt-card">
+      <div class="bt-amt" id="bt-m1">10&nbsp;000 kr per måned</div>
+      <div class="bt-year" id="bt-y1">120&nbsp;000 kr per år</div>
+      <div class="bt-pts" id="bt-p1">24&nbsp;000</div>
+      <div class="bt-ptsl">Eksempel: EuroBonus-poeng</div>
+    </div>
+    <div class="bt-card">
+      <div class="bt-amt" id="bt-m2">12&nbsp;500 kr per måned</div>
+      <div class="bt-year" id="bt-y2">150&nbsp;000 kr per år</div>
+      <div class="bt-pts" id="bt-p2">30&nbsp;000</div>
+      <div class="bt-ptsl">Eksempel: EuroBonus-poeng</div>
+    </div>
+  </div>
+  <div class="bt-note"><b>Viktig:</b> Eksemplene er beregnet ut fra <span id="bt-rate">20</span> EuroBonus-poeng per 100 kr. Dette er ikke en garanti for at alle Betalo-betalinger kvalifiserer for poeng. Gebyrer og kortvilkår må tas med i beregningen.</div>
+</div>
+
+<div class="bt-two">
+  <h2>Har du SAS Amex Elite?</h2>
+  <p>Kortforbruket ditt kan også være relevant når du skal nå forbruksgrensen for 2-for-1-fordelen.</p>
+  <a class="bt-btn alt" href="#bt-kalk"><span style="color:#0B1F3A">Sjekk hvor mye du mangler &rarr;</span></a>
+</div>
+
+<div class="bt-sec" id="bt-kalk">
+  <h2>Hvor mye mangler du?</h2>
+  <p>Skriv inn forbruket ditt så langt i år.</p>
+  <div class="bt-calc">
+    <label class="bt-lab" for="bt-spent">Årlig forbruk hittil</label>
+    <div class="bt-inp"><input id="bt-spent" type="text" inputmode="numeric" autocomplete="off" value="103 000"><span>kr</span></div>
+    <label class="bt-lab" for="bt-goal">Mål</label>
+    <div class="bt-inp"><input id="bt-goal" type="text" inputmode="numeric" autocomplete="off" value="150 000"><span>kr</span></div>
+    <div class="bt-res">
+      <div class="bt-miss">Du mangler: <b id="bt-miss">47&nbsp;000 kr</b></div>
+      <div class="bt-per" id="bt-per">47&nbsp;000 kr / 12 måneder = ca. 3&nbsp;917 kr per måned</div>
+      <div class="bt-fee" id="bt-fee" style="display:none"></div>
+    </div>
+  </div>
+</div>
+
+<div class="bt-sec" style="padding-top:0">
+  <h2>Vil du se hvordan Betalo fungerer?</h2>
+  <p>Betalo er en ekstern betalingstjeneste som kan gjøre det mulig å betale enkelte regninger med kort.</p>
+  <a class="bt-btn" id="bt-go" href="https://betalo.no/" target="_blank" rel="noopener noreferrer"><span style="color:#FFFFFF">Gå til Betalo &rarr;</span></a><span class="bt-aff" id="bt-aff" style="display:none">Annonselenke</span>
+  <details class="bt-det">
+    <summary>Hva kan du betale med Betalo?</summary>
+    <h3>Eksempler</h3>
+    <ul>
+      <li>Faste utgifter som husleie, strøm, internett og mobil</li>
+      <li>Fakturaer fra håndverkere, barnehage, forsikring og medlemskap</li>
+      <li>Skatt og kommunale avgifter</li>
+    </ul>
+    <h3>Dette er ikke tillatt</h3>
+    <ul>
+      <li>Kredittkortregninger, forbrukslån og andre lån</li>
+      <li>Regninger fra inkasso eller Statens innkrevingssentral</li>
+      <li>Med American Express: kun private formål, og ikke overføring til egen konto</li>
+    </ul>
+  </details>
+</div>
+
+<div class="bt-disc">
+  <div><b>Betalo er en ekstern tjeneste.</b> Gebyrer, vilkår, hvilke betalinger som kan gjennomføres og hvordan kortutsteder behandler transaksjonene kan endres. Sjekk alltid gjeldende vilkår hos Betalo og kortutsteder før betaling.</div>
+</div>
+
+</div>
+
+<script>
+(function(){
+var BVCFG={
+  amexElitePointsPer100:20,
+  companionTicketThreshold:150000,
+  betaloFee:null,
+  betaloUrl:"https://betalo.no/",
+  betaloAffiliate:false,
+  calcMonths:12,
+  exampleMonthly:[5000,10000,12500]
+};
+var NB="\u00A0";
+function bvFmt(n){
+  var s=String(Math.round(n));
+  var out="";
+  var c=0;
+  for(var i=s.length-1;i>=0;i--){
+    out=s.charAt(i)+out;
+    c++;
+    if(c%3===0&&i>0){out=NB+out;}
+  }
+  return out;
+}
+function bvParse(v){
+  var d=String(v).replace(/[^0-9]/g,"");
+  if(d===""){return 0;}
+  return parseInt(d,10);
+}
+function bvPoints(amount,per100){
+  return Math.round(amount/100*per100);
+}
+function bvRemaining(spent,goal,months){
+  var s=Number(spent)||0;
+  var g=Number(goal)||0;
+  var m=Number(months)||12;
+  var missing=g-s;
+  if(missing<0){missing=0;}
+  return {missing:missing,months:m,perMonth:Math.round(missing/m)};
+}
+function el(id){return document.getElementById(id);}
+function setText(id,t){var e=el(id);if(e){e.textContent=t;}}
+function renderExamples(){
+  for(var i=0;i<BVCFG.exampleMonthly.length;i++){
+    var mth=BVCFG.exampleMonthly[i];
+    var yr=mth*12;
+    setText("bt-m"+i,bvFmt(mth)+" kr per måned");
+    setText("bt-y"+i,bvFmt(yr)+" kr per år");
+    setText("bt-p"+i,bvFmt(bvPoints(yr,BVCFG.amexElitePointsPer100)));
+  }
+  setText("bt-rate",String(BVCFG.amexElitePointsPer100));
+}
+function renderCalc(){
+  var spent=bvParse(el("bt-spent").value);
+  var goal=bvParse(el("bt-goal").value);
+  var r=bvRemaining(spent,goal,BVCFG.calcMonths);
+  var feeEl=el("bt-fee");
+  if(r.missing===0){
+    setText("bt-miss","0 kr");
+    setText("bt-per","Du har nådd målet.");
+    feeEl.style.display="none";
+    return;
+  }
+  setText("bt-miss",bvFmt(r.missing)+" kr");
+  setText("bt-per",bvFmt(r.missing)+" kr / "+r.months+" måneder = ca. "+bvFmt(r.perMonth)+" kr per måned");
+  if(BVCFG.betaloFee===null){
+    feeEl.style.display="none";
+  }else{
+    var pct=String(Math.round(BVCFG.betaloFee*10000)/100).replace(".",",");
+    setText("bt-fee","Betalo-gebyr ("+pct+" %) på "+bvFmt(r.missing)+" kr: ca. "+bvFmt(r.missing*BVCFG.betaloFee)+" kr");
+    feeEl.style.display="block";
+  }
+}
+function init(){
+  renderExamples();
+  var go=el("bt-go");
+  if(go){go.href=BVCFG.betaloUrl;}
+  var aff=el("bt-aff");
+  if(aff&&BVCFG.betaloAffiliate===true){aff.style.display="inline";}
+  var a=el("bt-spent");
+  var b=el("bt-goal");
+  if(a&&b){
+    a.value=bvFmt(bvParse(a.value));
+    b.value=bvFmt(BVCFG.companionTicketThreshold);
+    a.addEventListener("input",renderCalc);
+    b.addEventListener("input",renderCalc);
+    renderCalc();
+  }
+}
+if(document.readyState==="loading"){
+  document.addEventListener("DOMContentLoaded",init);
+}else{
+  init();
+}
+})();
+</script>

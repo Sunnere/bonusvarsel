@@ -135,6 +135,7 @@ LAG EN KONKRET SLAGPLAN (maks 220 ord):
 2. 💳 Beste kort for DENNE turen + hvorfor
 3. 📈 Topp 3 tips for å samle poeng raskt (med tall)
 4. ✈️ Anbefalt strategi (companion ticket, bruk poeng på fly vs hotell osv.)
+   Har brukeren SAS Amex og mål om Companion Ticket: si kort at det kan gå raskere å nå forbruksgrensen dersom faste regninger betales med Amex via Betalo (dersom betalingen kvalifiserer, gebyr og vilkår gjelder). Mer info på bonusvarsel.no/betalo. Ikke garanter poeng.
 ${isTrumfMember ? '5. 🟢 Trumf QR-strategi for å akselerere' : ''}
 
 Vær spesifikk med tall og kronbeløp.''';
@@ -383,6 +384,7 @@ NØKKELSTRATEGIER:
 - Mål 150 000kr/år på Amex Premium/Elite (100 000kr på Classic) → Companion Ticket (2-for-1 bonusreise)
 - Trumf QR + Amex i NorgesGruppen = dobbel opptjening
 - Billkill.no: betal fakturaer med kort og tjen poeng
+- Betalo (betalo.no): lar deg betale enkelte regninger med Amex-kort. Dersom betalingen kvalifiserer for kortopptjening, kan det bidra til å nå forbruksgrensen for Companion Ticket raskere. Gebyr og vilkår gjelder (sjekk gjeldende sats hos Betalo), og Amex kan bare brukes til private betalinger. Aldri garanter poeng. Nevn Betalo kort når brukeren har SAS Amex og vil samle mer forbruk. Vis til bonusvarsel.no/betalo for mer info.
 - Trumf → EuroBonus: Trumf-app → Bruk bonus → Opprett overføring
 
 BONUSPOENG ASIA T/R (per person):

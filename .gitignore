@@ -102,3 +102,6 @@ Claude outputs/
 launchd_disabled/
 generate_campaign_image.py
 openai_test_image.py
+
+# Nummererte backupfiler (bak28, bak29 ...)
+*.bak[0-9]*

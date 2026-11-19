@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kDebugMode;
 
 import '../services/api_service.dart';
 import 'bonusvarsel_alerts_page.dart';
@@ -47,7 +48,7 @@ class _StaticInfoChip extends StatelessWidget {
 }
 
 class _BonusvarselDevHubPageState extends State<BonusvarselDevHubPage> {
-  static const bool _devHubEnabled = true;
+  static const bool _devHubEnabled = kDebugMode;
 
   Map<String, dynamic>? _systemHealth;
   // AI_ANCHOR: DEV_HUB_STATE_START

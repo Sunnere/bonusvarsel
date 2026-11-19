@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:firebase_auth/firebase_auth.dart';
 import '../services/auth_service.dart';
 import '../pages/login_page.dart';
@@ -612,7 +613,7 @@ class _SettingsPageState extends State<SettingsPage> {
           GestureDetector(
             onTap: () {
               setState(() => _versionTaps++);
-              if (_versionTaps >= 7) {
+              if (kDebugMode && _versionTaps >= 7) {
                 setState(() => _versionTaps = 0);
                 Navigator.push(context, MaterialPageRoute(
                   builder: (_) => const BonusvarselDevHubPage()));

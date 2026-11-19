@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kDebugMode;
 import '../theme/app_theme.dart';
 
 import '../models/feed_item.dart';
@@ -1538,6 +1539,7 @@ class _BonusvarselHomeApiPageState extends State<BonusvarselHomeApiPage> {
           ),
         ),
         actions: [
+          if (kDebugMode)
           IconButton(
             tooltip: 'Dev Hub',
             onPressed: () {

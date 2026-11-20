@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kDebugMode;
 import '../services/auth_service.dart';
 import 'login_page.dart';
 import '../services/entitlement_service.dart';
@@ -25,6 +26,12 @@ class _PremiumPageState extends State<PremiumPage> {
   static const String _privacyPolicyUrl = 'https://www.bonusvarsel.no/privacy-policy/';
   static const String _termsUrl =
       'https://www.apple.com/legal/internet-services/itunes/dev/stdeula/';
+
+  @override
+  void initState() {
+    super.initState();
+    if (EntitlementService.instance.isElite) _selected = 'Elite';
+  }
 
   @override
   void didChangeDependencies() {
@@ -127,6 +134,104 @@ await launchUrl(
     }
   }
 
+  Future<void> _upgradeToElite() async {
+    final url = stripeCheckoutUri('https://buy.stripe.com/9B65kE28i7f44tbcrLcQU05');
+    if (await canLaunchUrl(url)) {
+      await launchUrl(url, mode: LaunchMode.externalApplication);
+    }
+  }
+
+  Future<void> _manageSubscription() async {
+    await launchUrl(
+      Uri.parse('https://billing.stripe.com/p/login/3cIdRa5ku42S2l34ZjcQU00'),
+      mode: LaunchMode.externalApplication,
+    );
+  }
+
+  Widget _buildCurrentPlanBanner(bool isElite) {
+    const gold = Color(0xFFD4AF37);
+    const blue = Color(0xFF60A5FA);
+    final color = isElite ? gold : blue;
+    final benefits = isElite
+        ? const [
+            '✅ Alt i Premium',
+            '✅ 10 Trumf Netthandel-favoritter',
+            '✅ 10 SAS Shopping-favoritter',
+            '✅ SAS Bonusreise-oversikt',
+            '✅ VIP-varsler og prioritert support',
+          ]
+        : const [
+            '✅ 5 Trumf Netthandel-favoritter',
+            '✅ 5 SAS Shopping-favoritter',
+            '✅ AI-analyse ubegrenset',
+            '✅ Personlige varsler',
+            '✅ SAS fly-tilbudsvarsler',
+          ];
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: const Color(0xFF0F2340),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: color, width: 1.4),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text(isElite ? '🏆' : '⭐', style: const TextStyle(fontSize: 34)),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      isElite ? 'Du er Elite-medlem!' : 'Du er Premium-medlem!',
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w900,
+                        color: Color(0xFFF8FAFC),
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      isElite ? '89 kr/mnd' : '49 kr/mnd',
+                      style: const TextStyle(color: Color(0xFFCBD5E1), fontSize: 13),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Text(
+            'Dine fordeler:',
+            style: TextStyle(color: color, fontWeight: FontWeight.w900, fontSize: 15),
+          ),
+          const SizedBox(height: 8),
+          ...benefits.map(
+            (t) => Padding(
+              padding: const EdgeInsets.only(bottom: 6),
+              child: Text(t, style: const TextStyle(color: Color(0xFFE2E8F0), fontSize: 13)),
+            ),
+          ),
+          const SizedBox(height: 8),
+          GestureDetector(
+            onTap: _manageSubscription,
+            child: const Text(
+              '💳 Administrer abonnement →',
+              style: TextStyle(
+                color: Color(0xFF94A3B8),
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
@@ -140,129 +245,16 @@ await launchUrl(
     final isCurrentElite = EntitlementService.instance.isElite;
     final isCurrentPremium = EntitlementService.instance.isPremium;
 
-    if (isCurrentElite || isCurrentPremium) {
-      return Scaffold(
-        appBar: AppBar(title: const Text('Mitt abonnement')),
-        body: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(isCurrentElite ? '🏆' : '⭐', style: const TextStyle(fontSize: 60)),
-                const SizedBox(height: 16),
-                Text(
-                  isCurrentElite ? 'Du er Elite-medlem!' : 'Du er Premium-medlem!',
-                  style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: Color(0xFFF8FAFC)),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  isCurrentElite
-                    ? 'Du har tilgang til alle funksjoner inkludert 10 favoritter og VIP-varsler.'
-                    : 'Du har tilgang til 5 favoritter, AI-analyse og personlige varsler.',
-                  style: const TextStyle(color: Color(0xFFCBD5E1), fontSize: 14, height: 1.5),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 24),
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF0F2340),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: isCurrentElite ? const Color(0xFFD4AF37) : const Color(0xFF60A5FA)),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Dine fordeler:', style: TextStyle(
-                        color: isCurrentElite ? const Color(0xFFD4AF37) : const Color(0xFF60A5FA),
-                        fontWeight: FontWeight.w900, fontSize: 15)),
-                      const SizedBox(height: 10),
-                      ...(isCurrentElite ? [
-                        '✅ Alt i Premium',
-                        '✅ 10 Trumf Netthandel-favoritter',
-                        '✅ 10 SAS Shopping-favoritter',
-                        '✅ SAS Bonusreise-oversikt',
-                        '✅ VIP-varsler og prioritert support',
-                      ] : [
-                        '✅ 5 Trumf Netthandel-favoritter',
-                        '✅ 5 SAS Shopping-favoritter',
-                        '✅ AI-analyse ubegrenset',
-                        '✅ Personlige varsler',
-                        '✅ SAS fly-tilbudsvarsler',
-                      ]).map((t) => Padding(
-                        padding: const EdgeInsets.only(bottom: 6),
-                        child: Text(t, style: const TextStyle(color: Color(0xFFE2E8F0), fontSize: 13)),
-                      )),
-                    ],
-                  ),
-                ),
-
-                // ── Oppgrader til Elite (kun for Premium) ──────────────
-                if (isCurrentPremium && !isCurrentElite) ...[
-                  const SizedBox(height: 24),
-                  Container(
-                    padding: const EdgeInsets.all(18),
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFF2A1F00), Color(0xFF1A1200)],
-                        begin: Alignment.topLeft, end: Alignment.bottomRight),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: const Color(0xFFD4AF37).withOpacity(0.5)),
-                    ),
-                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      const Row(children: [
-                        Text('🏆', style: TextStyle(fontSize: 24)),
-                        SizedBox(width: 8),
-                        Text('Oppgrader til Elite',
-                          style: TextStyle(color: Color(0xFFD4AF37),
-                            fontSize: 18, fontWeight: FontWeight.w900)),
-                      ]),
-                      const SizedBox(height: 8),
-                      const Text(
-                        'Få 10 favoritter, VIP-varsler og prioritert support.',
-                        style: TextStyle(color: Color(0xFFC8D8E8), fontSize: 13, height: 1.5)),
-                      const SizedBox(height: 6),
-                      const Text('Kun 40 kr ekstra per måned',
-                        style: TextStyle(color: Color(0xFFD4AF37),
-                          fontSize: 13, fontWeight: FontWeight.w700)),
-                      const SizedBox(height: 14),
-                      SizedBox(
-                        width: double.infinity,
-                        child: FilledButton(
-                          style: FilledButton.styleFrom(
-                            backgroundColor: const Color(0xFFD4AF37),
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12))),
-                          onPressed: () async {
-                            final url = stripeCheckoutUri('https://buy.stripe.com/9B65kE28i7f44tbcrLcQU05');
-                            if (await canLaunchUrl(url)) {
-                              await launchUrl(url, mode: LaunchMode.externalApplication);
-                            }
-                          },
-                          child: const Text('🏆 Bli Elite — 89 kr/mnd',
-                            style: TextStyle(color: Colors.black,
-                              fontSize: 15, fontWeight: FontWeight.w900)),
-                        ),
-                      ),
-                    ]),
-                  ),
-                ],
-              ],
-            ),
-          ),
-        ),
-      );
-    }
+    final isPaid = isCurrentElite || isCurrentPremium;
 
     return Scaffold(
-      floatingActionButton: PaywallLauncherButton(
-        tooltip: 'Test Premium paywall',
-      ),
+      floatingActionButton: (isPaid || !kDebugMode)
+          ? null
+          : PaywallLauncherButton(
+              tooltip: 'Test Premium paywall',
+            ),
       appBar: AppBar(
-        title: const Text('Premium & Elite'),
+        title: Text(isPaid ? 'Mitt abonnement' : 'Premium & Elite'),
       ),
       body: SafeArea(
         child: Stack(
@@ -273,6 +265,11 @@ await launchUrl(
                 child: ListView(
                   padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
                   children: [
+                    if (isPaid) ...[
+                      _buildCurrentPlanBanner(isCurrentElite),
+                      const SizedBox(height: 18),
+                    ],
+                    if (!isPaid) ...[
                     _HeroConversion(
                       accent: accent,
                       title: 'Få alle poengene — uten å tenke',
@@ -505,13 +502,15 @@ await launchUrl(
                       ),
                     ),
 
+                    ],
                     const SizedBox(height: 18),
 
                     const SizedBox(height: 16),
                     _SectionTitle(
-                      title: 'Velg nivå',
-                      subtitle:
-                          'Premium hvis du vil maksimere SAS Shopping. Elite hvis du vil ha alt (SAS + mer).',
+                      title: isPaid ? 'Alle abonnement' : 'Velg nivå',
+                      subtitle: isPaid
+                          ? 'Sammenlign nivåene. Din plan er merket.'
+                          : 'Premium hvis du vil maksimere SAS Shopping. Elite hvis du vil ha alt (SAS + mer).',
                     ),
                     const SizedBox(height: 10),
 
@@ -634,6 +633,8 @@ await launchUrl(
                             selected: _selected,
                             onSelect: _select,
                             onCheckout: _checkout,
+                            currentPlan: isPaid ? (isCurrentElite ? 'Elite' : 'Premium') : null,
+                            onUpgradeElite: _upgradeToElite,
                           ),
                         ],
                       ),
@@ -731,6 +732,7 @@ await launchUrl(
                       ],
                     ),
 
+                    if (!isPaid) ...[
                     const SizedBox(height: 18),
                     Container(
                       padding: const EdgeInsets.all(14),
@@ -755,6 +757,7 @@ await launchUrl(
                         ],
                       ),
                     ),
+                    ],
                     const SizedBox(height: 20),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -780,6 +783,7 @@ await launchUrl(
                         ),
                       ],
                     ),
+                    if (!isPaid) ...[
                     const SizedBox(height: 16),
                     SizedBox(
                       width: double.infinity,
@@ -800,6 +804,7 @@ await launchUrl(
                         ),
                       ),
                     ),
+                    ],
                   ],
                 ),
               ),
@@ -1038,12 +1043,20 @@ class _PlanPicker extends StatelessWidget {
   final String selected;
   final ValueChanged<String> onSelect;
   final void Function(String plan) onCheckout;
+  final String? currentPlan;
+  final VoidCallback? onUpgradeElite;
 
   const _PlanPicker({required this.accent,
     required this.selected,
     required this.onSelect,
     required this.onCheckout,
+    this.currentPlan,
+    this.onUpgradeElite,
   });
+
+  int _rank(String p) => p == 'Elite' ? 2 : (p == 'Premium' ? 1 : 0);
+  bool _isCurrent(String p) => currentPlan != null && _rank(p) == _rank(currentPlan!);
+  bool _isIncluded(String p) => currentPlan != null && _rank(p) < _rank(currentPlan!);
 
   @override
   Widget build(BuildContext context) {
@@ -1056,6 +1069,8 @@ class _PlanPicker extends StatelessWidget {
           badge: 'Start',
           emphasis: false,
           selected: selected == 'Gratis',
+          current: _isCurrent('Gratis'),
+          included: _isIncluded('Gratis'),
           accent: accent,
           bullets: const [
             'Begrensede butikker',
@@ -1072,6 +1087,8 @@ class _PlanPicker extends StatelessWidget {
           badge: 'Mest valgt',
           emphasis: true,
           selected: selected == 'Premium',
+          current: _isCurrent('Premium'),
+          included: _isIncluded('Premium'),
           accent: accent,
           bullets: const [
             'Alle SAS Shopping-butikker',
@@ -1091,6 +1108,8 @@ class _PlanPicker extends StatelessWidget {
           badge: 'Mest eksklusiv',
           emphasis: true,
           selected: selected == 'Elite',
+          current: _isCurrent('Elite'),
+          included: _isIncluded('Elite'),
           accent: accent,
           bullets: const [
             'Alt i Premium',
@@ -1099,10 +1118,12 @@ class _PlanPicker extends StatelessWidget {
             'Smartere prioritering (kommer)',
           ],
           onTap: () => onSelect('Elite'),
-          ctaLabel: 'Elite',
+          ctaLabel: currentPlan == 'Premium' ? 'Oppgrader til Elite — 89 kr/mnd' : 'Elite',
           ctaColor: const Color(0xFFD4AF37),
           note: '89 kr/mnd · Estimert opptil 8 000 poeng/mnd',
-          onCta: () => onCheckout('Elite'),
+          onCta: (currentPlan == 'Premium' && onUpgradeElite != null)
+              ? onUpgradeElite!
+              : () => onCheckout('Elite'),
         ),
       ],
     );
@@ -1122,6 +1143,8 @@ class _PlanCard extends StatelessWidget {
   final VoidCallback onTap;
   final String ctaLabel;
   final String? note;
+  final bool current;
+  final bool included;
 
   // ignore: unused_element_parameter
   final Color? ctaLabelColor;
@@ -1137,6 +1160,8 @@ class _PlanCard extends StatelessWidget {
     required this.onTap,
     required this.ctaLabel,
     this.note,
+    this.current = false,
+    this.included = false,
     this.ctaLabelColor,
     required this.onCta,
     this.ctaColor,
@@ -1252,7 +1277,7 @@ class _PlanCard extends StatelessWidget {
                       ),
                     ),
                     child: Text(
-                      badge,
+                      current ? 'Din plan' : badge,
                       style: TextStyle(
                         fontWeight: FontWeight.w900,
                         color: emphasis ? accent : cs.onSurface.withValues(alpha: 0.75),
@@ -1308,11 +1333,13 @@ Icon(
                   style: FilledButton.styleFrom(
                     backgroundColor: emphasis ? accent : cs.primary,
                     foregroundColor: emphasis ? Colors.black : cs.onPrimary,
+                    disabledBackgroundColor: accent.withValues(alpha: 0.22),
+                    disabledForegroundColor: Colors.white,
                     textStyle: const TextStyle(fontWeight: FontWeight.w900),
                   ),
-                  onPressed: onCta,
+                  onPressed: (current || included) ? null : onCta,
                   child: Text(
-                    ctaLabel,
+                    current ? 'Din plan ✓' : (included ? 'Inkludert' : ctaLabel),
                     style: (ctaLabelColor == null) ? null : TextStyle(color: ctaLabelColor),
                   ),
                 ),

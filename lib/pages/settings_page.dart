@@ -412,9 +412,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 GestureDetector(
                   onTap: () => Navigator.pushNamed(context, '/premium'),
                   child: Text(
-                    _currentPlan == 'elite'
-                      ? 'Se alle fordeler →'
-                      : 'Oppgrader til Elite →',
+                    'Se alle abonnement →',
                     style: TextStyle(
                       color: _currentPlan == 'elite'
                         ? const Color(0xFFD4AF37)

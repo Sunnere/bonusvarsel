@@ -8,6 +8,7 @@ import '../models/ad_slot.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'paywall_page.dart';
+import 'premium_page.dart';
 import '../widgets/cashback_to_points_card.dart';
 import '../widgets/points_earn_card.dart';
 import '../services/tab_nav.dart';
@@ -603,11 +604,54 @@ class _TrumfKalkulatorPageState extends State<TrumfKalkulatorPage> {
     )).toList();
   }
 
+  Widget _planCard() {
+    final color = _isElite
+        ? const Color(0xFFD4AF37)
+        : (_isPremium ? const Color(0xFF34D399) : const Color(0xFF60A5FA));
+    final title = _isElite
+        ? 'Ditt abonnement: Elite'
+        : (_isPremium ? 'Ditt abonnement: Premium' : 'Oppgrader til Premium eller Elite');
+    final sub = _isElite
+        ? 'Se alle fordeler og administrer abonnementet'
+        : (_isPremium
+            ? 'Se alle abonnement, oppgrader til Elite eller administrer'
+            : 'Se hva du får og velg abonnement');
+    return GestureDetector(
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const PremiumPage()),
+      ),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.10),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: color.withValues(alpha: 0.6)),
+        ),
+        child: Row(children: [
+          Text(_isElite ? '🏆' : '⭐', style: const TextStyle(fontSize: 24)),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(title,
+                  style: TextStyle(color: color, fontSize: 14, fontWeight: FontWeight.w800)),
+              const SizedBox(height: 2),
+              Text(sub, style: const TextStyle(color: Colors.white70, fontSize: 12)),
+            ]),
+          ),
+          Icon(Icons.chevron_right, color: color),
+        ]),
+      ),
+    );
+  }
+
   // ── FAVORITTER ────────────────────────────────────────────
   Widget _buildFavoritter() {
     return ListView(padding: const EdgeInsets.all(16), children: [
       _adBanner('spar_favoritter'),
       const SizedBox(height: 8),
+      _planCard(),
       const Text(
         'Velg dine faste butikker og partnere.\nKalkulatoren oppdateres automatisk.',
         style: TextStyle(fontSize: 13, color: Colors.white54, height: 1.5),

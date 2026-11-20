@@ -1,6 +1,7 @@
 import 'ai_chat_page.dart';
 import 'package:flutter/material.dart';
 import 'settings_page.dart';
+import 'premium_page.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 import 'package:package_info_plus/package_info_plus.dart';
@@ -99,6 +100,12 @@ class _HomePageState extends State<HomePage> {
     return AppBar(
       title: const Text('Bonusvarsel'),
       actions: [
+        IconButton(
+          icon: const Icon(Icons.workspace_premium_outlined, color: Color(0xFFF0D48A)),
+          tooltip: 'Abonnement',
+          onPressed: () => Navigator.push(context,
+            MaterialPageRoute(builder: (_) => const PremiumPage())),
+        ),
         IconButton(
           icon: const Icon(Icons.settings_outlined),
           tooltip: 'Innstillinger',
